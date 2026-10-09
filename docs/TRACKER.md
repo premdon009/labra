@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 7/17 · Minimal 0/33 · After pilot (P2) 0/9 · Checklist gate P 0/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/17 · Minimal 5/33 · After pilot (P2) 0/9 · Checklist gate P 0/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -41,9 +41,9 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 |---|---|---|---|---|
 | ~~W01~~ | ~~Repo scaffold: README, licence, community files, CI, pre-commit, gitleaks (§13)~~ | P | done | 2026-10-09 · af39ae4 |
 | ~~W02~~ | ~~Research and compliance docs from the zip; ADR-0001 to 0008 (§13, §17.1, §17.6)~~ | P | done | 2026-10-09 · af39ae4 |
-| W03 | Docker Compose stack: web, postgres, caddy, cloudflared (§1a) | P | doing | compose validated; stack unrun: Docker |
-| W04 | Foundation: settings, number series, file store | P | doing | db tests written, unrun: Docker |
-| W05 | Synthetic seed data and dummy datasets | P | doing | db tests written, unrun: Docker |
+| ~~W03~~ | ~~Docker Compose stack: web, postgres, caddy, cloudflared (§1a)~~ | P | done | 2026-10-09 · f5ec4d0 |
+| ~~W04~~ | ~~Foundation: settings, number series, file store~~ | P | done | 2026-10-09 · 662312a |
+| ~~W05~~ | ~~Synthetic seed data and dummy datasets~~ | P | done | 2026-10-09 · 144d19c |
 | W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | todo | |
 | W07 | Restore-drill script and runbooks | P | todo | |
 | ~~W08~~ | ~~Local gate script matching CI (`scripts/ci_local.sh`)~~ | P | done | 2026-10-09 · c0b6258 |
@@ -51,16 +51,16 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W09 | Pilot: one week running in parallel with the current system (§1a build order 5) | P | todo | |
 | W10 | Cold standby: cold-restore runbook + `failover.sh` / `failback.sh`, rehearsed once on a rented India-region VPS (§17.4) | P | todo | |
 | W10.1 | Warm standby: VPS restores the newest snapshot nightly (§17.4) | P2 | todo | |
-| W11 | Multi-arch Docker images (amd64 + arm64), no provider-specific services (§17) | P | doing | image build unrun: Docker |
+| W11 | Multi-arch Docker images (amd64 + arm64), no provider-specific services (§17) | P | doing | amd64 image built locally; arm64 needs QEMU, unrun until CI |
 | W12 | Release pipeline: git-cliff changelog, GHCR images with version tags, `rc` tag for the pilot, `docs/dev/releasing.md` (§18.3) | P | doing | release workflow unrun until the first tag |
 | ~~W13~~ | ~~Dependency register `docs/DEPENDENCIES.md` + `scripts/audit_deps.py` + weekly scheduled check + "no dependency without a row" gate (§19)~~ | P | done | 2026-10-09 · d954bd5 |
 | ~~W14~~ | ~~Supply-chain pinning: GitHub Actions by commit SHA, images by digest, vendored JS/CSS with recorded SHA-256 (§19.1)~~ | P | done | 2026-10-09 · d954bd5 |
 | ~~W15~~ | ~~Platform ports: `labra.core.ports`, built-in adapters chosen from settings with fail-fast startup, one contract test suite per port, import-linter "core imports ports only", ADR-0008 (§17.6)~~ | P | done | 2026-10-09 · 662312a |
-| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | P | doing | readyz db check unrun: Docker; backup heartbeat comes with W07 |
-| M01 | Login and roles | P | doing | db tests written, unrun: Docker |
-| M01.1 | Permission switches per role (`role_permission`) | P | doing | db tests written, unrun: Docker |
-| M01.2 | Staff without login (collected/delivered by) | P | doing | db tests written, unrun: Docker |
-| M02 | Branches | P | doing | db tests written, unrun: Docker |
+| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | P | doing | readyz verified under Compose; backup heartbeat comes with W07 |
+| ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
+| ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
+| ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
+| ~~M02~~ | ~~Branches~~ | P | done | 2026-10-09 · 0a85c84 |
 | M03 | Patients | P | todo | |
 | M04 | Referrers | P | todo | |
 | M05 | Catalog (calculated parameters, preset comments) | P | todo | |
@@ -80,7 +80,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | M14 | Admin (SQLAdmin) | P | todo | |
-| M15 | Compliance floor: hash-chained audit log, consent, no fetal-sex fields | P | doing | db tests written, unrun: Docker |
+| ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
@@ -94,7 +94,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | P | todo | |
 | M24.1 | Rest of the ~300-test starter set | P2 | todo | |
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
-| M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending until the app runs |
+| M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
 | M25.3 | In-app `?` help and printable manual PDF | P2 | todo | |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | P | todo | |
