@@ -24,7 +24,8 @@ To add a branch:
    start of bill and visit numbers, so keep it short.
 3. Fill in the **Name** and choose the **Type**: main lab or collection centre.
 4. Add the address, GST state code, phone, email and GSTIN if the branch has them.
-5. Select **Save**.
+5. Select **Save**. You are given your administrator role at the new branch, so it shows in
+   your list straight away. Give other staff a role there from **Users and roles**.
 
 To change a branch, select **Edit** on its row, change the fields, and select **Save**. To
 close a branch, untick **Active**: its records stay, but no new work can be added there.

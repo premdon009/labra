@@ -102,6 +102,20 @@ def create_branch(db: Session, principal: Principal, data: BranchInput) -> Branc
     branch = Branch(**vars(data), created_by=principal.user_id)
     db.add(branch)
     db.flush()
+    # Roles are held per branch, so without this nobody could see the new branch. The creator
+    # gets only the roles that already let them edit branches: no one gains access this way.
+    editing_roles = db.scalars(
+        select(UserBranchRole.role_id)
+        .join(RolePermission, RolePermission.role_id == UserBranchRole.role_id)
+        .where(
+            UserBranchRole.user_id == principal.user_id,
+            RolePermission.permission == "branch.edit",
+        )
+        .distinct()
+    )
+    for role_id in editing_roles:
+        db.add(UserBranchRole(user_id=principal.user_id, branch_id=branch.id, role_id=role_id))
+    db.flush()
     audit.record(
         db, "branch.create", "branch", branch.id, {"code": branch.code}, user_id=principal.user_id
     )
