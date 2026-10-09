@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Labra{% endblock %} · Labra</title>
+  <link rel="stylesheet" href="{{ vendor_url('basecoat-') }}">
+  <link rel="stylesheet" href="/static/labra.css">
+  <script src="{{ vendor_url('htmx-') }}" defer></script>
+  <script src="{{ vendor_url('alpine-csp-') }}" defer></script>
+</head>
+<body>
+{% if principal %}
+<div class="app">
+  <aside class="app-nav" aria-label="Main menu">
+    <a class="app-brand" href="/">Labra</a>
+    <nav>
+      <a href="/" {% if request.url.path == '/' %}aria-current="page"{% endif %}>Home</a>
+      {% if principal.can('branch.view') %}
+      <a href="/admin/branches" {% if request.url.path.startswith('/admin/branches') %}aria-current="page"{% endif %}>Branches</a>
+      {% endif %}
+      {% if principal.can('user.view') %}
+      <a href="/admin/users" {% if request.url.path.startswith('/admin/users') %}aria-current="page"{% endif %}>Staff and roles</a>
+      {% endif %}
+      {% if principal.can('setting.view') %}
+      <a href="/admin/settings" {% if request.url.path.startswith('/admin/settings') %}aria-current="page"{% endif %}>Settings</a>
+      {% endif %}
+    </nav>
+  </aside>
+  <div class="app-main">
+    <header class="app-top">
+      <form method="post" action="/branch" class="app-branch">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="branch-switch">Working at</label>
+        <select id="branch-switch" name="branch_id" class="select">
+          {% for id, label in principal.branch_labels.items() %}
+          <option value="{{ id }}" {% if id == principal.branch_id %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-sm-outline">Switch</button>
+      </form>
+      <div class="app-user">
+        {% if manual_url %}<a class="btn-sm-ghost" href="{{ manual_url }}" target="_blank" rel="noopener">Help</a>{% endif %}
+        <span>{{ principal.full_name }}</span>
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn-sm-outline">Sign out</button>
+        </form>
+      </div>
+    </header>
+    <main id="content">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="app-foot">Labra {{ app_version }}</footer>
+  </div>
+</div>
+{% else %}
+<main class="app-alone">
+  {{ self.content() }}
+</main>
+{% endif %}
+</body>
+</html>

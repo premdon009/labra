@@ -1,0 +1,22 @@
+/* Layout only; components come from Basecoat. No inline styles anywhere (CSP style-src 'self'). */
+.app { display: grid; grid-template-columns: 14rem 1fr; min-height: 100vh; }
+.app-nav { border-right: 1px solid var(--border, #e5e7eb); padding: 1rem; }
+.app-brand { display: block; font-weight: 700; font-size: 1.25rem; margin-bottom: 1rem; }
+.app-nav nav { display: flex; flex-direction: column; gap: 0.25rem; }
+.app-nav nav a { padding: 0.4rem 0.6rem; border-radius: 0.375rem; }
+.app-nav nav a[aria-current="page"] { background: var(--accent, #f3f4f6); font-weight: 600; }
+.app-main { display: flex; flex-direction: column; min-width: 0; }
+.app-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border, #e5e7eb); }
+.app-branch, .app-user { display: flex; align-items: center; gap: 0.5rem; }
+#content { padding: 1.25rem; flex: 1; }
+.app-foot { padding: 0.5rem 1rem; font-size: 0.8rem; opacity: 0.7; }
+.app-alone { max-width: 26rem; margin: 10vh auto; padding: 1rem; }
+.page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }
+.form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.field-error { color: var(--destructive, #b91c1c); font-size: 0.85rem; }
+.field-row { display: grid; gap: 0.4rem; }
+.stack { display: flex; flex-direction: column; gap: 0.75rem; }
+.muted { opacity: 0.7; }
+@media (max-width: 48rem) { .app { grid-template-columns: 1fr; } .app-nav { border-right: 0; } }

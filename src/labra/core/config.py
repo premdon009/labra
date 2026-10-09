@@ -1,0 +1,89 @@
+import os
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Literal
+
+from pydantic import SecretStr
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+ENV_PREFIX = "LABRA_"
+
+
+class FileEnvSource(EnvSettingsSource):
+    """Reads `LABRA_<NAME>_FILE`, the path of a file holding the value (Docker secrets)."""
+
+    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+        path = os.environ.get(f"{ENV_PREFIX}{field_name.upper()}_FILE")
+        if path:
+            return Path(path).read_text(encoding="utf-8").strip(), field_name, False
+        return None, field_name, False
+
+
+class Settings(BaseSettings):
+    """Process-level settings, read from `LABRA_*` environment variables.
+
+    Lab-level settings that admins change at runtime live in the `setting` table, not here.
+    Any value can come from a file instead: `LABRA_<NAME>_FILE=/run/secrets/<name>`.
+    """
+
+    model_config = SettingsConfigDict(env_prefix=ENV_PREFIX, extra="ignore")
+
+    database_url: SecretStr = SecretStr("postgresql+psycopg://labra@localhost:5432/labra")
+    files_dir: Path = Path("/data/files")
+
+    # Platform adapters, by entry-point name (ADR-0008).
+    auth_provider: str = "local"
+    filestore: str = "local"
+    errors: str = "log"
+    heartbeat: str = "log"
+    mailer: str = "console"
+    smtp_url: SecretStr | None = None
+    mail_from: str = "labra@localhost"
+
+    log_format: Literal["json", "console"] = "json"
+    log_level: str = "INFO"
+
+    metrics: Literal["prometheus", "off"] = "prometheus"
+    metrics_token: SecretStr | None = None
+    internal_networks: list[str] = [
+        "127.0.0.0/8",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "::1/128",
+    ]
+
+    # Where the help button points; a lab without internet can host the manual itself.
+    manual_url: str = "https://premdon009.github.io/labra/manual"
+
+    cookie_secure: bool = True
+    session_idle_minutes: int = 30
+    session_absolute_hours: int = 12
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            FileEnvSource(settings_cls),
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

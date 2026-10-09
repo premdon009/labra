@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Welcome, {{ principal.full_name }}</h1></div>
+{% if not principal.branch_id %}
+<div class="alert" role="status"><h2>You have no role at any branch yet. Ask an administrator to add one.</h2></div>
+{% endif %}
+<div class="form-grid">
+  {% if principal.can('branch.view') %}
+  <a class="card" href="/admin/branches"><header><h2>Branches</h2><p>The main lab and collection centres.</p></header></a>
+  {% endif %}
+  {% if principal.can('user.view') %}
+  <a class="card" href="/admin/users"><header><h2>Staff and roles</h2><p>Who can sign in, and what they can do where.</p></header></a>
+  {% endif %}
+  {% if principal.can('setting.view') %}
+  <a class="card" href="/admin/settings"><header><h2>Settings</h2><p>Lab-wide and per-branch settings.</p></header></a>
+  {% endif %}
+</div>
+{% endblock %}

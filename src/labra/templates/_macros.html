@@ -1,0 +1,17 @@
+{% macro field(name, label, value='', errors={}, type='text', required=False, hint='', autocomplete='') -%}
+<div class="field-row">
+  <label class="label" for="f-{{ name }}">{{ label }}{% if required %} *{% endif %}</label>
+  <input class="input" type="{{ type }}" id="f-{{ name }}" name="{{ name }}" value="{{ value if value is not none else '' }}"
+    {% if required %}required{% endif %} {% if errors.get(name) %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}{% if autocomplete %} autocomplete="{{ autocomplete }}"{% endif %}>
+  {% if hint %}<p class="muted">{{ hint }}</p>{% endif %}
+  {% if errors.get(name) %}<p class="field-error" id="e-{{ name }}">{{ errors[name] }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro checkbox(name, label, checked=False) -%}
+<label class="label"><input class="input" type="checkbox" name="{{ name }}" value="true" {% if checked %}checked{% endif %}> {{ label }}</label>
+{%- endmacro %}
+
+{% macro csrf(token) -%}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{%- endmacro %}
