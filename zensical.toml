@@ -1,0 +1,81 @@
+# Documentation site, built with `uv run zensical build --strict` (scripts/ci_local.sh, docs stage).
+# Every page under docs/ must be in `nav`; scripts/check_docs_linked.py fails otherwise.
+# Pages whose name starts with `_` are templates and are left out.
+
+[project]
+site_name = "Labra"
+site_description = "Open-source software for small Indian diagnostic lab chains"
+site_url = "https://premdon009.github.io/labra/"
+repo_url = "https://github.com/premdon009/labra"
+docs_dir = "docs"
+site_dir = "site"
+exclude_docs = """
+_*.md
+"""
+nav = [
+  { "Home" = "index.md" },
+  { "User manual" = [
+    "manual/index.md",
+    { "Getting started" = [
+      "manual/getting-started/login.md",
+      "manual/getting-started/screen-layout.md",
+    ] },
+    { "Admin" = [
+      "manual/admin/branches.md",
+      "manual/admin/users-and-roles.md",
+      "manual/admin/settings.md",
+    ] },
+  ] },
+  { "Developers" = [
+    "dev/setup.md",
+    "dev/workflow.md",
+    "dev/running-the-stack.md",
+    "dev/releasing.md",
+    "dev/tooling-issues.md",
+    "DEPENDENCIES.md",
+  ] },
+  { "Decisions" = [
+    "adr/index.md",
+    "adr/0001-record-decisions.md",
+    "adr/0002-licence-mit.md",
+    "adr/0003-fastapi-postgres.md",
+    "adr/0004-small-server-hosting.md",
+    "adr/0005-medical-standards.md",
+    "adr/0006-customisation-model.md",
+    "adr/0007-replaceable-edges.md",
+    "adr/0008-platform-ports.md",
+  ] },
+  { "Plan and progress" = [
+    "design/v1-plan.md",
+    "TRACKER.md",
+    "ENTERPRISE_CHECKLIST.md",
+    "compliance/COMPLIANCE_CHECKLIST.md",
+  ] },
+  { "Background research" = [
+    "research/india-lab-regulations.md",
+    "research/oss-lims-landscape.md",
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "content.code.copy",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "search.highlight",
+]
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.superfences = {}
