@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run pyright:*)",
+      "Bash(uv run lint-imports:*)",
+      "Bash(scripts/ci_local.sh:*)",
+      "Bash(scripts/check_tools.sh:*)",
+      "Bash(uv run python scripts/check_tracker.py:*)",
+      "Bash(uv run python scripts/check_manual.py:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(docker compose config:*)",
+      "Bash(docker compose up:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./data/**)",
+      "Read(./backups/**)",
+      "Read(./**/*.dump)"
+    ]
+  },
+  "enabledMcpjsonServers": ["serena"],
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "serena-hooks activate --client claude-code" }] }
+    ],
+    "PreToolUse": [
+      { "hooks": [{ "type": "command", "command": "serena-hooks remind --client claude-code" }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "serena-hooks cleanup --client claude-code" }] }
+    ]
+  }
+}

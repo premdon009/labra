@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in Labra doesn't work as the manual says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never include real patient data** — not in text, logs or screenshots. Reproduce with `labra seed` data or made-up values.
+        Security problems go through private reporting (see SECURITY.md), not here.
+  - type: input
+    id: version
+    attributes:
+      label: Labra version
+      description: Shown on `Admin ▸ System`, e.g. 0.3.1
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install type
+      options:
+        - Laptop or mini PC at the lab
+        - Cloud server (VPS)
+        - Development checkout
+    validations:
+      required: true
+  - type: input
+    id: error-ref
+    attributes:
+      label: Error reference number
+      description: If the error page showed one.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open Front desk ▸ New visit\n2. …"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt (optional)
+      description: Labra's logs carry IDs only. Check that nothing personal is in it before pasting.
+      render: text
+  - type: checkboxes
+    id: no-patient-data
+    attributes:
+      label: Patient data
+      options:
+        - label: This report contains no real patient data.
+          required: true

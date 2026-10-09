@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest something Labra should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check `docs/TRACKER.md` first: the idea may already have an ID, or a "rejected" row explaining why not.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve at the lab?
+      description: Who does what, how often, and what goes wrong today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like Labra to do?
+    validations:
+      required: true
+  - type: input
+    id: tracker-id
+    attributes:
+      label: Related tracker ID, if any
+      placeholder: e.g. X17
+  - type: checkboxes
+    id: no-patient-data
+    attributes:
+      label: Patient data
+      options:
+        - label: This request contains no real patient data.
+          required: true
