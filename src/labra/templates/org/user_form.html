@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, checkbox, csrf %}
+{% set editing = user and user.id %}
+{% block title %}{{ 'Edit staff' if editing else 'Add staff' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Edit ' ~ user.full_name if editing else 'Add staff' }}</h1></div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+<form method="post" action="/admin/users">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="user_id" value="{{ user.id if editing else '' }}">
+  <input type="hidden" name="row_version" value="{{ user.row_version if editing else 0 }}">
+  <div class="form-grid">
+    {{ field('full_name', 'Full name', user.full_name if user, errors, required=True) }}
+    {{ field('username', 'Username', user.username if user, errors, required=True, hint='Small letters, digits, dot, dash or underscore.') }}
+    {{ field('phone', 'Phone', user.phone if user, errors, type='tel') }}
+    {{ field('email', 'Email', user.email if user, errors, type='email') }}
+  </div>
+  <p>{{ checkbox('can_login', 'Signs in to Labra', user.can_login if user else True) }}</p>
+  {% if editing %}<p>{{ checkbox('is_active', 'Still works here', user.is_active) }}</p>{% endif %}
+  {% if password_login %}
+  <div class="form-grid">
+    {{ field('password', 'New password' if editing else 'Password', '', errors, type='password',
+             hint='At least 10 characters. Leave empty to keep the current one.' if editing else 'At least 10 characters.',
+             autocomplete='new-password') }}
+  </div>
+  {% endif %}
+
+  <h2>Roles</h2>
+  {% if errors.get('roles') %}<p class="field-error">{{ errors.roles }}</p>{% endif %}
+  <table class="table">
+    <thead><tr><th>Branch</th>{% for r in roles %}<th>{{ r.name }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for b in branches %}
+      <tr>
+        <td>{{ b.code }} · {{ b.name }}</td>
+        {% for r in roles %}
+        {% set key = b.id ~ ':' ~ r.id %}
+        <td><input class="input" type="checkbox" name="role" value="{{ key }}" aria-label="{{ r.name }} at {{ b.code }}" {% if key in chosen %}checked{% endif %}></td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/users">Cancel</a>
+  </div>
+</form>
+{% endblock %}

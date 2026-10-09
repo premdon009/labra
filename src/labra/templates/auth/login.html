@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="card">
+  <header>
+    <h1>Sign in to Labra</h1>
+  </header>
+  <section>
+    {% if error %}
+    <div class="alert-destructive" role="alert"><h2>{{ error }}</h2></div>
+    {% endif %}
+    <form method="post" action="/login" class="stack">
+      {{ csrf(csrf_token) }}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field-row">
+        <label class="label" for="username">Username</label>
+        <input class="input" id="username" name="username" value="{{ username or '' }}" autocomplete="username" autofocus required>
+      </div>
+      <div class="field-row">
+        <label class="label" for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

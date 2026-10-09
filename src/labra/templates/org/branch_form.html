@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, checkbox, csrf %}
+{% block title %}{{ 'Edit branch' if branch and branch.id else 'Add branch' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Edit branch ' ~ branch.code if branch and branch.id else 'Add branch' }}</h1></div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+<form method="post" action="/admin/branches">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="branch_id" value="{{ branch.id if branch and branch.id else '' }}">
+  <input type="hidden" name="row_version" value="{{ branch.row_version if branch and branch.id else 0 }}">
+  <div class="form-grid">
+    {{ field('code', 'Code', branch.code if branch, errors, required=True, hint='1 to 4 capital letters or digits, printed on numbers: B2/BS/2627/00123.') }}
+    {{ field('name', 'Name', branch.name if branch, errors, required=True) }}
+    <div class="field-row">
+      <label class="label" for="f-kind">Type *</label>
+      <select class="select" id="f-kind" name="kind">
+        {% for k in kinds %}
+        <option value="{{ k }}" {% if branch and branch.kind == k %}selected{% endif %}>{{ 'Main lab' if k == 'main_lab' else 'Collection centre' }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.get('kind') %}<p class="field-error">{{ errors.kind }}</p>{% endif %}
+    </div>
+    {{ field('address', 'Address', branch.address if branch, errors) }}
+    {{ field('state_code', 'GST state code', branch.state_code if branch, errors, hint='Two digits, for example 27.') }}
+    {{ field('phone', 'Phone', branch.phone if branch, errors, type='tel') }}
+    {{ field('email', 'Email', branch.email if branch, errors, type='email') }}
+    {{ field('gstin', 'GSTIN', branch.gstin if branch, errors) }}
+  </div>
+  {% if branch and branch.id %}<p>{{ checkbox('is_active', 'Branch is open', branch.is_active) }}</p>{% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/branches">Cancel</a>
+  </div>
+</form>
+{% endblock %}

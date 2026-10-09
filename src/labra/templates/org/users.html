@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Staff and roles{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Staff and roles</h1>
+  {% if can_edit %}<a class="btn" href="/admin/users/new">Add staff</a>{% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Name</th><th>Username</th><th>Signs in</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.full_name }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ 'Yes' if u.can_login else 'No' }}</td>
+      <td>{% if u.is_active %}<span class="badge">Active</span>{% else %}<span class="badge-outline">Left</span>{% endif %}</td>
+      <td>{% if can_edit %}<a href="/admin/users/{{ u.id }}">Edit</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">No staff yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

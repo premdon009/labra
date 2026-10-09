@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Branches{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Branches</h1>
+  {% if can_edit %}<a class="btn" href="/admin/branches/new">Add branch</a>{% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>State</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for b in branches %}
+    <tr>
+      <td>{{ b.code }}</td>
+      <td>{{ b.name }}</td>
+      <td>{{ 'Main lab' if b.kind == 'main_lab' else 'Collection centre' }}</td>
+      <td>{{ b.state_code }}</td>
+      <td>{% if b.is_active %}<span class="badge">Active</span>{% else %}<span class="badge-outline">Closed</span>{% endif %}</td>
+      <td>{% if can_edit %}<a href="/admin/branches/{{ b.id }}">Edit</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No branches yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
