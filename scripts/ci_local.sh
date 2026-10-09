@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# Local gate. CI runs this same script, so green here means green there.
+#
+#   scripts/ci_local.sh                 all stages
+#   scripts/ci_local.sh --only lint     one stage (repeatable)
+#   scripts/ci_local.sh --fast          skip docs and audit
+#   scripts/ci_local.sh --dry-run       list stages, run nothing
+#   scripts/ci_local.sh --quiet         print only the summary and failures
+#
+# Each stage ends PASS, FAIL, WARN or SKIP. WARN means "could not be checked"
+# (a tool or Docker is missing) and is never counted as a pass. Exit 1 on any FAIL.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+STAGES=(preflight hygiene lint types imports tests tracker manual docs audit)
+only=() fast=0 dry=0 quiet=0
+while (($#)); do
+  case "$1" in
+    --only) only+=("$2"); shift 2 ;;
+    --fast) fast=1; shift ;;
+    --dry-run) dry=1; shift ;;
+    --quiet) quiet=1; shift ;;
+    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+LOG_DIR=$(mktemp -d)
+trap 'rm -rf "$LOG_DIR"' EXIT
+declare -A RESULT SECONDS_TAKEN
+
+wanted() {
+  local s=$1
+  if ((${#only[@]})); then
+    for o in "${only[@]}"; do [[ $o == "$s" ]] && return 0; done
+    return 1
+  fi
+  ((fast)) && [[ $s == docs || $s == audit ]] && return 1
+  return 0
+}
+
+# A stage function prints its own output and returns 0 PASS, 1 FAIL, 2 WARN.
+stage_preflight() {
+  uv lock --check || return 1
+  scripts/check_tools.sh
+}
+stage_hygiene() {
+  local worst=0 rc
+  for check in scripts/check_footprint.sh scripts/check_changelog_dates.sh \
+               scripts/check_version_gate.sh scripts/check_banned_terms.sh; do
+    echo "-- $check"
+    $check; rc=$?
+    ((rc == 1)) && worst=1
+    ((rc == 2 && worst == 0)) && worst=2
+  done
+  return $worst
+}
+# Third-party tools may exit 2 on errors, so their failures are mapped to 1 explicitly.
+stage_lint() {
+  uv run ruff check . && uv run ruff format --check . || return 1
+}
+stage_types() {
+  uv run pyright || return 1
+}
+stage_imports() {
+  uv run lint-imports || return 1
+}
+stage_tests() {
+  local out="$LOG_DIR/pytest.txt"
+  # Coverage floors are checked by check_coverage.py, so a skipped database run can
+  # report them as unchecked instead of failed.
+  uv run pytest -q -rs --cov --cov-fail-under=0 --cov-report=term \
+    --cov-report=json:"$LOG_DIR/coverage.json" | tee "$out"
+  local rc=${PIPESTATUS[0]}
+  ((rc != 0)) && return 1
+  if grep -q "SKIPPED.*Docker not reachable" "$out"; then
+    uv run python scripts/check_coverage.py "$LOG_DIR/coverage.json"
+    echo "WARN: database tests were skipped (Docker not reachable); they and coverage are unchecked."
+    return 2
+  fi
+  uv run python scripts/check_coverage.py "$LOG_DIR/coverage.json" || return 1
+}
+stage_tracker() {
+  uv run python scripts/check_tracker.py
+}
+stage_manual() {
+  uv run python scripts/check_manual.py
+}
+stage_docs() {
+  uv run python scripts/check_docs_linked.py || return 1
+  uv run zensical build --clean --strict
+}
+stage_audit() {
+  local worst=0 rc
+  for check in "uv run python scripts/audit_deps.py --check" \
+               scripts/audit_python.sh scripts/osv_scan.sh "scripts/check_secrets.sh --all"; do
+    echo "-- $check"
+    $check; rc=$?
+    ((rc == 1)) && worst=1
+    ((rc == 2 && worst == 0)) && worst=2
+  done
+  return $worst
+}
+
+for s in "${STAGES[@]}"; do
+  if ! wanted "$s"; then RESULT[$s]=SKIP; continue; fi
+  if ((dry)); then echo "would run: $s"; RESULT[$s]=SKIP; continue; fi
+  ((quiet)) || printf '\n\033[1m== %s\033[0m\n' "$s"
+  start=$(date +%s)
+  if ((quiet)); then
+    "stage_$s" >"$LOG_DIR/$s.log" 2>&1; rc=$?
+  else
+    "stage_$s"; rc=$?
+  fi
+  SECONDS_TAKEN[$s]=$(($(date +%s) - start))
+  case $rc in
+    0) RESULT[$s]=PASS ;;
+    2) RESULT[$s]=WARN ;;
+    *) RESULT[$s]=FAIL; ((quiet)) && cat "$LOG_DIR/$s.log" ;;
+  esac
+done
+
+printf '\n%-10s %-6s %s\n' STAGE RESULT TIME
+pass=0 fail=0 warn=0 skip=0
+for s in "${STAGES[@]}"; do
+  r=${RESULT[$s]}
+  case $r in PASS) ((pass++)) ;; FAIL) ((fail++)) ;; WARN) ((warn++)) ;; SKIP) ((skip++)) ;; esac
+  t=${SECONDS_TAKEN[$s]:-}
+  printf '%-10s %-6s %s\n' "$s" "$r" "${t:+${t}s}"
+done
+printf '\n%d passed, %d failed, %d unchecked (WARN), %d skipped\n' "$pass" "$fail" "$warn" "$skip"
+((fail)) && exit 1
+exit 0

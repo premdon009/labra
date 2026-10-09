@@ -1,0 +1,76 @@
+# Fast gates before each commit, and the commit-message rules. Install once per clone:
+#   uv run pre-commit install
+# Every hook is a repo script or a locked dev tool, so hooks add no dependencies of their own.
+# scripts/ci_local.sh runs the full set, including the slower stages.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --check --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: secrets
+        name: secrets (gitleaks)
+        entry: scripts/warn_ok.sh scripts/check_secrets.sh
+        language: system
+        pass_filenames: false
+      - id: footprint
+        name: no personal footprint
+        entry: scripts/check_footprint.sh
+        language: system
+        types: [text]
+      - id: banned-terms
+        name: no banned terms
+        entry: scripts/warn_ok.sh scripts/check_banned_terms.sh
+        language: system
+        types: [text]
+      - id: changelog-dates
+        name: changelog headings dated
+        entry: scripts/check_changelog_dates.sh
+        language: system
+        files: ^CHANGELOG\.md$
+        pass_filenames: false
+      - id: version-gate
+        name: stays on 0.x
+        entry: scripts/check_version_gate.sh
+        language: system
+        files: ^pyproject\.toml$
+        pass_filenames: false
+      - id: docs-linked
+        name: docs in nav and linked
+        entry: uv run python scripts/check_docs_linked.py
+        language: system
+        files: (\.md|^zensical\.toml)$
+        pass_filenames: false
+      - id: tracker
+        name: tracker IDs
+        entry: uv run python scripts/check_tracker.py
+        language: system
+        files: (^docs/(TRACKER|ENTERPRISE_CHECKLIST)\.md|^tests/.*\.py)$
+        pass_filenames: false
+      - id: manual
+        name: manual in step with screens
+        entry: uv run python scripts/check_manual.py
+        language: system
+        files: ^(src/labra/|docs/manual/)
+        pass_filenames: false
+      - id: audit-deps
+        name: dependency register
+        entry: uv run python scripts/audit_deps.py --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock|docs/DEPENDENCIES\.md|\.github/workflows/|compose\.yaml|Dockerfile|src/labra/static/vendor/)
+        pass_filenames: false
+      - id: commit-msg
+        name: commit subject has a tracker ID, no AI trailer
+        entry: scripts/commit_msg.sh
+        language: system
+        stages: [commit-msg]

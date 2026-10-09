@@ -1,0 +1,5 @@
+# Minimum line+branch coverage per module (glob = percent). Raise, never lower.
+[targets]
+"src/labra/*/service.py" = 80
+"src/labra/core/*.py" = 75
+"src/labra/adapters/*.py" = 75
