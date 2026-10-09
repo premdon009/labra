@@ -1,0 +1,23 @@
+{
+  "htmx-4.0.0.min.js": {
+    "package": "htmx.org",
+    "version": "4.0.0",
+    "source": "https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js",
+    "license": "0BSD",
+    "sha256": "e484d9171a9db30a39c8f16e3d709d4137f3211c659f8e6125816635033d593f"
+  },
+  "alpine-csp-3.17.4.min.js": {
+    "package": "@alpinejs/csp",
+    "version": "3.17.4",
+    "source": "https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.17.4/dist/cdn.min.js",
+    "license": "MIT",
+    "sha256": "0d18d7f8d7910e2e0212f0f056b12f50bebc3abb7d88d2f7c7cb4c336fe4519a"
+  },
+  "basecoat-1.0.2.cdn.min.css": {
+    "package": "basecoat-css",
+    "version": "1.0.2",
+    "source": "https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat.cdn.min.css",
+    "license": "MIT",
+    "sha256": "8123677adb9bba43be3298e1543bcc5fc763e8cda3d32dc74c806046a3537ca0"
+  }
+}
