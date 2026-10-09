@@ -3,6 +3,7 @@
 #
 #   scripts/ci_local.sh                 all stages
 #   scripts/ci_local.sh --only lint     one stage (repeatable)
+#   scripts/ci_local.sh --only stack    build the image and smoke-test the stack (only on request)
 #   scripts/ci_local.sh --fast          skip docs and audit
 #   scripts/ci_local.sh --dry-run       list stages, run nothing
 #   scripts/ci_local.sh --quiet         print only the summary and failures
@@ -12,7 +13,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-STAGES=(preflight hygiene lint types imports tests tracker manual docs audit)
+STAGES=(preflight hygiene lint types imports tests tracker manual docs audit stack)
 only=() fast=0 dry=0 quiet=0
 while (($#)); do
   case "$1" in
@@ -35,6 +36,7 @@ wanted() {
     for o in "${only[@]}"; do [[ $o == "$s" ]] && return 0; done
     return 1
   fi
+  [[ $s == stack ]] && return 1
   ((fast)) && [[ $s == docs || $s == audit ]] && return 1
   return 0
 }
@@ -73,9 +75,10 @@ stage_tests() {
     --cov-report=json:"$LOG_DIR/coverage.json" | tee "$out"
   local rc=${PIPESTATUS[0]}
   ((rc != 0)) && return 1
-  if grep -q "SKIPPED.*Docker not reachable" "$out"; then
+  if grep -q "SKIPPED.*no Postgres for tests" "$out"; then
     uv run python scripts/check_coverage.py "$LOG_DIR/coverage.json"
-    echo "WARN: database tests were skipped (Docker not reachable); they and coverage are unchecked."
+    echo "WARN: database tests were skipped (no container runtime and no LABRA_TEST_DATABASE_URL);" \
+      "they and coverage are unchecked."
     return 2
   fi
   uv run python scripts/check_coverage.py "$LOG_DIR/coverage.json" || return 1
@@ -100,6 +103,18 @@ stage_audit() {
     ((rc == 2 && worst == 0)) && worst=2
   done
   return $worst
+}
+stage_stack() {
+  local rt rc
+  for rt in docker podman; do
+    "$rt" info >/dev/null 2>&1 || continue
+    scripts/build_image.sh --builder "$rt"; rc=$?
+    ((rc == 0)) || return $((rc == 2 ? 2 : 1))
+    scripts/stack_smoke.sh --compose "$rt compose"
+    return
+  done
+  echo "Neither docker nor podman is reachable; the stack is unchecked."
+  return 2
 }
 
 for s in "${STAGES[@]}"; do

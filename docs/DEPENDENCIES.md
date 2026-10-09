@@ -52,8 +52,11 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `@alpinejs/csp` | vendored | P | MIT | 3.17.4 | 3.17.4 · 2026-09-21 | — | Active | team | small UI state; the CSP build needs no `unsafe-eval` | plain JS · low | 2026-10-09 |
 | `basecoat-css` | vendored | P | MIT | 1.0.2 | 1.0.2 | 3 | Watch | single maintainer, young | consistent components without a JS framework; vendored, so a stop can't break the app | own CSS · medium | 2026-10-09 |
 | `postgres` | image | P | PostgreSQL | 18 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030 | — | 2026-10-09 |
-| `caddy` | image | P | Apache-2.0 | 2 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx · low | 2026-10-09 |
-| `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale or WireGuard · medium | 2026-10-09 |
+| `caddy` | image | P | Apache-2.0 | 2 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx, tested · low | 2026-10-09 |
+| `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale, NetBird or WireGuard · medium | 2026-10-09 |
+| `nginx` | image | P | BSD-2-Clause | 1.30 | 1.30 | — | Active | company | proxy alternative to Caddy (`deploy/nginx/`, ADR-0009) | Caddy · low | 2026-10-09 |
+| `tailscale/tailscale` | image | P | BSD-3-Clause | v1.102.5 | v1.102.5 | — | Active | company | branch access over a tailnet, or self-hosted Headscale (`tailscale` profile) | NetBird or WireGuard · low | 2026-10-09 |
+| `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
 | `python` | image | P | PSF-2.0 | 3.14-slim | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
 | `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
 | `actions/checkout` | action | P | MIT | v5.1.0 | — | — | Active | company | CI checkout | — | 2026-10-09 |
@@ -66,7 +69,17 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `gitleaks` | CLI | P | MIT | — | — | — | Active | company | secret scan (`scripts/check_secrets.sh`) | trufflehog · low | 2026-10-09 |
 | `osv-scanner` | CLI | P | Apache-2.0 | — | — | — | Active | company | vulnerability scan of `uv.lock` and images | grype · low | 2026-10-09 |
 | `git-cliff` | CLI | P | MIT OR Apache-2.0 | — | 2.14.2 · 2026-09-18 | 4 | Active | team | changelog drafts from commit subjects (W12) | hand-written changelog · low | 2026-10-09 |
-| `docker` | CLI | P | Apache-2.0 | — | — | — | Active | company | runs the stack and the database tests | Podman · medium | 2026-10-09 |
+| `docker` | CLI | P | Apache-2.0 | — | — | — | Active | company | runs the stack and the database tests | Podman or nerdctl, tested (ADR-0009) · low | 2026-10-09 |
+| `podman` | CLI | P | Apache-2.0 | 5 | 5.8.7 | — | Active | company | daemonless, rootless runtime for the stack and tests (ADR-0009); below 5 lacks DNS on internal networks | Docker · low | 2026-10-09 |
+| `Podman Desktop` | CLI | P | Apache-2.0 | — | — | — | Active | company | Podman on Windows and macOS desktops | Docker Desktop · low | 2026-10-09 |
+| `podman-compose` | CLI | P | GPL-2.0-only | 1.6 | 1.6.0 | — | Active | team | Compose for Podman without the docker-compose binary; a tool only, never shipped or linked | `podman compose` with docker-compose · low | 2026-10-09 |
+| `buildah` | CLI | P | Apache-2.0 | — | 1.43.4 | — | Active | company | daemonless image builds (`scripts/build_image.sh`) | Docker BuildKit · low | 2026-10-09 |
+| `nerdctl` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | runs the stack on containerd (Tier 2); `nerdctl-full` tarball pinned by SHA-256 | Docker · low | 2026-10-09 |
+| `containerd` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | the container engine under Docker and nerdctl | — | 2026-10-09 |
+| `incus` | CLI | P | Apache-2.0 | 6 | 6.23 | — | Active | foundation | system containers that run the stack with Podman inside (Tier 2); LXD is AGPL-3.0 since 2023 | LXD or a VM · low | 2026-10-09 |
+| `kaniko` | CLI | P | Apache-2.0 | v1.28.5 | v1.28.5 | — | Watch | team | image builds without a daemon, in CI on a cluster; the original project was archived 2025-06-03, this is the osscontainertools fork, run as an image pinned by digest | Buildah · low | 2026-10-09 |
 | `GitHub` | service | P | — | — | — | — | Active | company | code, CI, issues, container registry, docs hosting | Codeberg / Forgejo · medium | 2026-10-09 |
 | `Cloudflare Tunnel` | service | P | — | — | — | — | Active | company | the tunnel cloudflared connects to | Tailscale · medium | 2026-10-09 |
+| `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
+| `NetBird` | service | P | — | — | — | — | Active | company | control plane for the `netbird` profile; self-hostable (AGPL-3.0, run as a separate service) | Tailscale or WireGuard · low | 2026-10-09 |
 | `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups (`LABRA_HEARTBEAT=http`); self-hostable | Uptime Kuma · low | 2026-10-09 |

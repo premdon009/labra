@@ -30,6 +30,7 @@ nav = [
     "dev/setup.md",
     "dev/workflow.md",
     "dev/running-the-stack.md",
+    "dev/runtimes.md",
     "dev/releasing.md",
     "dev/tooling-issues.md",
     "DEPENDENCIES.md",
@@ -44,6 +45,7 @@ nav = [
     "adr/0006-customisation-model.md",
     "adr/0007-replaceable-edges.md",
     "adr/0008-platform-ports.md",
+    "adr/0009-runtime-neutral-packaging.md",
   ] },
   { "Plan and progress" = [
     "design/v1-plan.md",

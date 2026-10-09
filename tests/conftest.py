@@ -1,7 +1,9 @@
 """Shared fixtures.
 
 Tests that need Postgres use the `db`, `pg_engine` or `db_client` fixtures and are marked
-`db` automatically. Without Docker they are skipped with the reason "Docker not reachable",
+`db` automatically. They run on a throwaway Postgres container (any runtime with a Docker-API
+socket: Docker, or Podman via DOCKER_HOST), or on an existing database named in
+LABRA_TEST_DATABASE_URL. With neither they are skipped with the reason "no Postgres for tests",
 and `scripts/ci_local.sh` reports the test stage as WARN (unchecked), never PASS.
 """
 
@@ -13,7 +15,7 @@ from functools import cache
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, make_url
 from sqlalchemy.orm import Session
 
 from labra.core.config import get_settings
@@ -22,12 +24,28 @@ from labra.core.registry import Platform, use_platform
 from tests.fakes import fake_platform
 
 DB_FIXTURES = {"pg_engine", "db", "db_client", "seeded"}
-SKIP_REASON = "Docker not reachable"
-POSTGRES_IMAGE = os.environ.get("LABRA_TEST_POSTGRES_IMAGE", "postgres:18")
+SKIP_REASON = "no Postgres for tests"
+POSTGRES_IMAGE = os.environ.get("LABRA_TEST_POSTGRES_IMAGE", "docker.io/library/postgres:18")
+TEST_DATABASE_URL = os.environ.get("LABRA_TEST_DATABASE_URL", "")
+
+
+def checked_test_url(url: str) -> str:
+    """The tests create tables in this database and write to it, so only a database named for
+    tests is accepted; a slip can never point them at a lab's data."""
+    parsed = make_url(url)
+    if not (parsed.database or "").endswith("_test"):
+        raise pytest.UsageError(
+            f"LABRA_TEST_DATABASE_URL must name a database ending in _test, "
+            f"not {parsed.database!r}."
+        )
+    return parsed.set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
 
 
 @cache
-def docker_reachable() -> bool:
+def postgres_available() -> bool:
+    if TEST_DATABASE_URL:
+        checked_test_url(TEST_DATABASE_URL)
+        return True
     try:
         import docker
 
@@ -41,7 +59,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if DB_FIXTURES & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.db)
-        if item.get_closest_marker("db") and not docker_reachable():
+        if item.get_closest_marker("db") and not postgres_available():
             item.add_marker(pytest.mark.skip(reason=SKIP_REASON))
 
 
@@ -81,14 +99,23 @@ def pg_engine() -> Iterator[Engine]:
 
     from labra.core.migrate import alembic_config
 
-    with PostgresContainer(POSTGRES_IMAGE, driver="psycopg") as pg:
-        engine = create_engine(pg.get_connection_url())
+    def migrated(url: str) -> Engine:
         from alembic import command
 
+        engine = create_engine(url)
         cfg = alembic_config()
         with engine.begin() as conn:
             cfg.attributes["connection"] = conn
             command.upgrade(cfg, "head")
+        return engine
+
+    if TEST_DATABASE_URL:
+        engine = migrated(checked_test_url(TEST_DATABASE_URL))
+        yield engine
+        engine.dispose()
+        return
+    with PostgresContainer(POSTGRES_IMAGE, driver="psycopg") as pg:
+        engine = migrated(pg.get_connection_url())
         yield engine
         engine.dispose()
 

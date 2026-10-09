@@ -32,7 +32,11 @@ ROOT = Path(__file__).resolve().parent.parent
 REGISTER = ROOT / "docs" / "DEPENDENCIES.md"
 VENDOR = ROOT / "src" / "labra" / "static" / "vendor"
 WORKFLOWS = ROOT / ".github" / "workflows"
-IMAGE_FILES = (ROOT / "compose.yaml", ROOT / "Dockerfile")
+IMAGE_FILES = (
+    ROOT / "compose.yaml",
+    ROOT / "Dockerfile",
+    ROOT / "deploy/nginx/compose.nginx.yaml",
+)
 
 ALLOWED = {
     "MIT", "MIT-CMU", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "0BSD",
@@ -89,6 +93,8 @@ def _allowed(spdx: str, row: Row) -> bool:
         return True
     if spdx.startswith("LGPL-3.0") and norm(row.name) in LGPL_EXCEPTION:
         return True
+    if spdx.startswith("GPL-") and row.kind == "CLI":
+        return True  # run as a separate command, never imported
     return spdx == "MPL-2.0" and row.kind in NOT_SHIPPED
 
 
@@ -208,6 +214,13 @@ def image_name(ref: str) -> str:
     return name.removeprefix("docker.io/").removeprefix("library/")
 
 
+def fully_qualified(ref: str) -> bool:
+    """Podman and Buildah refuse short names like `postgres:18` without a registry search
+    list, so every reference starts with its registry host."""
+    first, sep, _ = ref.partition("/")
+    return bool(sep) and ("." in first or ":" in first or first == "localhost")
+
+
 def check_images(rows: list[Row]) -> list[str]:
     known = {r.name for r in rows if r.kind == "image"}
     used: set[str] = set()
@@ -231,6 +244,10 @@ def check_images(rows: list[Row]) -> list[str]:
             where = f"{path.name}:{n}"
             if "@sha256:" not in ref:
                 problems.append(f"{where}: image {ref} has no @sha256 digest")
+            if not fully_qualified(ref):
+                problems.append(
+                    f"{where}: image {ref} needs its registry, e.g. docker.io/library/…"
+                )
             if name not in known:
                 problems.append(f"{where}: image {name} has no row in docs/DEPENDENCIES.md")
     if any(p.is_file() for p in IMAGE_FILES):

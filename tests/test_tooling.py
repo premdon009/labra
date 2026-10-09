@@ -145,6 +145,8 @@ REGISTER = """\
 | `gamma` | dev | P | MPL-2.0 | 1.0 | 1.0 | 1 | Active |
 | `delta` | runtime | P | MPL-2.0 | 1.0 | 1.0 | 1 | Active |
 | `epsilon` | runtime | P | Apache-2.0 AND GPL-2.0-only | 1.0 | 1.0 | 1 | Active |
+| `zeta` | CLI | P | GPL-2.0-only | 1.0 | 1.0 | 1 | Active |
+| `eta` | dev | P | GPL-2.0-only | 1.0 | 1.0 | 1 | Active |
 | `Example Cloud` | service | P | — | — | — | — | Active |
 """
 
@@ -156,7 +158,8 @@ def test_register_licence_rules() -> None:
     assert [r.name for r in rows][:2] == ["alpha", "psycopg"]
     assert rows[1].pinned == "3.3.6"
     refused = {r.name for r in rows if audit.licence_problem(r)}
-    assert refused == {"beta", "delta", "epsilon"}
+    # A GPL program is fine as a separate command (CLI), never as a Python package.
+    assert refused == {"beta", "delta", "epsilon", "eta"}
 
 
 @pytest.mark.item("W14")
@@ -171,6 +174,23 @@ def test_register_licence_rules() -> None:
 )
 def test_image_names(ref: str, name: str) -> None:
     assert _script("audit_deps").image_name(ref) == name
+
+
+@pytest.mark.item("W17")
+@pytest.mark.parametrize(
+    ("ref", "ok"),
+    [
+        ("postgres:18@sha256:abc", False),
+        ("cloudflare/cloudflared:2026.10.0", False),
+        ("docker.io/library/postgres:18@sha256:abc", True),
+        ("ghcr.io/astral-sh/uv:0.12.18", True),
+        ("localhost:5000/labra", True),
+        ("localhost/labra:dev", True),
+    ],
+)
+def test_image_refs_name_their_registry(ref: str, ok: bool) -> None:
+    # Podman refuses short names when it has no registry search list.
+    assert _script("audit_deps").fully_qualified(ref) is ok
 
 
 @pytest.mark.item("W14")

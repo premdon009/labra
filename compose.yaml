@@ -1,10 +1,16 @@
-# The Labra stack for one main lab: web, Postgres and Caddy, plus cloudflared under the
-# `tunnel` profile for branches. Images are pinned by digest (scripts/audit_deps.py --check).
+# The Labra stack for one main lab: web, Postgres and a reverse proxy (Caddy), plus a tunnel for
+# branches under a profile: cloudflared (`tunnel`), Tailscale (`tailscale`) or NetBird
+# (`netbird`). Images are pinned by digest and fully qualified, so Docker, Podman and nerdctl
+# all resolve them the same way (scripts/audit_deps.py --check).
 #
-#   docker compose up -d                     LAN only
-#   docker compose --profile tunnel up -d    with the branch tunnel
+#   docker compose up -d                        LAN only
+#   docker compose --profile tunnel up -d       with the Cloudflare tunnel
+#   docker compose --profile tailscale up -d    with Tailscale or Headscale instead
+#   docker compose --profile netbird up -d      with NetBird (cloud or self-hosted) instead
+#   docker compose -f compose.yaml -f deploy/nginx/compose.nginx.yaml up -d    nginx, not Caddy
 #
-# Secrets are files in ./secrets/ (never committed): db_password, database_url.
+# `podman compose` and `nerdctl compose` take the same arguments (docs/dev/runtimes.md).
+# Secrets are files in ${LABRA_SECRETS_DIR:-./secrets}/ (never committed).
 # Setup and backups: docs/dev/running-the-stack.md.
 
 name: labra
@@ -24,7 +30,7 @@ x-labra: &labra
 
 services:
   db:
-    image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    image: docker.io/library/postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
     restart: unless-stopped
     # Sized for a 4 GB laptop (design §1a).
     command: >-
@@ -56,14 +62,14 @@ services:
   web:
     <<: *labra
     restart: unless-stopped
-    # Trust X-Forwarded-For only from the edge network, where Caddy is.
+    # Trust X-Forwarded-For only from the edge network, where the proxy is.
     command:
       - labra
       - serve
       - --host=0.0.0.0
       - --port=8000
       - --workers=2
-      - --forwarded-allow-ips=172.30.0.0/24
+      - --forwarded-allow-ips=${LABRA_EDGE_SUBNET:-172.30.0.0/24}
     networks: [db, edge]
     depends_on:
       migrate:
@@ -79,12 +85,14 @@ services:
       start_period: 20s
       retries: 3
 
-  caddy:
-    image: caddy:2@sha256:f2a1290d0463aad60660d4ec134943f183ee2a5f6c3eb7bf32dd984f2f020772
+  proxy:
+    image: docker.io/library/caddy:2@sha256:f2a1290d0463aad60660d4ec134943f183ee2a5f6c3eb7bf32dd984f2f020772
     restart: unless-stopped
+    # Rootless Podman and nerdctl can't publish ports below 1024 by default; set these to
+    # 8080/8443, or lower net.ipv4.ip_unprivileged_port_start (docs/dev/runtimes.md).
     ports:
-      - "80:80"
-      - "443:443"
+      - "${LABRA_HTTP_PORT:-80}:80"
+      - "${LABRA_HTTPS_PORT:-443}:443"
     environment:
       LABRA_SITE: ${LABRA_SITE:-labra.lan}
     volumes:
@@ -97,15 +105,53 @@ services:
         condition: service_healthy
 
   tunnel:
-    image: cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+    image: docker.io/cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
     profiles: [tunnel]
     restart: unless-stopped
-    # Point the tunnel's public hostname at http://caddy:8080 in the Cloudflare dashboard.
+    # Point the tunnel's public hostname at http://proxy:8080 in the Cloudflare dashboard.
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
       TUNNEL_TOKEN: ${LABRA_TUNNEL_TOKEN:-}
     networks: [edge]
-    depends_on: [caddy]
+    depends_on: [proxy]
+
+  # Branches reach the proxy's HTTPS port over the tailnet, under the same name and certificate
+  # as LAN PCs. Userspace networking needs no tun device or extra privileges, so it runs
+  # rootless too. For self-hosted Headscale, set LABRA_TAILSCALE_ARGS=--login-server=https://…
+  tailscale:
+    image: docker.io/tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
+    profiles: [tailscale]
+    restart: unless-stopped
+    hostname: ${LABRA_TAILSCALE_HOSTNAME:-labra}
+    environment:
+      TS_AUTHKEY: ${LABRA_TAILSCALE_AUTHKEY:-}
+      TS_EXTRA_ARGS: ${LABRA_TAILSCALE_ARGS:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+      TS_SERVE_CONFIG: /config/serve.json
+    volumes:
+      - ./deploy/tailscale/serve.json:/config/serve.json:ro
+      - tailscale_state:/var/lib/tailscale
+    networks: [edge]
+    depends_on: [proxy]
+
+  # NetBird: the same idea with a control plane that can be fully self-hosted. It shares the
+  # proxy's network, so peers reach the proxy's HTTPS port at this peer's NetBird address;
+  # give labra.lan that address in NetBird's DNS. Needs a tun device and NET_ADMIN.
+  netbird:
+    image: docker.io/netbirdio/netbird:0.80.0@sha256:4976692ea44bb93871743d0b742b4a8f97f6425bfc458ca2d78e28fdb8bdf4ad
+    profiles: [netbird]
+    restart: unless-stopped
+    network_mode: service:proxy
+    cap_add: [NET_ADMIN, SYS_RESOURCE]
+    devices: [/dev/net/tun]
+    environment:
+      NB_SETUP_KEY: ${LABRA_NETBIRD_SETUP_KEY:-}
+      NB_MANAGEMENT_URL: ${LABRA_NETBIRD_MANAGEMENT_URL:-https://api.netbird.io}
+      NB_HOSTNAME: ${LABRA_NETBIRD_HOSTNAME:-labra}
+    volumes:
+      - netbird_state:/var/lib/netbird
+    depends_on: [proxy]
 
 networks:
   db:
@@ -113,16 +159,18 @@ networks:
   edge:
     ipam:
       config:
-        - subnet: 172.30.0.0/24
+        - subnet: ${LABRA_EDGE_SUBNET:-172.30.0.0/24}
 
 volumes:
   pgdata:
   files:
   caddy_data:
   caddy_config:
+  tailscale_state:
+  netbird_state:
 
 secrets:
   db_password:
-    file: ./secrets/db_password
+    file: ${LABRA_SECRETS_DIR:-./secrets}/db_password
   database_url:
-    file: ./secrets/database_url
+    file: ${LABRA_SECRETS_DIR:-./secrets}/database_url

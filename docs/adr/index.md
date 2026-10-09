@@ -12,3 +12,4 @@ How to write one: [ADR-0001](0001-record-decisions.md).
 | [0006](0006-customisation-model.md) | Customisation through settings, data, templates and plugins | accepted |
 | [0007](0007-replaceable-edges.md) | Replaceable edges, stable core | accepted |
 | [0008](0008-platform-ports.md) | Platform services behind ports, with built-in defaults | accepted |
+| [0009](0009-runtime-neutral-packaging.md) | Runtime-neutral packaging | accepted |

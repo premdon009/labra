@@ -7,7 +7,7 @@ items: [W08]
 Problems seen on development machines, and their fixes. Add an entry when something costs more than a few minutes.
 
 ## Docker unreachable from WSL
-**Symptom:** tests that need Postgres are skipped with "Docker not reachable"; `docker ps` in WSL fails or runs a Windows-side shim.
+**Symptom:** tests that need Postgres are skipped with "no Postgres for tests"; `docker ps` in WSL fails or runs a Windows-side shim.
 **Cause:** Docker Desktop is running, but WSL integration is off for this distribution.
 **Fix:** Docker Desktop ▸ Settings ▸ Resources ▸ WSL integration ▸ enable the distribution, then restart the WSL shell. Until then, `docker.exe compose config` can still validate Compose files.
 
@@ -20,3 +20,13 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 **Symptom:** an agent's edit fails because the text it "read" doesn't match the file.
 **Cause:** rtk's output compression shortens long reads.
 **Fix:** read exact bytes with `rtk proxy cat <file>`, or read in small ranges, before editing.
+
+## Docker Desktop pulls fail now and then
+**Symptom:** `docker pull` fails with "tls: error decoding message" or "server gave HTTP response to HTTPS client".
+**Cause:** Docker Desktop's built-in proxy drops a registry connection now and then.
+**Fix:** retry; `scripts/compare_runtimes.sh` retries pulls itself.
+
+## `podman compose` output has a stray banner
+**Symptom:** a script that captures `podman compose exec …` output gets an extra line or escape codes.
+**Cause:** `podman compose` prints a banner on stderr each time it hands over to its provider.
+**Fix:** capture stdout only (`2>/dev/null`), not `2>&1`.

@@ -17,7 +17,7 @@ log = get_logger("labra.http")
 
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
-# Caddy sets these too; the app sets them so a direct connection is just as safe.
+# The app sets these itself, so every proxy (or none) gives the same headers.
 SECURITY_HEADERS = {
     "content-security-policy": (
         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "

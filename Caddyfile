@@ -1,5 +1,6 @@
 # HTTPS in front of Labra. The app sets its own security headers too (CSP and the rest), so a
 # direct connection is just as safe; Caddy adds HSTS and keeps /metrics off the network.
+# deploy/nginx/ does the same with nginx.
 
 (labra) {
 	encode zstd gzip

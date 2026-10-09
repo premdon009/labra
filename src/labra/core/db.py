@@ -1,3 +1,4 @@
+import time
 import uuid
 from collections.abc import Iterator
 from datetime import datetime
@@ -5,6 +6,7 @@ from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import DateTime, Engine, MetaData, create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -15,6 +17,7 @@ from sqlalchemy.orm import (
 )
 
 from labra.core.config import get_settings
+from labra.core.errors import LabraError
 from labra.core.ids import new_id, utcnow
 
 NAMING = {
@@ -52,6 +55,20 @@ class TrackedMixin(IdMixin):
 @lru_cache
 def get_engine() -> Engine:
     return create_engine(get_settings().database_url.get_secret_value(), pool_pre_ping=True)
+
+
+def wait_for_database(engine: Engine, timeout: float, interval: float = 1.0) -> None:
+    """Return once the database takes connections. Some Compose implementations start services
+    in order without waiting for health checks, so `migrate` can start before Postgres does."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            with engine.connect():
+                return
+        except OperationalError:
+            if time.monotonic() >= deadline:
+                raise LabraError(f"Database not reachable after {timeout:g} s.") from None
+            time.sleep(interval)
 
 
 def get_session() -> Iterator[Session]:

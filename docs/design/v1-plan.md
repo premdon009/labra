@@ -1966,9 +1966,9 @@ Python-package rows are measured. Rows marked † come from the repo's last push
 **Ops (gate P):**
 | Component | Licence | Activity | Status | Note / alternative |
 |---|---|---|---|---|
-| Docker Engine + Compose | Apache-2.0 | active | Active | Podman + podman-compose · medium |
-| Caddy | Apache-2.0 | pushed 2026-10-08 † | Active | nginx · low |
-| cloudflared | Apache-2.0 | pushed 2026-10-05 † | Active, **service lock-in** | the program is open but depends on Cloudflare's service; alternatives are Tailscale/Headscale or WireGuard via the standby VPS (an ADR-0007 edge) · medium |
+| Docker Engine + Compose | Apache-2.0 | active | Active | Podman, containerd (nerdctl) or Incus; tested by `scripts/stack_smoke.sh` (ADR-0009) · medium |
+| Caddy | Apache-2.0 | pushed 2026-10-08 † | Active | nginx, tested (`deploy/nginx/`, ADR-0009) · low |
+| cloudflared | Apache-2.0 | pushed 2026-10-05 † | Active, **service lock-in** | the program is open but depends on Cloudflare's service; alternatives are Tailscale/Headscale or NetBird (Compose profiles, start tested, ADR-0009) or WireGuard via the standby VPS (an ADR-0007 edge) · medium |
 | restic | BSD-2 | pushed 2026-10-01 † | Active | Borg (BSD) · medium |
 | rclone | MIT | pushed 2026-10-07 † | Active | restic's own S3/B2 backends · low |
 | Healthchecks.io / Uptime Kuma | BSD-3 / MIT | active † | Active | either one; Healthchecks can be self-hosted later |

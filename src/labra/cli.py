@@ -27,13 +27,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_migrate(_: argparse.Namespace) -> int:
+def cmd_migrate(args: argparse.Namespace) -> int:
     from sqlalchemy.orm import Session
 
-    from labra.core.db import get_engine
+    from labra.core.db import get_engine, wait_for_database
     from labra.core.migrate import upgrade
     from labra.org.service import sync_system_roles
 
+    wait_for_database(get_engine(), args.wait)
     upgrade()
     with Session(get_engine()) as db:
         sync_system_roles(db)
@@ -156,9 +157,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.set_defaults(func=cmd_serve)
 
-    sub.add_parser("migrate", help="upgrade the database to this version").set_defaults(
-        func=cmd_migrate
+    migrate = sub.add_parser("migrate", help="upgrade the database to this version")
+    migrate.add_argument(
+        "--wait", type=float, default=60, help="seconds to wait for the database to come up"
     )
+    migrate.set_defaults(func=cmd_migrate)
     sub.add_parser("check-config", help="validate settings and adapters").set_defaults(
         func=cmd_check_config
     )

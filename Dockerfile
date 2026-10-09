@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
 # The Labra web image. Base images are pinned by digest; scripts/audit_deps.py --check fails
-# on one that isn't. Built for amd64 and arm64 in CI.
+# on one that isn't. Names are fully qualified, so Podman, Buildah and Kaniko resolve them
+# without a registry search list. Built for amd64 and arm64 in CI.
 
 FROM ghcr.io/astral-sh/uv:0.12.18@sha256:3adc3706091ce7c2fe595e669628caedd6d951551b92b258b7e7dbe06d9440bc AS uv
 
-FROM python:3.14-slim@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2 AS build
+FROM docker.io/library/python:3.14-slim@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2 AS build
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -18,7 +19,7 @@ COPY README.md LICENSE CHANGELOG.md ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 
-FROM python:3.14-slim@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2
+FROM docker.io/library/python:3.14-slim@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2
 RUN useradd --system --uid 10001 --home-dir /app labra \
     && mkdir -p /data/files \
     && chown labra /data/files
