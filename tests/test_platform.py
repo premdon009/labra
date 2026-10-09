@@ -1,7 +1,10 @@
 """Ports and adapters: the registry, the config secret files, and one contract suite per port
 that every adapter (built-in or fake) must pass."""
 
+import smtplib
+from email.message import EmailMessage
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -142,3 +145,73 @@ def test_build_message_headers() -> None:
 def test_smtp_mailer_refuses_bad_urls(url: str) -> None:
     with pytest.raises(ConfigError):
         SmtpMailer(url, "lab@example.com")
+
+
+class FakeSmtp:
+    """Stands in for smtplib.SMTP and SMTP_SSL, recording what the mailer asked for."""
+
+    made: ClassVar[list["FakeSmtp"]] = []
+
+    def __init__(self, host: str, port: int, **kwargs: object) -> None:
+        self.host, self.port, self.calls = host, port, list[str]()
+        self.login_args: tuple[str, str] | None = None
+        self.sent: list[EmailMessage] = []
+        FakeSmtp.made.append(self)
+
+    def __enter__(self) -> "FakeSmtp":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.calls.append("quit")
+
+    def starttls(self, **kwargs: object) -> None:
+        self.calls.append("starttls")
+
+    def login(self, user: str, password: str) -> None:
+        self.login_args = (user, password)
+
+    def send_message(self, msg: EmailMessage) -> None:
+        self.sent.append(msg)
+
+
+@pytest.fixture
+def fake_smtp(monkeypatch: pytest.MonkeyPatch) -> list[FakeSmtp]:
+    FakeSmtp.made = []
+    monkeypatch.setattr(smtplib, "SMTP", FakeSmtp)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", FakeSmtp)
+    return FakeSmtp.made
+
+
+def test_smtp_mailer_starttls_and_login(fake_smtp: list[FakeSmtp]) -> None:
+    SmtpMailer("smtp://lab%40example.com:p%40ss@mail.example", "lab@example.com").send(MAIL)
+    (client,) = fake_smtp
+    assert (client.host, client.port) == ("mail.example", 587)
+    assert client.calls == ["starttls", "quit"]
+    assert client.login_args == ("lab@example.com", "p@ss")
+    assert client.sent[0]["To"] == "someone@example.com"
+
+
+def test_smtps_mailer_without_login(fake_smtp: list[FakeSmtp]) -> None:
+    attached = Mail(
+        to=["someone@example.com"],
+        subject="Report",
+        body="Attached.",
+        attachments=[("report.pdf", b"%PDF-1.7", "application/pdf")],
+    )
+    SmtpMailer("smtps://mail.example", "lab@example.com").send(attached)
+    (client,) = fake_smtp
+    assert (client.port, client.calls, client.login_args) == (465, ["quit"], None)
+    (part,) = list(client.sent[0].iter_attachments())
+    assert part.get_filename() == "report.pdf"
+    assert part.get_content_type() == "application/pdf"
+
+
+def test_smtp_mailer_from_settings(tmp_path: Path) -> None:
+    settings = Settings(
+        files_dir=tmp_path,
+        mailer="smtp",
+        smtp_url="smtps://mail.example:2465",  # type: ignore[arg-type]
+    )
+    mailer = SmtpMailer.from_settings(settings)
+    assert mailer.parts.port == 2465
+    assert mailer.sender == settings.mail_from

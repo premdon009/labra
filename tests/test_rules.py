@@ -193,6 +193,17 @@ def test_ids_and_lab_day() -> None:
     assert IST.utcoffset(None) == timedelta(hours=5, minutes=30)
 
 
+@pytest.mark.item("W04")
+def test_uuid7_fallback_without_stdlib(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Python 3.13 has no uuid.uuid7; the hand-built one must still be a sortable version 7.
+    monkeypatch.delattr(uuid, "uuid7", raising=False)
+    before = datetime.now(UTC).timestamp() * 1000
+    first, second = new_id(), new_id()
+    assert (first.version, first.variant) == (7, uuid.RFC_4122)
+    assert first != second
+    assert abs((first.int >> 80) - before) < 5_000
+
+
 # Lab settings
 
 
