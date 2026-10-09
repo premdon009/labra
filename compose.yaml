@@ -1,0 +1,128 @@
+# The Labra stack for one main lab: web, Postgres and Caddy, plus cloudflared under the
+# `tunnel` profile for branches. Images are pinned by digest (scripts/audit_deps.py --check).
+#
+#   docker compose up -d                     LAN only
+#   docker compose --profile tunnel up -d    with the branch tunnel
+#
+# Secrets are files in ./secrets/ (never committed): db_password, database_url.
+# Setup and backups: docs/dev/running-the-stack.md.
+
+name: labra
+
+x-labra: &labra
+  image: ${LABRA_IMAGE:-ghcr.io/premdon009/labra:0.1.0}
+  build: .
+  environment:
+    LABRA_DATABASE_URL_FILE: /run/secrets/database_url
+    LABRA_FILES_DIR: /data/files
+    LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
+    LABRA_MAILER: ${LABRA_MAILER:-console}
+  secrets: [database_url]
+  volumes:
+    - files:/data/files
+  networks: [db]
+
+services:
+  db:
+    image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    restart: unless-stopped
+    # Sized for a 4 GB laptop (design §1a).
+    command: >-
+      postgres -c shared_buffers=256MB -c max_connections=30 -c effective_cache_size=1GB
+      -c work_mem=8MB -c maintenance_work_mem=64MB -c wal_compression=on
+    environment:
+      POSTGRES_USER: labra
+      POSTGRES_DB: labra
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: --data-checksums
+    secrets: [db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [db]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "labra", "-d", "labra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    <<: *labra
+    command: ["labra", "migrate"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *labra
+    restart: unless-stopped
+    # Trust X-Forwarded-For only from the edge network, where Caddy is.
+    command:
+      - labra
+      - serve
+      - --host=0.0.0.0
+      - --port=8000
+      - --workers=2
+      - --forwarded-allow-ips=172.30.0.0/24
+    networks: [db, edge]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=4)"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  caddy:
+    image: caddy:2@sha256:f2a1290d0463aad60660d4ec134943f183ee2a5f6c3eb7bf32dd984f2f020772
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      LABRA_SITE: ${LABRA_SITE:-labra.lan}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge]
+    depends_on:
+      web:
+        condition: service_healthy
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+    profiles: [tunnel]
+    restart: unless-stopped
+    # Point the tunnel's public hostname at http://caddy:8080 in the Cloudflare dashboard.
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${LABRA_TUNNEL_TOKEN:-}
+    networks: [edge]
+    depends_on: [caddy]
+
+networks:
+  db:
+    internal: true
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  pgdata:
+  files:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password
+  database_url:
+    file: ./secrets/database_url

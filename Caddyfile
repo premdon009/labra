@@ -1,0 +1,29 @@
+# HTTPS in front of Labra. The app sets its own security headers too (CSP and the rest), so a
+# direct connection is just as safe; Caddy adds HSTS and keeps /metrics off the network.
+
+(labra) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		X-Frame-Options DENY
+		-Server
+	}
+	# Prometheus scrapes web:8000 directly from inside the stack.
+	@metrics path /metrics /metrics/*
+	respond @metrics 404
+	reverse_proxy web:8000
+}
+
+# Main-lab PCs on the LAN. Caddy's own certificate authority signs it; install its root
+# certificate on each PC once (docs/dev/running-the-stack.md).
+{$LABRA_SITE:labra.lan} {
+	tls internal
+	import labra
+}
+
+# Branches, through the Cloudflare tunnel, which ends TLS itself. Not published on the host.
+:8080 {
+	import labra
+}
