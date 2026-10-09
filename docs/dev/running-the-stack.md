@@ -21,10 +21,13 @@ Caddy, plus cloudflared for branches. It's sized for a 4 GB laptop
    ignored by git):
    ```sh
    mkdir -p secrets && chmod 700 secrets
-   openssl rand -base64 24 | tr -d '\n' > secrets/db_password
+   # Hex, so the password needs no escaping inside the URL.
+   openssl rand -hex 24 | tr -d '\n' > secrets/db_password
    printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(cat secrets/db_password)" \
      > secrets/database_url
    chmod 600 secrets/*
+   # The web image runs as user 10001, and Compose mounts secret files with their owner.
+   sudo chown 10001 secrets/database_url
    ```
 2. Start it, then create the first branch and administrator:
    ```sh
