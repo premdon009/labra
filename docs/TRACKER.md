@@ -32,31 +32,31 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 0/17 · Minimal 0/33 · After pilot (P2) 0/9 · Checklist gate P 0/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 7/17 · Minimal 0/33 · After pilot (P2) 0/9 · Checklist gate P 0/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
 ## Work and minimal version (gate P, all must be done before the pilot)
 | ID | Item | Gate | Status | Done (date · PR) |
 |---|---|---|---|---|
-| W01 | Repo scaffold: README, licence, community files, CI, pre-commit, gitleaks (§13) | P | doing | |
-| W02 | Research and compliance docs from the zip; ADR-0001 to 0008 (§13, §17.1, §17.6) | P | doing | |
+| ~~W01~~ | ~~Repo scaffold: README, licence, community files, CI, pre-commit, gitleaks (§13)~~ | P | done | 2026-10-09 · af39ae4 |
+| ~~W02~~ | ~~Research and compliance docs from the zip; ADR-0001 to 0008 (§13, §17.1, §17.6)~~ | P | done | 2026-10-09 · af39ae4 |
 | W03 | Docker Compose stack: web, postgres, caddy, cloudflared (§1a) | P | doing | compose validated; stack unrun: Docker |
 | W04 | Foundation: settings, number series, file store | P | doing | db tests written, unrun: Docker |
 | W05 | Synthetic seed data and dummy datasets | P | doing | db tests written, unrun: Docker |
 | W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | todo | |
 | W07 | Restore-drill script and runbooks | P | todo | |
-| W08 | Local gate script matching CI (`scripts/ci_local.sh`) | P | doing | |
-| W08.1 | Tracker tooling (§0 items 1–3): status column + strike-through, `scripts/check_tracker.py` rules and progress rewrite, pilot/release tag gate | P | doing | |
+| ~~W08~~ | ~~Local gate script matching CI (`scripts/ci_local.sh`)~~ | P | done | 2026-10-09 · c0b6258 |
+| ~~W08.1~~ | ~~Tracker tooling (§0 items 1–3): status column + strike-through, `scripts/check_tracker.py` rules and progress rewrite, pilot/release tag gate~~ | P | done | 2026-10-09 · c0b6258 |
 | W09 | Pilot: one week running in parallel with the current system (§1a build order 5) | P | todo | |
 | W10 | Cold standby: cold-restore runbook + `failover.sh` / `failback.sh`, rehearsed once on a rented India-region VPS (§17.4) | P | todo | |
 | W10.1 | Warm standby: VPS restores the newest snapshot nightly (§17.4) | P2 | todo | |
 | W11 | Multi-arch Docker images (amd64 + arm64), no provider-specific services (§17) | P | doing | image build unrun: Docker |
 | W12 | Release pipeline: git-cliff changelog, GHCR images with version tags, `rc` tag for the pilot, `docs/dev/releasing.md` (§18.3) | P | doing | release workflow unrun until the first tag |
-| W13 | Dependency register `docs/DEPENDENCIES.md` + `scripts/audit_deps.py` + weekly scheduled check + "no dependency without a row" gate (§19) | P | doing | |
-| W14 | Supply-chain pinning: GitHub Actions by commit SHA, images by digest, vendored JS/CSS with recorded SHA-256 (§19.1) | P | doing | |
-| W15 | Platform ports: `labra.core.ports`, built-in adapters chosen from settings with fail-fast startup, one contract test suite per port, import-linter "core imports ports only", ADR-0008 (§17.6) | P | doing | |
-| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | P | doing | |
+| ~~W13~~ | ~~Dependency register `docs/DEPENDENCIES.md` + `scripts/audit_deps.py` + weekly scheduled check + "no dependency without a row" gate (§19)~~ | P | done | 2026-10-09 · d954bd5 |
+| ~~W14~~ | ~~Supply-chain pinning: GitHub Actions by commit SHA, images by digest, vendored JS/CSS with recorded SHA-256 (§19.1)~~ | P | done | 2026-10-09 · d954bd5 |
+| ~~W15~~ | ~~Platform ports: `labra.core.ports`, built-in adapters chosen from settings with fail-fast startup, one contract test suite per port, import-linter "core imports ports only", ADR-0008 (§17.6)~~ | P | done | 2026-10-09 · 662312a |
+| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | P | doing | readyz db check unrun: Docker; backup heartbeat comes with W07 |
 | M01 | Login and roles | P | doing | db tests written, unrun: Docker |
 | M01.1 | Permission switches per role (`role_permission`) | P | doing | db tests written, unrun: Docker |
 | M01.2 | Staff without login (collected/delivered by) | P | doing | db tests written, unrun: Docker |
