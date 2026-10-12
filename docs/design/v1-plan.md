@@ -79,7 +79,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M13 | Reports for the owner | P | todo | |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
-| M14 | Admin (SQLAdmin) | P | todo | |
+| M14 | Admin screens (own HTMX, ADR-0010) | P | todo | |
 | M15 | Compliance floor: hash-chained audit log, consent, no fetal-sex fields | P | todo | |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
@@ -271,7 +271,7 @@ There's **no separate worker process** in the minimal version: PDFs are rendered
 | M11 | Results | Worklist per department, result entry with automatic H/L flags, **previous value shown beside each entry (simple delta view)**, **critical values highlighted + mandatory "informed whom / when / how" log** (NABL), verification | two-level verification, automatic delta-check rules, autoverification, quality control |
 | M12 | Reports | A4 PDF, **combined or separate chosen per visit**, outsourced tests named, signature **image**, release by signatory only, amended versions, QR with report number | PAdES certificate signing (§7.1), email/WhatsApp delivery |
 | M13 | Reports for the owner | Daily collection (by branch, payment mode), dues list, pending tests, outsourcing cost vs revenue | full management reports, Excel export |
-| M14 | Admin | **SQLAdmin** screens for branches, users, catalog, prices, external labs, settings | template editor, custom fields |
+| M14 | Admin | Own HTMX admin screens (ADR-0010) for branches, users, catalog, prices, external labs, settings | template editor, custom fields |
 | M15 | Compliance floor | Append-only audit log (trigger + hash chain), consent tick at registration (incl. referral-lab sharing), no fetal-sex fields | DPDP erasure workflow, breach log |
 | M17 | **Letterhead and margin setup** (§7.2) | Upload letterhead (**SVG / vector PDF preferred**; PNG/JPG/WebP auto-optimised to about 100–250 KB) per branch for **A4 report** and **A4 bill**; **digital PDF = content on top of the letterhead**, **print PDF = same layout without the letterhead** for pre-printed paper; **margin sliders** with live preview on dummy data; printable calibration page | different letterhead for continuation pages; A5/thermal bill layouts |
 | M16 | Backups | Google Drive + USB via restic, 15 min–24 h interval (default 15 min, §17.3), restore drill script | — |
@@ -295,7 +295,7 @@ They keep the conventions in §5:
 So every expansion item is new tables or new code, never a rewrite. The minimal bill and report formats are the ones in §7 and §8, minus the tax-invoice columns and the certificate signature box.
 
 ### Minimal stack (subset of §4)
-- **App:** FastAPI, SQLAlchemy 2 (sync), Alembic, Postgres 18, Jinja2 + HTMX 4 + Alpine (CSP build) + **Basecoat UI (shadcn look)**, WeasyPrint, vtracer (optional SVG tracing), **pypdf** (letterhead overlay), **pypdfium2** (preview images), python-barcode, segno, SQLAdmin, argon2-cffi, DuckDB (Parquet exports).
+- **App:** FastAPI, SQLAlchemy 2 (sync), Alembic, Postgres 18, Jinja2 + HTMX 4 + Alpine (CSP build) + **Basecoat UI (shadcn look)**, WeasyPrint, vtracer (optional SVG tracing), **pypdf** (letterhead overlay), **pypdfium2** (preview images), python-barcode, segno, argon2-cffi, DuckDB (Parquet exports).
 - **Test only:** pdfplumber (checks text positions in letterhead tests).
 - **Ops:** Docker Compose (web, postgres, caddy, cloudflared), restic + rclone, systemd timer.
 - **Dev:** uv, ruff, pyright, pytest + testcontainers, Playwright (one end-to-end path), GitHub Actions, gitleaks, Zensical (docs site).
@@ -304,7 +304,7 @@ So every expansion item is new tables or new code, never a rewrite. The minimal 
 
 ### Minimal build order
 1. **Repo + foundation:** CI, Compose, auth/roles/branches, audit log, settings, numbering, backup + restore scripts, synthetic seed data.
-2. **Catalog + prices + SQLAdmin.**
+2. **Catalog + prices + admin screens.**
 3. **Front desk:** patients, visits, billing, payments, receipt and label printing.
 4. **Lab:** routing, results, external PDF upload, verification, report PDF and release.
 5. **Owner reports.** Then install on the laptop, run a restore drill, and **pilot**: one week in parallel with the current system on real work, on the laptop only.
@@ -376,7 +376,7 @@ The owner shared the manual of a commercial desktop lab product popular with sma
 | M18 | Front desk | Promised delivery time per visit; walk-in vs home-collection case type | Row 18 (`visit.promised_at`; `collection_mode` exists) | **Minimal** |
 | M18 | Front desk | Age in years / months / days (infants) | Row 18 (stored as DOB, estimated) | **Minimal** |
 | X13 | Front desk | Regular-patient card number, lookup by card or phone | `patient_no` printed as a QR card | Next expansion |
-| M01.1 (LT11) | Access | Per-action permission switches (new report, print, cancel, payment, refund, ...) | `role_permission` seeded in minimal; toggles per role in SQLAdmin; **per-user override** later | **Minimal** (per role) |
+| M01.1 (LT11) | Access | Per-action permission switches (new report, print, cancel, payment, refund, ...) | `role_permission` seeded in minimal; toggles per role on an admin screen; **per-user override** later | **Minimal** (per role) |
 | M24 | Catalog | **Hundreds of tests pre-loaded** with units and ranges | **Starter catalog** (~300 common Indian tests, parameters, units, adult ranges, specimen, container) as an optional import, **authored by Labra from public references, each range cited**, to be reviewed by the lab's pathologist before use | **Minimal** (import file) |
 | M20 | Catalog | Method list, several per test, one default, printed on report | Row 20, `test_method` | **Minimal** |
 | X14 | Catalog | Lab-to-lab (B2B) price for samples **other labs send to us** | `price_list` kind `b2b` + `credit_account` | Next expansion |
@@ -435,7 +435,7 @@ The owner shared screenshots of a commercial product's result screen as a workfl
 ### Where each piece of data comes from
 | Data | Stored in | Source | Who maintains |
 |---|---|---|---|
-| Test code, name, price | `test.code`, `aliases[]`, `price` (M05, M06) | Starter catalog (M24) → the lab edits codes to match the habits of its staff | Admin (SQLAdmin, price history) |
+| Test code, name, price | `test.code`, `aliases[]`, `price` (M05, M06) | Starter catalog (M24) → the lab edits codes to match the habits of its staff | Admin screens (price history) |
 | Parameters of a test (Lipid → TC, TG, HDL, LDL, VLDL, ratios) | `test_parameter` rows, `display_order` | Starter catalog | Admin |
 | Unit | `test_parameter.unit_ucum` (picklist, no free text) | UCUM | Admin |
 | **Normal range** | `reference_range` by sex + age (in days, so infants work), low/high either side optional | **1st: the lab's own kit insert / analyser manufacturer** (ISO 15189 makes the lab verify ranges for its own method). **Starter values:** published guidelines, each row with a `source_citation` (e.g. lipid categories from the NCEP ATP III tiers, glucose from ADA, eGFR from KDIGO, Hb from WHO anaemia cut-offs) | **Pathologist approves** (`approved_by/at`); a starter range stays "unapproved" (yellow banner in admin) until then |
@@ -653,7 +653,7 @@ Every step above wrote an `audit_log` row, and every outsourcing step an `order_
 | **0.1 Foundation** | Repo hygiene (CI, pre-commit, docs site, SECURITY/CONTRIBUTING), Docker Compose, auth + roles + branches, audit log, settings, number series, backups script, synthetic seed data |
 | **0.2 Front desk** | Patients, referrers, catalog (tests, parameters, ranges, packages), price lists, visits/orders, **billing** (bill of supply / tax invoice split, payments, dues, refunds, day close), receipts, sample labels |
 | **0.3 Lab** | Simple sample status, **routing in-house / external with a ranked suggestion**, worklists, result entry, external PDF upload + optional value entry, verification, **reports** (combined / separate), amended reports, report signing plugin point (signature image by default; lab certificate via pyHanko as a setting, §7.1) |
-| **0.4 Offline + operations** | Branch **offline counter** (§9), outage sync, pending-test and turnaround alerts, MIS reports (collection, dues, outsourcing margin), SQLAdmin admin screens, price CSV import with preview |
+| **0.4 Offline + operations** | Branch **offline counter** (§9), outage sync, pending-test and turnaround alerts, MIS reports (collection, dues, outsourcing margin), admin screens, price CSV import with preview |
 | **0.5 Pilot** | Pilot at the owner's labs on synthetic → real data (real data only on the lab's machine), hardening, operator guide |
 | **Later (1.x)** | Full sample tracking with manifests (LT06), email-inbox auto-match of external results (LT07), custom fields and template editor in the UI (LT08), credit accounts and statements (LT09), external lab invoice reconciliation (LT10), permission matrix UI (LT11), internal quality control (Levey-Jennings) (X07), WhatsApp/SMS delivery (X01), FHIR export (LT12), Tally export (LT13) |
 | **Later (1.x, signatures)** | Labra Signer agent for personal pathologist DSCs (LT14); optional Aadhaar eSign plugin and DocuSeal/Documenso link-out for agreements (LT15) (§7.1) |
@@ -667,7 +667,7 @@ Every step above wrote an `audit_log` row, and every outsourcing step an `order_
                   │  Cloudflare Tunnel + Access        │
                   ▼                                    ▼
           ┌──────────────── Mini PC at main lab (Docker Compose) ───────────────┐
-          │ caddy ─► labra-web (FastAPI + Jinja2/HTMX, SQLAdmin at /admin)      │
+          │ caddy ─► labra-web (FastAPI + Jinja2/HTMX, admin at /admin)         │
           │          labra-worker (Procrastinate: PDFs, alerts, backups, mail)  │
           │          postgres 18 (data + job queue)   /data/files (PDFs, logos) │
           └──────────────────────────────┬──────────────────────────────────────┘
@@ -689,8 +689,8 @@ Rule: every piece is MIT/BSD/Apache/PSF-licensed, Python-first and light enough 
 | Jobs | Procrastinate (job queue and scheduler that lives in Postgres) |
 | UI | Jinja2 + **HTMX** + Alpine.js pages rendered on the server, styled with **Basecoat UI** (MIT): the **shadcn/ui design system rebuilt as plain Tailwind CSS classes + small vanilla JS**, with ready Jinja macros, compatible with shadcn themes. CSS vendored into `static/` (no CDN, so the LAN works offline); Tailwind standalone CLI (no Node in production) |
 | Why not shadcn/ui itself | shadcn/ui is React components (Radix). Using it means a React app built with Node, a JSON API for every screen, and twice the code to maintain. Basecoat gives the same look on the HTMX stack. If a React front end is ever wanted, the `service.py` layer already supports adding a JSON API alongside |
-| UI look for admin | SQLAdmin has its own (Tabler) look; acceptable for a screen used 4–5 times a week. Restyle with the same shadcn theme colours later if wanted |
-| Admin | SQLAdmin + 3 custom screens (price import, template management, permissions) |
+| UI look for admin | Same Basecoat look as every other screen (ADR-0010) |
+| Admin | Own HTMX screens (ADR-0010), including price import, template management and permissions |
 | Auth | Session cookies, argon2-cffi (used directly, with `check_needs_rehash`), pyotp two-factor login for signatories/admins, roles scoped to branches |
 | PDF | Jinja2 sandboxed templates → **WeasyPrint** |
 | PDF signing | **pyHanko** (MIT): PAdES signatures with PKCS#12/PKCS#11, RFC 3161 timestamps, validation (§7.1) |
@@ -1230,8 +1230,8 @@ Rules:
 ## 10. Customisation model
 | Layer | What admins change | v1 surface |
 |---|---|---|
-| Settings | report mode default, routing strategy, turnaround thresholds, discount limits per role, numbering formats, currency display (symbol, position, grouping, words; §8), feature toggles (sample tracking, two-level verification, offline counter), consent text | SQLAdmin `setting` editor with typed forms |
-| Data | catalog, parameters, ranges, packages, price lists (versioned), external labs and rates, branches, users, roles | SQLAdmin + price CSV import with preview/diff |
+| Settings | report mode default, routing strategy, turnaround thresholds, discount limits per role, numbering formats, currency display (symbol, position, grouping, words; §8), feature toggles (sample tracking, two-level verification, offline counter), consent text | Settings screen with typed forms |
+| Data | catalog, parameters, ranges, packages, price lists (versioned), external labs and rates, branches, users, roles | Admin screens + price CSV import with preview/diff |
 | Templates | report, bills, receipt, label, letterhead, manifest | v1: files overridable in `/data/templates`, published as a `template` row; later: in-portal editor with preview |
 | Custom fields | extra fields on patient/visit/bill | later: `field_definition` UI (JSONB `extra` already exists) |
 | Plugins | Python entry points: `labra.routing_strategies`, `labra.result_importers`, `labra.report_renderers`, `labra.accounting_exporters`, `labra.notifiers` | documented API, examples in repo |
@@ -1471,7 +1471,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 | Run | Slice (§1a build order) | Tracker IDs | Main gate-P EC items | Manual / docs pages shipped in the same run |
 |---|---|---|---|---|
 | **1** | Repo, agent setup, docs site, foundation | W01, W02, W08, W08.1, W13, W14, W15, W16, W03, W04, W05 (seed framework + §1e cast), M02, M01, M01.1, M01.2, M15, **M25.1**, **M25.2** | A01–A05, A08–A10, B02, B04, B06, B07, D04, D05, E01, E03, G01, G02, G04, H01, H02, H04, I01–I03, K01, C03, C04 | `getting-started/login`, `getting-started/screen-layout`, `admin/branches`, `admin/users-and-roles`, `admin/settings`; dev docs `dev/setup.md`, `dev/workflow.md`; ADR-0001 to 0006; `docs/research/` |
-| **2** | Catalog, prices, SQLAdmin | M05, M05.1, M05.2, M06, M14, M24 (cross-checked against Appendix A; disputed ranges left unapproved for the pathologist) | B03, K02, F02 | `admin/catalog`, `admin/reference-ranges`, `admin/methods`, `admin/prices`, `admin/starter-catalog` |
+| **2** | Catalog, prices, admin screens | M05, M05.1, M05.2, M06, M14, M24 (cross-checked against Appendix A; disputed ranges left unapproved for the pathologist) | B03, K02, F02 | `admin/catalog`, `admin/reference-ranges`, `admin/methods`, `admin/prices`, `admin/starter-catalog` |
 | **3** | Front desk | M03, M04, M18, M18.1, M07, M07.1, M23, M08 | B01, B05, C01, C02, F03, J01–J03 | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
 | **4** | Lab | M09, M10, M11, M11.1, M11.2, M21, M22 | A07, F01 (results part) | `lab/worklist`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `lab/status-board` |
 | **5** | Reports + owner | M17, M17.1, M12, M12.1, M20, M20.1, M19, M13 | A06, K03, H03 (full-day Playwright + PDF snapshots) | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins` |
@@ -1944,13 +1944,13 @@ Python-package rows are measured. Rows marked † come from the repo's last push
 | Alembic | MIT | 1.20.0 · 2026-09-11 | 13 | Active | migrations | — |
 | psycopg 3 | **LGPL-3.0** | 3.3.6 · 2026-09-18 | 10 | Active, licence exception | the reference Postgres driver; LGPL is fine imported unmodified, recorded in ADR-0002 | pg8000 (BSD, pure Python, slower) · low |
 | PostgreSQL | PostgreSQL | 18.x † | — | Active | **18 instead of 17:** a fresh start gets one more year of support (Nov 2030) | — |
-| Jinja2 | BSD-3 | 3.1.6 · 2025-03-05 | **0** | **Watch** | no release for 19 months and no commit since 2025-06-14; 3.2 has been in development since 2022. Templates + sandbox (EC-A08); also used by SQLAdmin and the docs | none at the same fit; mitigation: plain features only, sandbox tests in CI · very high |
+| Jinja2 | BSD-3 | 3.1.6 · 2025-03-05 | **0** | **Watch** | no release for 19 months and no commit since 2025-06-14; 3.2 has been in development since 2022. Templates + sandbox (EC-A08); also used by the docs | none at the same fit; mitigation: plain features only, sandbox tests in CI · very high |
 | python-multipart | Apache-2.0 | 0.0.32 · 2026-06-04 | 12 | Active | form parsing | — |
 | WeasyPrint | BSD-3 | 70.0 · 2026-09-08 | 5 | Active | paged-media CSS → PDF, no browser | Playwright print-to-PDF (+Chromium) · medium |
 | pypdf | BSD-3 | 6.19.0 · 2026-09-16 | 43 | Active | letterhead overlay, dedup | — |
 | pypdfium2 | BSD-3 / Apache-2.0 | 5.14.0 · 2026-10-04 | 18 | Active | fast preview PNGs | pdftoppm (GPL, as a command) · low |
 | Pillow | MIT-CMU | 12.3.0 · 2026-07-01 | 5 | Active | letterhead optimisation | — |
-| SQLAdmin | BSD-3 | 0.32.0 · 2026-09-20 | 15 | Active | admin screens for free; **repo moved to `smithyhq/sqladmin`**, so update links | starlette-admin (MIT) or own HTMX screens · medium |
+| SQLAdmin | BSD-3 | 0.32.0 · 2026-09-20 | 15 | Dropped | not used: own HTMX admin screens instead (ADR-0010) | — |
 | **pwdlib** | MIT | 0.3.1 · 2026-08-12 | 2 | **Replace** (Watch: single maintainer, 179 stars) | a thin wrapper | **argon2-cffi** directly (MIT, Hynek, active), with `check_needs_rehash` · low |
 | python-barcode | MIT | 0.16.1 · 2025-08-27 | 0 | Stable | Code 128 sample labels; the spec is frozen and the repo was active in 2026-07 | own Code 128 SVG writer (~150 lines) · low |
 | segno | BSD-3 | 1.6.6 · 2025-03-12 | 0 | Stable | QR codes (verify, UPI); spec frozen, repo active 2026-07 | qrcode (BSD) · low |
@@ -2018,7 +2018,7 @@ Python-package rows are measured. Rows marked † come from the repo's last push
 | 6 | **No Trivy**: image scanning by osv-scanner or grype; **every Action pinned by SHA, every image by digest** | EC-I05, new EC-I06, W14 |
 | 7 | **Licence allowlist** widened precisely: 0BSD (htmx), MIT-CMU (Pillow), PostgreSQL; LGPL-3.0 only for psycopg; MPL-2.0 test-only | EC-I03, ADR-0002 |
 | 8 | **Postgres 18** instead of 17 | §1a, §3, §4, §16.2 step 6 |
-| 9 | SQLAdmin links point to `smithyhq/sqladmin` | register |
+| 9 | ~~SQLAdmin links point to `smithyhq/sqladmin`~~ (SQLAdmin dropped, ADR-0010) | register |
 
 **Watch list to re-check each quarter:**
 - **Jinja2:** no viable alternative; mitigated by sandbox tests.

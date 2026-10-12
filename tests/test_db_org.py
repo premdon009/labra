@@ -93,12 +93,18 @@ def test_create_and_update_branch(seeded: Session, platform: Platform) -> None:
 
 
 @pytest.mark.item("M02")
-def test_branch_edit_with_stale_version_conflicts(seeded: Session, platform: Platform) -> None:
+@pytest.mark.item("EC-B03")
+def test_branch_edit_with_stale_version_names_who_changed_it(
+    seeded: Session, platform: Platform
+) -> None:
     admin = _as(seeded, platform, "anil")
     b2 = _branch(seeded, "B2")
     data = org.BranchInput(code="B2", name="Renamed", kind="collection_centre")
-    with pytest.raises(ConflictError):
+    org.update_branch(seeded, admin, b2.id, data, b2.row_version)
+    with pytest.raises(ConflictError) as exc:
         org.update_branch(seeded, admin, b2.id, data, b2.row_version - 1)
+    assert exc.value.public_message.startswith("Anil Kumar changed this record at ")
+    assert exc.value.public_message.endswith("Reload to see their changes, then make yours again.")
 
 
 @pytest.mark.item("M02")
@@ -218,6 +224,7 @@ def test_user_validation(seeded: Session, platform: Platform) -> None:
 
 
 @pytest.mark.item("M01.1")
+@pytest.mark.item("EC-B03")
 def test_update_user_fields_and_roles(seeded: Session, platform: Platform) -> None:
     admin = _as(seeded, platform, "anil")
     priya = seeded.scalar(select(AppUser).where(AppUser.username == "priya"))
@@ -232,8 +239,9 @@ def test_update_user_fields_and_roles(seeded: Session, platform: Platform) -> No
     org.update_user(seeded, admin, priya.id, data, priya.row_version)
     assert priya.phone == "9000000002"
     assert org.user_roles(seeded, priya.id) == {(b3, desk)}
-    with pytest.raises(ConflictError):
+    with pytest.raises(ConflictError) as exc:
         org.update_user(seeded, admin, priya.id, data, priya.row_version - 1)
+    assert exc.value.public_message.startswith("Anil Kumar changed this record at ")
     with pytest.raises(NotFoundError):
         org.update_user(seeded, admin, uuid.uuid4(), data, 1)
 

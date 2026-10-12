@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import field, csrf %}
+
+{% block title %}Price · {{ item.name }}{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>Price · {{ item.code }} · {{ item.name }}</h1></div>
+
+<p><a href="/admin/prices">Back to prices</a></p>
+
+{% if can_edit %}
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+
+<form method="post" action="/admin/prices/{{ item_type }}/{{ item.id }}">
+
+  {{ csrf(csrf_token) }}
+
+  <div class="form-grid">
+
+    {{ field('amount', 'New price (₹)', values.get('amount'), errors, required=True, hint='Starts now. Bills already made keep the price they were made with.') }}
+
+    <div class="field-row">
+      <label class="label" for="f-branch_id">For</label>
+      <select class="select" id="f-branch_id" name="branch_id">
+        <option value="">Every branch (lab price)</option>
+
+        {% for b in branches.values() %}
+
+        <option value="{{ b.id }}" {% if values.get('branch_id') == b.id | string %}selected{% endif %}>Only {{ b.code }} · {{ b.name }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('branch_id') %}<p class="field-error">{{ errors.branch_id }}</p>{% endif %}
+
+    </div>
+
+    {{ field('reason', 'Reason', values.get('reason'), errors, hint='Optional, for example "New kit cost".') }}
+
+  </div>
+  <div class="form-actions"><button type="submit" class="btn">Set price</button></div>
+</form>
+
+{% endif %}
+
+{% if overrides %}
+
+<h2>Branch prices in force</h2>
+<table class="table">
+  <thead><tr><th>Branch</th><th>Price (₹)</th><th>Since</th><th></th></tr></thead>
+  <tbody>
+
+    {% for p in overrides %}
+
+    <tr>
+      <td>{{ branches[p.branch_id].code if p.branch_id in branches else 'Another branch' }}</td>
+      <td>{{ p.amount }}</td>
+      <td>{{ p.valid_from | local_time }}</td>
+      <td>
+
+        {% if can_edit and p.branch_id in branches %}
+
+        <form method="post" action="/admin/prices/{{ item_type }}/{{ item.id }}/end">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="branch_id" value="{{ p.branch_id }}">
+          <button type="submit" class="btn-sm-outline">Use the lab price again</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endif %}
+
+<h2>History</h2>
+<table class="table">
+  <thead><tr><th>For</th><th>Price (₹)</th><th>From</th><th>Until</th><th>Reason</th></tr></thead>
+  <tbody>
+
+    {% for p in history %}
+
+    <tr>
+      <td>{% if p.branch_id %}{{ branches[p.branch_id].code if p.branch_id in branches else 'Another branch' }}{% else %}Every branch{% endif %}</td>
+      <td>{{ p.amount }}</td>
+      <td>{{ p.valid_from | local_time }}</td>
+      <td>{{ p.valid_to | local_time if p.valid_to else 'Now' }}</td>
+      <td>{{ p.reason }}</td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="5">No price yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endblock %}

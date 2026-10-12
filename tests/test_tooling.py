@@ -33,6 +33,7 @@ def _script(name: str) -> ModuleType:
         ["add-branch", "--code", "B2", "--name", "Branch 2", "--kind", "collection_centre"],
         ["create-admin", "--username", "admin", "--full-name", "Admin User"],
         ["seed"],
+        ["import-starter", "--as", "admin"],
     ],
 )
 def test_cli_commands_parse(argv: list[str]) -> None:

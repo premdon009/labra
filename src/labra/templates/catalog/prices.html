@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Prices{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>Prices</h1></div>
+
+<form method="get" action="/admin/prices" class="form-actions">
+  <label class="label" for="f-branch">Also show the prices of</label>
+  <select class="select" id="f-branch" name="branch">
+    <option value="">No branch</option>
+
+    {% for b in branches %}
+
+    <option value="{{ b.id }}" {% if b.id == branch %}selected{% endif %}>{{ b.code }} · {{ b.name }}</option>
+
+    {% endfor %}
+
+  </select>
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Lab price (₹)</th>{% if branch %}<th>Branch price (₹)</th>{% endif %}<th></th></tr></thead>
+  <tbody>
+
+    {% for r in rows %}
+
+    <tr>
+      <td>{{ r.code }}</td>
+      <td>{{ r.name }}{% if not r.is_active %} <span class="badge-outline">Not in use</span>{% endif %}</td>
+      <td>{{ 'Package' if r.item_type == 'package' else 'Test' }}</td>
+      <td>{{ r.lab_price if r.lab_price is not none else 'No price' }}</td>
+
+      {% if branch %}<td>{{ r.branch_price if r.branch_price is not none else 'Same as lab' }}</td>{% endif %}
+
+      <td><a href="/admin/prices/{{ r.item_type }}/{{ r.item_id }}">Open</a></td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="6">The catalog is empty.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endblock %}

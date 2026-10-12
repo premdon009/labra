@@ -11,13 +11,14 @@ from sqlalchemy.orm import Session
 from labra.auth.principal import Principal
 from labra.auth.service import end_all_sessions
 from labra.core import audit
+from labra.core.db import TrackedMixin
 from labra.core.errors import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
     ValidationFailedError,
 )
-from labra.core.ids import utcnow
+from labra.core.ids import IST, utcnow
 from labra.core.ports import IdentityProvider
 from labra.org.models import BRANCH_KINDS, AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.org.permissions import SYSTEM_ROLES
@@ -32,6 +33,17 @@ _STATE_RE = re.compile(r"^\d{2}$")
 def _check(principal: Principal, permission: str, branch_id: uuid.UUID | None = None) -> None:
     if not principal.can(permission, branch_id):
         raise PermissionDeniedError()
+
+
+def stale(db: Session, record: TrackedMixin) -> ConflictError:
+    """The error for an edit made on an old copy of `record`: says who changed it since."""
+    who = db.get(AppUser, record.updated_by) if record.updated_by else None
+    name = who.full_name if who else "Someone"
+    at = record.updated_at.astimezone(IST)
+    return ConflictError(
+        f"{name} changed this record at {at:%H:%M}. Reload to see their changes, then make"
+        " yours again."
+    )
 
 
 # Branches
@@ -128,7 +140,7 @@ def update_branch(
     _check(principal, "branch.edit")
     branch = get_branch(db, principal, branch_id)
     if branch.row_version != row_version:
-        raise ConflictError()
+        raise stale(db, branch)
     _validate_branch(db, data, branch.id)
     changed = [k for k, v in vars(data).items() if getattr(branch, k) != v]
     for k in changed:
@@ -291,7 +303,7 @@ def update_user(
     _check(principal, "user.edit")
     user = get_user(db, principal, user_id)
     if user.row_version != row_version:
-        raise ConflictError()
+        raise stale(db, user)
     _validate_user(db, data, user.id)
     if user.id == principal.user_id and not (data.is_active and data.can_login):
         raise ValidationFailedError({"can_login": "You can't switch off your own sign-in."})

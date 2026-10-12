@@ -134,6 +134,32 @@ def cmd_add_branch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import_starter(args: argparse.Namespace) -> int:
+    """Add the starter catalog, acting as (and audited as) an existing administrator."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from labra import models
+    from labra.auth.principal import Principal
+    from labra.auth.service import grants_for
+    from labra.catalog.starter import import_starter
+    from labra.core.db import get_engine
+
+    with Session(get_engine()) as db:
+        user = db.scalar(select(models.AppUser).where(models.AppUser.username == args.as_user))
+        if user is None:
+            _out(f"There is no user {args.as_user}.")
+            return 1
+        acting = Principal(user.id, user.username, user.full_name, None, grants_for(db, user.id))
+        result = import_starter(db, acting)
+        db.commit()
+    _out(
+        f"Added {result.tests} tests, {result.packages} packages and {result.ranges} ranges"
+        f" (all waiting for a signatory's approval). Already present: {len(result.skipped)}."
+    )
+    return 0
+
+
 def cmd_seed(_: argparse.Namespace) -> int:
     from labra.seed import run
 
@@ -182,6 +208,12 @@ def build_parser() -> argparse.ArgumentParser:
     admin.add_argument("--username", required=True)
     admin.add_argument("--full-name", required=True)
     admin.set_defaults(func=cmd_create_admin)
+
+    starter_cmd = sub.add_parser("import-starter", help="add the starter test catalog")
+    starter_cmd.add_argument(
+        "--as", dest="as_user", required=True, help="username of the administrator doing it"
+    )
+    starter_cmd.set_defaults(func=cmd_import_starter)
 
     sub.add_parser("seed", help="load synthetic demo data (never on a live lab)").set_defaults(
         func=cmd_seed

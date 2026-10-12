@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import field, checkbox, csrf %}
+{% from "catalog/_labels.html" import sex_label, condition_label, approval %}
+
+{% macro age_field(name, label, value, unit, hint) -%}
+
+<div class="field-row">
+  <label class="label" for="f-{{ name }}">{{ label }}</label>
+  <input class="input" type="number" min="0" id="f-{{ name }}" name="{{ name }}" value="{{ value }}" {% if errors.get(name ~ '_days') %}aria-invalid="true"{% endif %}>
+  <select class="select" name="{{ name }}_unit" aria-label="{{ label }} unit">
+
+    {% for u in ('years', 'months', 'days') %}
+
+    <option value="{{ u }}" {% if u == unit %}selected{% endif %}>{{ u }}</option>
+
+    {% endfor %}
+
+  </select>
+  <p class="muted">{{ hint }}</p>
+
+  {% if errors.get(name ~ '_days') %}<p class="field-error">{{ errors[name ~ '_days'] }}</p>{% endif %}
+
+</div>
+
+{%- endmacro %}
+
+{% block title %}Reference range{% endblock %}
+
+{% block content %}
+
+{% set saved = range and range.id %}
+
+<div class="page-head"><h1>{{ test.code }} · {{ parameter.name }}: {{ 'reference range' if saved else 'add a reference range' }}</h1></div>
+
+<p><a href="/admin/catalog/parameters/{{ parameter.id }}">Back to {{ parameter.name }}</a></p>
+
+{% if saved %}
+
+<p>{{ approval(range) }}{% if range.approved_at %} on {{ range.approved_at | local_time('%d %b %Y') }}{% endif %}</p>
+
+{% if can_approve and not range.approved_at and range.is_active %}
+
+<form method="post" action="/admin/catalog/ranges/{{ range.id }}/approve">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="row_version" value="{{ range.row_version }}">
+  <input type="hidden" name="back" value="/admin/catalog/ranges/{{ range.id }}">
+  <button type="submit" class="btn">Approve this range</button>
+</form>
+
+{% endif %}
+
+{% endif %}
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+
+<form method="post" action="/admin/catalog/ranges">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="parameter_id" value="{{ parameter.id }}">
+  <input type="hidden" name="range_id" value="{{ range.id if saved else '' }}">
+  <input type="hidden" name="row_version" value="{{ range.row_version if saved else 0 }}">
+  <fieldset class="form-grid" {% if not can_edit %}disabled{% endif %}>
+    <div class="field-row">
+      <label class="label" for="f-sex">Sex</label>
+      <select class="select" id="f-sex" name="sex">
+        <option value="">Any</option>
+
+        {% for s in sexes %}
+
+        <option value="{{ s }}" {% if range and range.sex == s %}selected{% endif %}>{{ sex_label(s) }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('sex') %}<p class="field-error">{{ errors.sex }}</p>{% endif %}
+
+    </div>
+
+    {{ age_field('age_min', 'Age from', age.min, age.min_unit, 'From birth: 0.') }}
+
+    {{ age_field('age_max', 'Age up to', age.max, age.max_unit, 'Up to, not including. Empty for no upper limit.') }}
+
+    <div class="field-row">
+      <label class="label" for="f-condition">Condition</label>
+      <select class="select" id="f-condition" name="condition">
+        <option value="">None</option>
+
+        {% for c in conditions %}
+
+        <option value="{{ c }}" {% if range and range.condition == c %}selected{% endif %}>{{ condition_label(c) }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('condition') %}<p class="field-error">{{ errors.condition }}</p>{% endif %}
+
+    </div>
+
+    {{ field('low', 'Normal from' ~ (' (' ~ unit ~ ')' if unit else ''), range.low if range, errors) }}
+
+    {{ field('high', 'Normal up to', range.high if range, errors) }}
+
+    {{ field('critical_low', 'Critical below', range.critical_low if range, errors, hint='A result beyond these limits is marked critical.') }}
+
+    {{ field('critical_high', 'Critical above', range.critical_high if range, errors) }}
+
+    {{ field('absurd_low', 'Impossible below', range.absurd_low if range, errors, hint='Values that can\'t be real, so a result beyond them is a typing mistake.') }}
+
+    {{ field('absurd_high', 'Impossible above', range.absurd_high if range, errors) }}
+
+    {{ field('display_text', 'Printed as', range.display_text if range, errors, hint='Optional, for example "Up to 200". Empty prints the limits.') }}
+
+    {{ field('source_citation', 'Source', range.source_citation if range, errors, hint='Where the limits come from: kit insert, textbook, guideline.') }}
+
+  </fieldset>
+
+  <h2>Interpretation tiers</h2>
+  <p class="muted">Optional, for results read against tiers rather than one normal range, for example desirable, borderline, high.</p>
+  <table class="table">
+    <thead><tr><th>Label</th><th>Severity</th><th>From</th><th>Up to</th></tr></thead>
+    <tbody>
+
+      {% for b in bands %}
+
+      {% set key = 'band_' ~ loop.index0 %}
+
+      <tr>
+        <td><input class="input" name="band_label" value="{{ b.label if b }}" aria-label="Tier {{ loop.index }} label" {% if not can_edit %}disabled{% endif %}>
+
+          {% if errors.get(key) %}<p class="field-error">{{ errors[key] }}</p>{% endif %}
+
+        </td>
+        <td><select class="select" name="band_severity" aria-label="Tier {{ loop.index }} severity" {% if not can_edit %}disabled{% endif %}>
+
+          {% for s in severities %}
+
+          <option value="{{ s }}" {% if b and b.severity == s %}selected{% endif %}>{{ s | capitalize }}</option>
+
+          {% endfor %}
+
+        </select></td>
+        <td><input class="input" name="band_low" value="{{ b.low if b and b.low is not none }}" aria-label="Tier {{ loop.index }} from" {% if not can_edit %}disabled{% endif %}></td>
+        <td><input class="input" name="band_high" value="{{ b.high if b and b.high is not none }}" aria-label="Tier {{ loop.index }} up to" {% if not can_edit %}disabled{% endif %}></td>
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+  </table>
+
+  {% if saved %}<p>{{ checkbox('is_active', 'Range is in use', range.is_active) }}</p>{% endif %}
+
+  {% if can_edit %}
+
+  <p class="muted">Saving a change takes away the approval; a signatory must approve the range again.</p>
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/catalog/parameters/{{ parameter.id }}">Cancel</a>
+  </div>
+
+  {% endif %}
+
+</form>
+
+{% endblock %}

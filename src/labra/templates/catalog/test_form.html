@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import field, checkbox, csrf %}
+{% from "catalog/_labels.html" import status, type_label %}
+
+{% block title %}{{ test.name if test and test.id else 'Add test' }}{% endblock %}
+
+{% block content %}
+
+{% set saved = test and test.id %}
+
+<div class="page-head"><h1>{{ test.code ~ ' · ' ~ test.name if saved else 'Add test' }}</h1></div>
+
+<p><a href="/admin/catalog">Back to the catalog</a></p>
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+
+<form method="post" action="/admin/catalog/tests">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="test_id" value="{{ test.id if saved else '' }}">
+  <input type="hidden" name="row_version" value="{{ test.row_version if saved else 0 }}">
+  <fieldset class="form-grid" {% if not can_edit %}disabled{% endif %}>
+
+    {{ field('code', 'Code', test.code if test, errors, required=True, hint='What the front desk types: up to 20 small letters, digits or . _ + -, for example hb.') }}
+
+    {{ field('name', 'Name', test.name if test, errors, required=True, hint='As printed on the report.') }}
+
+    {{ field('aliases', 'Other codes', test.aliases | join(' ') if test, errors, hint='Separated by spaces, for example hgb haemo. Each also finds this test.') }}
+
+    {{ field('short_name', 'Short name', test.short_name if test, errors, hint='For labels and bills, if the name is long.') }}
+
+    <div class="field-row">
+      <label class="label" for="f-department_id">Department *</label>
+      <select class="select" id="f-department_id" name="department_id" required>
+        <option value="">Choose…</option>
+
+        {% for d in departments if d.is_active or (test and d.id == test.department_id) %}
+
+        <option value="{{ d.id }}" {% if test and test.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('department_id') %}<p class="field-error">{{ errors.department_id }}</p>{% endif %}
+
+    </div>
+    <div class="field-row">
+      <label class="label" for="f-specimen_type_id">Specimen</label>
+      <select class="select" id="f-specimen_type_id" name="specimen_type_id">
+        <option value="">None</option>
+
+        {% for s in specimens if s.is_active or (test and s.id == test.specimen_type_id) %}
+
+        <option value="{{ s.id }}" {% if test and test.specimen_type_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('specimen_type_id') %}<p class="field-error">{{ errors.specimen_type_id }}</p>{% endif %}
+
+    </div>
+
+    {{ field('default_tat_hours', 'Turnaround (hours)', test.default_tat_hours if test else 24, errors, type='number') }}
+
+    <div class="field-row">
+      <label class="label" for="f-interpretation_text">Interpretation</label>
+      <textarea class="textarea" id="f-interpretation_text" name="interpretation_text" rows="4">{{ test.interpretation_text if test }}</textarea>
+      <p class="muted">Printed under the results. Leave empty for none.</p>
+    </div>
+  </fieldset>
+  <p>{{ checkbox('in_house_available', 'We can run this test in our own lab', test.in_house_available if test else True) }}</p>
+
+  {% if saved %}<p>{{ checkbox('is_active', 'Test is in use', test.is_active) }}</p>{% endif %}
+
+  {% if can_edit %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/catalog">Cancel</a>
+  </div>
+
+  {% endif %}
+
+</form>
+
+{% if saved %}
+
+<div class="page-head">
+  <h2>Parameters</h2>
+
+  {% if can_edit %}<a class="btn-outline" href="/admin/catalog/tests/{{ test.id }}/parameters/new">Add parameter</a>{% endif %}
+
+</div>
+<table class="table">
+  <thead><tr><th>Order</th><th>Code</th><th>Name</th><th>Type</th><th>Unit</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+
+    {% for p in parameters %}
+
+    <tr>
+      <td>{{ p.display_order }}</td>
+      <td>{{ p.code }}</td>
+      <td>{{ p.name }}</td>
+      <td>{{ type_label(p.result_type) }}{% if p.formula %}: <code>{{ p.formula }}</code>{% endif %}</td>
+      <td>{{ p.unit_ucum }}</td>
+      <td>{{ status(p.is_active) }}</td>
+      <td><a href="/admin/catalog/parameters/{{ p.id }}">{{ 'Edit' if can_edit else 'Open' }}</a></td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="7">No parameters yet. A test needs at least one to take results.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+<h2>Methods</h2>
+<p>
+
+  {% for m in methods if m.is_active %}{{ m.name }}{% if m.is_default %} (default){% endif %}{% if not loop.last %}, {% endif %}{% else %}None yet.{% endfor %}
+
+  · <a href="/admin/catalog/tests/{{ test.id }}/methods">Methods and comment presets</a>
+  · <a href="/admin/prices/test/{{ test.id }}">Price</a>
+</p>
+
+{% endif %}
+
+{% endblock %}

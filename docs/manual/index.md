@@ -18,5 +18,12 @@ Every feature Labra has, and the manual page that explains it.
 | M01.2 | Staff without login (collected/delivered by) | [Staff and roles](admin/users-and-roles.md) |
 | M01.2 | Staff without login (collected/delivered by) | [Signing in](getting-started/login.md) |
 | M02 | Branches | [Branches](admin/branches.md) |
+| M05 | Catalog (calculated parameters, preset comments) | [Test catalog](admin/catalog.md) |
+| M05 | Catalog (calculated parameters, preset comments) | [Methods and comment presets](admin/methods.md) |
+| M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | [Test catalog](admin/catalog.md) |
+| M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | [Reference ranges](admin/reference-ranges.md) |
+| M06 | Prices: branch override and history | [Prices](admin/prices.md) |
+| M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
+| M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |

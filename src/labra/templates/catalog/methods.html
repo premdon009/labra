@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import csrf %}
+
+{% macro error(key, row) -%}
+
+{% if error_for == row and errors.get(key) %}<p class="field-error">{{ errors[key] }}</p>{% endif %}
+
+{%- endmacro %}
+
+{% block title %}Methods · {{ test.name }}{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>{{ test.code }} · {{ test.name }}: methods and comments</h1></div>
+
+<p><a href="/admin/catalog/tests/{{ test.id }}">Back to {{ test.name }}</a></p>
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>That change was not saved. See the highlighted row.</h2></div>{% endif %}
+
+<h2>Methods</h2>
+<p class="muted">How the lab runs this test. The default is printed on the report unless the technician picks another.</p>
+<table class="table">
+  <thead><tr><th>Method</th><th>Default</th><th>In use</th><th></th></tr></thead>
+  <tbody>
+
+    {% for m in methods %}
+
+    {% set row = 'method-' ~ m.id %}
+
+    <tr>
+      <td><input class="input" form="{{ row }}" name="name" value="{{ m.name }}" aria-label="Method name" required {% if not can_edit %}disabled{% endif %}>{{ error('name', row) }}</td>
+      <td><input class="input" form="{{ row }}" type="checkbox" name="is_default" value="true" aria-label="Default method" {% if m.is_default %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      <td><input class="input" form="{{ row }}" type="checkbox" name="is_active" value="true" aria-label="In use" {% if m.is_active %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      <td>
+
+        {% if can_edit %}
+
+        <form id="{{ row }}" method="post" action="/admin/catalog/tests/{{ test.id }}/methods">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="method_id" value="{{ m.id }}">
+          <input type="hidden" name="row_version" value="{{ m.row_version }}">
+          <button type="submit" class="btn-sm-outline">Save</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="4">No methods yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% if can_edit %}
+
+<form method="post" action="/admin/catalog/tests/{{ test.id }}/methods" class="form-actions">
+
+  {{ csrf(csrf_token) }}
+
+  <label class="label" for="f-new-method">New method</label>
+  <input class="input" id="f-new-method" name="name" required placeholder="Westergren">
+  <label class="label"><input class="input" type="checkbox" name="is_default" value="true"> Default</label>
+  <button type="submit" class="btn-outline">Add method</button>
+</form>
+
+{{ error('name', 'method-new') }}
+
+{% endif %}
+
+<h2>Comment presets for this test</h2>
+<p class="muted">Ready-made comments the technician can add to a result. Presets for any test are on <a href="/admin/catalog/presets">Comment presets</a>.</p>
+
+{% set back = '/admin/catalog/tests/' ~ test.id ~ '/methods' %}
+
+<table class="table">
+  <thead><tr><th>Label</th><th>Comment</th><th>In use</th><th></th></tr></thead>
+  <tbody>
+
+    {% for p in presets %}
+
+    {% set row = 'preset-' ~ p.id %}
+
+    <tr>
+      <td><input class="input" form="{{ row }}" name="label" value="{{ p.label }}" aria-label="Label" required {% if not can_edit %}disabled{% endif %}>{{ error('label', row) }}</td>
+      <td><textarea class="textarea" form="{{ row }}" name="text" rows="2" aria-label="Comment" required {% if not can_edit %}disabled{% endif %}>{{ p.text }}</textarea>{{ error('text', row) }}</td>
+      <td><input class="input" form="{{ row }}" type="checkbox" name="is_active" value="true" aria-label="In use" {% if p.is_active %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      <td>
+
+        {% if can_edit %}
+
+        <form id="{{ row }}" method="post" action="/admin/catalog/presets">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="preset_id" value="{{ p.id }}">
+          <input type="hidden" name="test_id" value="{{ test.id }}">
+          <input type="hidden" name="row_version" value="{{ p.row_version }}">
+          <input type="hidden" name="back" value="{{ back }}">
+          <button type="submit" class="btn-sm-outline">Save</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="4">No presets for this test yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% if can_edit %}
+
+<form method="post" action="/admin/catalog/presets" class="form-grid">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="test_id" value="{{ test.id }}">
+  <input type="hidden" name="back" value="{{ back }}">
+  <div class="field-row">
+    <label class="label" for="f-new-label">New preset label</label>
+    <input class="input" id="f-new-label" name="label" required placeholder="Haemolysed">
+    {{ error('label', 'preset-new') }}
+  </div>
+  <div class="field-row">
+    <label class="label" for="f-new-text">Comment</label>
+    <textarea class="textarea" id="f-new-text" name="text" rows="2" required></textarea>
+    {{ error('text', 'preset-new') }}
+  </div>
+  <div class="form-actions"><button type="submit" class="btn-outline">Add preset</button></div>
+</form>
+
+{% endif %}
+
+{% endblock %}

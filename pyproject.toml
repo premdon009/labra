@@ -117,7 +117,7 @@ include_external_packages = true
 [[tool.importlinter.contracts]]
 name = "Domain code reaches platform services through ports only"
 type = "forbidden"
-source_modules = ["labra.core", "labra.auth", "labra.org"]
+source_modules = ["labra.core", "labra.auth", "labra.org", "labra.catalog"]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
     "labra.core.logging -> structlog",
@@ -128,10 +128,10 @@ ignore_imports = [
 name = "Adapters don't depend on domain modules"
 type = "forbidden"
 source_modules = ["labra.adapters"]
-forbidden_modules = ["labra.auth", "labra.org", "labra.web"]
+forbidden_modules = ["labra.auth", "labra.org", "labra.catalog", "labra.web"]
 
 [[tool.importlinter.contracts]]
 name = "Feature module layers"
 type = "layers"
-containers = ["labra.auth", "labra.org"]
+containers = ["labra.auth", "labra.org", "labra.catalog"]
 layers = ["routes", "service", "models"]

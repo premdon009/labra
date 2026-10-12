@@ -22,6 +22,13 @@
       {% if principal.can('user.view') %}
       <a href="/admin/users" {% if request.url.path.startswith('/admin/users') %}aria-current="page"{% endif %}>Staff and roles</a>
       {% endif %}
+      {% if principal.can('catalog.view') %}
+
+      <a href="/admin/catalog" {% if request.url.path.startswith('/admin/catalog') %}aria-current="page"{% endif %}>Test catalog</a>
+      <a href="/admin/prices" {% if request.url.path.startswith('/admin/prices') %}aria-current="page"{% endif %}>Prices</a>
+
+      {% endif %}
+
       {% if principal.can('setting.view') %}
       <a href="/admin/settings" {% if request.url.path.startswith('/admin/settings') %}aria-current="page"{% endif %}>Settings</a>
       {% endif %}

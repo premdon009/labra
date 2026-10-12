@@ -9,16 +9,16 @@ Committed to the repo as `docs/ENTERPRISE_CHECKLIST.md`. Each item has a **gate*
 CI enforces the items marked *(CI)*. The release checklist (section M) links back here.
 
 ## A. Security
-- [ ] **P** `EC-A01` Passwords hashed with argon2 (argon2-cffi, §19.3); minimum length 10, checked against a common-password list; no forced periodic resets (NIST 800-63B)
-- [ ] **P** `EC-A02` Login lockout / rate limit after 5 failed tries per user + IP; audit every login, logout and failure
-- [ ] **P** `EC-A03` Session cookies `HttpOnly`, `Secure`, `SameSite=Lax`; idle timeout (default 30 min, setting) and absolute timeout (12 h); "log out all sessions" for admins
-- [ ] **P** `EC-A04` CSRF tokens on every form and HTMX POST
-- [ ] **P** `EC-A05` Role check on **every** route by default (deny unless allowed) + branch scoping in the service layer; tests prove a front-desk user of branch B2 can't open branch B3's patient *(CI)*
+- [x] **P** `EC-A01` Passwords hashed with argon2 (argon2-cffi, §19.3); minimum length 10, checked against a common-password list; no forced periodic resets (NIST 800-63B)
+- [x] **P** `EC-A02` Login lockout / rate limit after 5 failed tries per user + IP; audit every login, logout and failure
+- [x] **P** `EC-A03` Session cookies `HttpOnly`, `Secure`, `SameSite=Lax`; idle timeout (default 30 min, setting) and absolute timeout (12 h); "log out all sessions" for admins
+- [x] **P** `EC-A04` CSRF tokens on every form and HTMX POST
+- [x] **P** `EC-A05` Role check on **every** route by default (deny unless allowed) + branch scoping in the service layer; tests prove a front-desk user of branch B2 can't open branch B3's patient *(CI)*
 - [ ] **P** `EC-A06` Security headers via Caddy: CSP (no inline scripts except nonce, no `unsafe-eval`: so Alpine's **CSP build** and htmx with `allowEval` off, §19.3), HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`
 - [ ] **P** `EC-A07` Upload safety: type sniffed (not trusted from the filename), size cap, SVG sanitised, PDFs never executed, files served with `Content-Disposition` and a safe content type
 - [ ] **P** `EC-A08` Jinja autoescape on; report/bill templates rendered in the **sandboxed** Jinja environment
-- [ ] **P** `EC-A09` All SQL through SQLAlchemy parameters; no string-built SQL *(CI: ruff `S608`)*
-- [ ] **P** `EC-A10` Secrets only from env / `.env` (mode 600) / Docker secrets; never in the database, logs, CLI args or Git *(CI: gitleaks)*
+- [x] **P** `EC-A09` All SQL through SQLAlchemy parameters; no string-built SQL *(CI: ruff `S608`)*
+- [x] **P** `EC-A10` Secrets only from env / `.env` (mode 600) / Docker secrets; never in the database, logs, CLI args or Git *(CI: gitleaks)*
 - [ ] **P** `EC-A11` Remote access only through Cloudflare Tunnel + Cloudflare Access (email OTP); no open router ports; Postgres not exposed outside Docker
 - [ ] **P** `EC-A12` Disk encryption (LUKS) on the laptop, so a stolen laptop doesn't leak patient data; unlock key recorded with the restic password
 - [ ] **1** `EC-A13` 2FA (TOTP) required for admin and signatory roles
@@ -28,8 +28,8 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 
 ## B. Data integrity and money
 - [ ] **P** `EC-B01` Money as `Decimal`, one calculation module; hypothesis property tests *(CI)*
-- [ ] **P** `EC-B02` Gapless, unique document numbers under concurrency (row lock on `number_series`); test with 20 parallel bills *(CI)*
-- [ ] **P** `EC-B03` Optimistic locking (`row_version`) on edits; a stale edit shows "changed by X, reload"
+- [x] **P** `EC-B02` Gapless, unique document numbers under concurrency (row lock on `number_series`); test with 20 parallel bills *(CI)*
+- [x] **P** `EC-B03` Optimistic locking (`row_version`) on edits; a stale edit shows "changed by X, reload"
 - [ ] **P** `EC-B04` Database constraints, not just app checks: foreign keys, `CHECK` (amount ≥ 0, paid ≤ net), unique keys, `NOT NULL`
 - [ ] **P** `EC-B05` Released reports and issued bills are immutable; corrections only as amendment / credit note / cancellation with reason *(CI test)*
 - [ ] **P** `EC-B06` Append-only audit log with a hash chain; a nightly job verifies the chain and alerts on a break
@@ -40,7 +40,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-C01` Consent recorded before testing and before referral-lab sharing; consent text versioned
 - [ ] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
 - [ ] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
-- [ ] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
+- [x] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
 - [ ] **P** `EC-C05` Retention: reports and audit kept ≥ 2 years (NABL); nothing hard-deleted
 - [ ] **1** `EC-C06` DPDP: privacy notice, patient data-access export, correction workflow, erasure request handling (anonymise beyond the retention period), breach register and 72-hour notification runbook
 - [ ] **1** `EC-C07` Data-processing agreement template for external labs and any cloud provider; list of sub-processors (Google Drive, Cloudflare, WhatsApp provider)
@@ -51,7 +51,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-D01` Backups every 15 min in lab hours + nightly (configurable 15m–24h, §17.3) to Google Drive (encrypted) + USB; healthcheck alert on a missed run
 - [ ] **P** `EC-D02` **Monthly restore drill**, automated, result logged; a failed drill alerts the owner
 - [ ] **P** `EC-D03` Written targets: **RPO ≤ 15 min** (data loss at worst, §17.3), **RTO ≤ 2 h** (time back in business on a spare laptop); restore runbook tested once before the pilot
-- [ ] **P** `EC-D04` Containers `restart: unless-stopped`; app health endpoint (`/healthz` checks the database); Docker health checks
+- [x] **P** `EC-D04` Containers `restart: unless-stopped`; app health endpoint (`/healthz` checks the database); Docker health checks
 - [ ] **P** `EC-D05` Postgres: `fsync` on, checksums on, disk-space alert at 80%
 - [ ] **P** `EC-D06` UPS for laptop power path, router and switch; laptop auto-starts after power returns
 - [ ] **P** `EC-D07` Main lab works with the WAN unplugged (LAN-only test before the pilot)
@@ -61,7 +61,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## E. Observability and support
 - [ ] **P** `EC-E01` Structured JSON logs (structlog) with a request ID; IDs only, never names/phones; log rotation
 - [ ] **P** `EC-E02` Uptime monitor (Uptime Kuma or Healthchecks.io) for the web app, backup job and Tunnel; alerts to the owner by email/Telegram
-- [ ] **P** `EC-E03` Friendly error page with an error reference number, matching a log entry, so staff can report it
+- [x] **P** `EC-E03` Friendly error page with an error reference number, matching a log entry, so staff can report it
 - [ ] **P** `EC-E04` `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry
 - [ ] **1** `EC-E05` Error tracking (GlitchTip, self-hosted, PII scrubbing on)
 - [ ] **1** `EC-E06` Support bundle: one button exports logs (scrubbed) + versions + settings (no patient data) for troubleshooting
@@ -76,23 +76,23 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-G01` SemVer 0.x, `CHANGELOG.md` with dated entries; version shown in the footer and System page
 - [ ] **P** `EC-G02` Alembic migrations: forward-only in production, each tested on a copy of the previous release's schema *(CI: upgrade from last tag)*
 - [ ] **P** `EC-G03` Upgrade script: takes a backup → pulls the pinned image → runs migrations → health check → **automatic rollback** to the previous image + restore if the health check fails
-- [ ] **P** `EC-G04` Docker images pinned by version (no `latest`)
+- [x] **P** `EC-G04` Docker images pinned by version (no `latest`)
 - [ ] **1** `EC-G05` Documented upgrade path across 2+ versions; deprecation policy (§18.3): a removed setting, screen or export column keeps working for at least one minor release, shows a notice on `Admin ▸ System` naming the release it goes away in, and is listed under "Deprecated" in the changelog
 - [ ] **1** `EC-G06` Zero-touch security updates for the OS (unattended-upgrades) with reboot window outside lab hours
 
 ## H. Code quality and testing
-- [ ] **P** `EC-H01` Every change ships a test; coverage report in CI (target ≥ 80% on `service.py` modules) *(CI)*
+- [x] **P** `EC-H01` Every change ships a test; coverage report in CI (target ≥ 80% on `service.py` modules) *(CI)*
 - [ ] **P** `EC-H02` ruff (lint + format), pyright strict on `service` and `billing`, pytest against real Postgres (testcontainers) *(CI)*
 - [ ] **P** `EC-H03` One Playwright end-to-end test of the full day; PDF snapshot tests for report and bill *(CI)*
-- [ ] **P** `EC-H04` Single local gate script = same as CI (`scripts/ci_local.sh`)
+- [x] **P** `EC-H04` Single local gate script = same as CI (`scripts/ci_local.sh`)
 - [ ] **P** `EC-H05` Branch protection on `main`: CI must pass, PR required
 - [ ] **1** `EC-H06` Mutation testing on the money module (mutmut), occasional
 - [ ] **1** `EC-H07` Accessibility checks (axe via Playwright) on the main screens *(CI)*
 
 ## I. Supply chain
-- [ ] **P** `EC-I01` `uv.lock` committed; lock drift fails CI *(CI)*
-- [ ] **P** `EC-I02` pip-audit + osv-scanner + gitleaks in CI; Dependabot/Renovate weekly *(CI)*
-- [ ] **P** `EC-I03` Licence check: allowlist MIT, BSD-2/3, 0BSD, Apache-2.0, PSF, ISC, MIT-CMU (Pillow), PostgreSQL; MPL-2.0 test-only (hypothesis); **LGPL-3.0 only for psycopg**, imported unmodified (ADR-0002 note); GPL tools (poppler) only as separate commands *(CI: pip-licenses allowlist)*
+- [x] **P** `EC-I01` `uv.lock` committed; lock drift fails CI *(CI)*
+- [x] **P** `EC-I02` pip-audit + osv-scanner + gitleaks in CI; Dependabot/Renovate weekly *(CI)*
+- [x] **P** `EC-I03` Licence check: allowlist MIT, BSD-2/3, 0BSD, Apache-2.0, PSF, ISC, MIT-CMU (Pillow), PostgreSQL; MPL-2.0 test-only (hypothesis); **LGPL-3.0 only for psycopg**, imported unmodified (ADR-0002 note); GPL tools (poppler) only as separate commands *(CI: pip-licenses allowlist)*
 - [ ] **1** `EC-I04` SBOM (CycloneDX) attached to every release; images built in GitHub Actions and signed (cosign); provenance attestation
 - [ ] **1** `EC-I05` Container image vulnerability scan with osv-scanner (or grype), pinned by SHA *(CI)*. Not Trivy: its Actions and v0.69.4 binary were compromised in March 2026 (§19.2)
 - [ ] **P** `EC-I06` Every GitHub Action pinned to a full commit SHA, every image to a digest, every vendored asset to a recorded SHA-256; Renovate updates the pins *(CI: check refuses a tag-only `uses:`)*
@@ -106,8 +106,8 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **1** `EC-J05` UI translations (Babel) with at least one regional language
 
 ## K. Configuration and customisation safety
-- [ ] **P** `EC-K01` Settings typed and validated (Pydantic); invalid values refused with a message
-- [ ] **P** `EC-K02` Settings changes, price changes and template publishes are audited and versioned (who, when, before/after)
+- [x] **P** `EC-K01` Settings typed and validated (Pydantic); invalid values refused with a message
+- [x] **P** `EC-K02` Settings changes, price changes and template publishes are audited and versioned (who, when, before/after)
 - [ ] **P** `EC-K03` Draft → preview → publish for templates and letterheads; old documents keep their version
 - [ ] **1** `EC-K04` Settings export/import (JSON) for moving to a new server or copying a branch setup
 - [ ] **1** `EC-K05` Plugin API documented and versioned; a broken plugin is disabled with a warning, not a crash

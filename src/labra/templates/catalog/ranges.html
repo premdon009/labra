@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import csrf %}
+{% from "catalog/_labels.html" import sex_label, condition_label, limits, ages, catalog_menu %}
+
+{% block title %}Ranges to approve{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>Ranges to approve</h1></div>
+
+{{ catalog_menu('ranges') }}
+
+<p class="muted">New and changed reference ranges wait here until a signatory checks them against the source and approves them.</p>
+
+<table class="table">
+  <thead><tr><th>Test</th><th>Parameter</th><th>Sex</th><th>Age</th><th>Condition</th><th>Normal</th><th>Source</th><th></th></tr></thead>
+  <tbody>
+
+    {% for test, parameter, r in rows %}
+
+    <tr>
+      <td>{{ test.code }}</td>
+      <td>{{ parameter.name }}</td>
+      <td>{{ sex_label(r.sex) }}</td>
+      <td>{{ ages(r) }}</td>
+      <td>{{ condition_label(r.condition) }}</td>
+      <td>{{ r.display_text or limits(r.low, r.high) }} {{ parameter.unit_ucum }}</td>
+      <td>{{ r.source_citation }}</td>
+      <td>
+        <a href="/admin/catalog/ranges/{{ r.id }}">Open</a>
+
+        {% if can_approve %}
+
+        <form method="post" action="/admin/catalog/ranges/{{ r.id }}/approve">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="row_version" value="{{ r.row_version }}">
+          <button type="submit" class="btn-sm-outline">Approve</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="8">Every range in use is approved.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endblock %}

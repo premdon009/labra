@@ -24,6 +24,11 @@ nav = [
       "manual/admin/branches.md",
       "manual/admin/users-and-roles.md",
       "manual/admin/settings.md",
+      "manual/admin/catalog.md",
+      "manual/admin/reference-ranges.md",
+      "manual/admin/methods.md",
+      "manual/admin/prices.md",
+      "manual/admin/starter-catalog.md",
     ] },
   ] },
   { "Developers" = [
@@ -46,6 +51,7 @@ nav = [
     "adr/0007-replaceable-edges.md",
     "adr/0008-platform-ports.md",
     "adr/0009-runtime-neutral-packaging.md",
+    "adr/0010-own-admin-screens.md",
   ] },
   { "Plan and progress" = [
     "design/v1-plan.md",

@@ -3,6 +3,7 @@ links to vendored assets."""
 
 import json
 from collections.abc import Callable
+from datetime import datetime
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
@@ -15,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from labra import __version__
 from labra.auth.deps import csrf_cookie, csrf_token
 from labra.core.config import get_settings
+from labra.core.ids import IST
 
 PACKAGE = Path(str(files("labra")))
 TEMPLATES = PACKAGE / "templates"
@@ -35,6 +37,12 @@ def vendor_url(prefix: str) -> str:
     raise KeyError(prefix)
 
 
+def local_time(value: datetime, fmt: str = "%d %b %Y %H:%M") -> str:
+    """A stored UTC time as staff read it, in India time."""
+    return value.astimezone(IST).strftime(fmt)
+
+
+templates.env.filters["local_time"] = local_time
 templates.env.globals.update(
     app_version=__version__,
     vendor_url=vendor_url,

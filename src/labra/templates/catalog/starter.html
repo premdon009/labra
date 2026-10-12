@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import csrf %}
+
+{% block title %}Starter catalog{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>Starter catalog</h1></div>
+
+<p><a href="/admin/catalog">Back to the catalog</a></p>
+
+{% if result %}
+
+<div class="alert" role="status"><h2>Starter catalog imported.</h2>
+  <section>
+    Added {{ result.tests }} tests, {{ result.packages }} packages, {{ result.departments }} departments,
+    {{ result.specimen_types }} specimen types and {{ result.ranges }} reference ranges.
+
+    {% if result.skipped %}Kept your own {{ result.skipped | join(', ') }}: the starter catalog uses the same code.{% endif %}
+
+    {% if result.ranges %}<a href="/admin/catalog/ranges">The new ranges wait for a signatory's approval.</a>{% endif %}
+
+  </section></div>
+
+{% endif %}
+
+<p>The starter catalog is a ready-made set of {{ counts.tests }} common tests in {{ counts.departments }} departments, with
+{{ counts.packages }} packages, parameters, units, methods, formulas and adult reference ranges with their sources.
+It has no prices.</p>
+
+<ul>
+  <li>Importing adds only what you don't have. A test or package whose code you already use is left exactly as it is.</li>
+  <li>You can import again after an upgrade; nothing is added twice.</li>
+  <li>Every imported reference range is unapproved until a signatory approves it.</li>
+  <li>Afterwards, change anything to match your lab: codes, names, methods, ranges.</li>
+</ul>
+
+<form method="post" action="/admin/catalog/starter">
+
+  {{ csrf(csrf_token) }}
+
+  <div class="form-actions"><button type="submit" class="btn">Import the starter catalog</button></div>
+</form>
+
+{% endblock %}

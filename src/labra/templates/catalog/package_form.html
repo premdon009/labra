@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import field, checkbox, csrf %}
+
+{% block title %}{{ package.name if package and package.id else 'Add package' }}{% endblock %}
+
+{% block content %}
+
+{% set saved = package and package.id %}
+
+<div class="page-head"><h1>{{ package.code ~ ' · ' ~ package.name if saved else 'Add package' }}</h1></div>
+
+<p><a href="/admin/catalog/packages">Back to packages</a></p>
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+
+<form method="post" action="/admin/catalog/packages">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="package_id" value="{{ package.id if saved else '' }}">
+  <input type="hidden" name="row_version" value="{{ package.row_version if saved else 0 }}">
+  <fieldset class="form-grid" {% if not can_edit %}disabled{% endif %}>
+
+    {{ field('code', 'Code', package.code if package, errors, required=True, hint='What the front desk types, for example fbs+ppbs. Tests and packages share codes, so pick one no test uses.') }}
+
+    {{ field('name', 'Name', package.name if package, errors, required=True) }}
+
+    {{ field('description', 'Description', package.description if package, errors) }}
+
+  </fieldset>
+
+  <h2>Tests in the package</h2>
+
+  {% if errors.get('test_ids') %}<p class="field-error">{{ errors.test_ids }}</p>{% endif %}
+
+  <fieldset class="form-grid" {% if not can_edit %}disabled{% endif %}>
+
+    {% for t in tests %}
+
+    <label class="label"><input class="input" type="checkbox" name="test_ids" value="{{ t.id }}" {% if t.id in chosen %}checked{% endif %}> {{ t.code }} · {{ t.name }}</label>
+
+    {% endfor %}
+
+  </fieldset>
+
+  {% if saved %}<p>{{ checkbox('is_active', 'Package is in use', package.is_active) }}</p>{% endif %}
+
+  {% if can_edit %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/catalog/packages">Cancel</a>
+  </div>
+
+  {% endif %}
+
+</form>
+
+{% endblock %}

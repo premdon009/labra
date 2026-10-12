@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% from "catalog/_labels.html" import status, catalog_menu %}
+
+{% block title %}Packages{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <h1>Packages</h1>
+
+  {% if can_edit %}<a class="btn" href="/admin/catalog/packages/new">Add package</a>{% endif %}
+
+</div>
+
+{{ catalog_menu('packages') }}
+
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th>Tests</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+
+    {% for p, tests in packages %}
+
+    <tr>
+      <td>{{ p.code }}</td>
+      <td>{{ p.name }}</td>
+      <td>{{ tests | map(attribute='code') | join(', ') }}</td>
+      <td>{{ status(p.is_active) }}</td>
+      <td><a href="/admin/catalog/packages/{{ p.id }}">{{ 'Edit' if can_edit else 'Open' }}</a> · <a href="/admin/prices/package/{{ p.id }}">Price</a></td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="5">No packages yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endblock %}

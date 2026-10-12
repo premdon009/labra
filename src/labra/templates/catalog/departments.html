@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import csrf %}
+{% from "catalog/_labels.html" import catalog_menu %}
+
+{% macro error(key, row) -%}
+
+{% if error_for == row and errors.get(key) %}<p class="field-error">{{ errors[key] }}</p>{% endif %}
+
+{%- endmacro %}
+
+{% block title %}Departments and specimens{% endblock %}
+
+{% block content %}
+
+<div class="page-head"><h1>Departments and specimens</h1></div>
+
+{{ catalog_menu('departments') }}
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>That change was not saved. See the highlighted row.</h2></div>{% endif %}
+
+<h2>Departments</h2>
+<p class="muted">Reports group tests by department, in this order.</p>
+<table class="table">
+  <thead><tr><th>Name</th><th>Order</th><th>In use</th><th></th></tr></thead>
+  <tbody>
+
+    {% for d in departments %}
+
+    {% set row = 'department-' ~ d.id %}
+
+    <tr>
+      <td><input class="input" form="{{ row }}" name="name" value="{{ d.name }}" aria-label="Department name" required {% if not can_edit %}disabled{% endif %}>{{ error('name', row) }}</td>
+      <td><input class="input" form="{{ row }}" type="number" name="report_order" value="{{ d.report_order }}" aria-label="Order" {% if not can_edit %}disabled{% endif %}>{{ error('report_order', row) }}</td>
+      <td><input class="input" form="{{ row }}" type="checkbox" name="is_active" value="true" aria-label="In use" {% if d.is_active %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      <td>
+
+        {% if can_edit %}
+
+        <form id="{{ row }}" method="post" action="/admin/catalog/departments">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="department_id" value="{{ d.id }}">
+          <input type="hidden" name="row_version" value="{{ d.row_version }}">
+          <button type="submit" class="btn-sm-outline">Save</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="4">No departments yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% if can_edit %}
+
+<form method="post" action="/admin/catalog/departments" class="form-actions">
+
+  {{ csrf(csrf_token) }}
+
+  <label class="label" for="f-new-department">New department</label>
+  <input class="input" id="f-new-department" name="name" required>
+  <label class="label" for="f-new-order">Order</label>
+  <input class="input" id="f-new-order" type="number" name="report_order" value="{{ (departments | map(attribute='report_order') | max | default(0)) + 10 }}">
+  <button type="submit" class="btn-outline">Add department</button>
+</form>
+
+{{ error('name', 'department-new') }}{{ error('report_order', 'department-new') }}
+
+{% endif %}
+
+<h2>Specimen types</h2>
+<p class="muted">What is collected for a test, and the tube or container it goes in.</p>
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th>Container</th><th>In use</th><th></th></tr></thead>
+  <tbody>
+
+    {% for s in specimens %}
+
+    {% set row = 'specimen-' ~ s.id %}
+
+    <tr>
+      <td><input class="input" form="{{ row }}" name="code" value="{{ s.code }}" aria-label="Specimen code" required {% if not can_edit %}disabled{% endif %}>{{ error('code', row) }}</td>
+      <td><input class="input" form="{{ row }}" name="name" value="{{ s.name }}" aria-label="Specimen name" required {% if not can_edit %}disabled{% endif %}>{{ error('name', row) }}</td>
+      <td><input class="input" form="{{ row }}" name="container" value="{{ s.container }}" aria-label="Container" {% if not can_edit %}disabled{% endif %}></td>
+      <td><input class="input" form="{{ row }}" type="checkbox" name="is_active" value="true" aria-label="In use" {% if s.is_active %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      <td>
+
+        {% if can_edit %}
+
+        <form id="{{ row }}" method="post" action="/admin/catalog/specimens">
+
+          {{ csrf(csrf_token) }}
+
+          <input type="hidden" name="specimen_type_id" value="{{ s.id }}">
+          <input type="hidden" name="row_version" value="{{ s.row_version }}">
+          <button type="submit" class="btn-sm-outline">Save</button>
+        </form>
+
+        {% endif %}
+
+      </td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="5">No specimen types yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% if can_edit %}
+
+<form method="post" action="/admin/catalog/specimens" class="form-actions">
+
+  {{ csrf(csrf_token) }}
+
+  <label class="label" for="f-new-code">Code</label>
+  <input class="input" id="f-new-code" name="code" required placeholder="EDTA">
+  <label class="label" for="f-new-name">Name</label>
+  <input class="input" id="f-new-name" name="name" required placeholder="Whole blood (EDTA)">
+  <label class="label" for="f-new-container">Container</label>
+  <input class="input" id="f-new-container" name="container" placeholder="Lavender-top tube">
+  <button type="submit" class="btn-outline">Add specimen type</button>
+</form>
+
+{{ error('code', 'specimen-new') }}{{ error('name', 'specimen-new') }}
+
+{% endif %}
+
+{% endblock %}

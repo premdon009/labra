@@ -1,0 +1,1478 @@
+# Labra starter catalog: common tests with units, adult reference ranges and specimen types.
+#
+# Every range is imported unapproved. The lab's pathologist checks each one against the lab's own
+# kit insert or analyser and approves it before reports can be released (design §1d). Prices are
+# not included; each lab sets its own.
+#
+# Layout:
+#   [citations]      key → the source a range was taken from
+#   [option_sets]    key → the choices of an option parameter; abnormal ones are flagged
+#   [parameters.X]   one parameter, reused by every test that lists code X
+#   [[departments]], [[specimens]], [[tests]], [[packages]]
+#
+# Ranges are adult (18 years and over) unless they give `age_days`. Absurd limits catch typing
+# mistakes (an Hb of 135 instead of 13.5); critical limits are left to the lab's own policy.
+
+[citations]
+dacie = "Bain BJ, Bates I, Laffan MA. Dacie and Lewis Practical Haematology, 12th ed. Elsevier, 2017: adult reference ranges. Replace with your analyser's verified range."
+hb = "Dacie and Lewis Practical Haematology, 12th ed. (2017); lower limits match the WHO 2011 anaemia cut-offs (WHO/NMH/NHD/MNM/11.1): 13 g/dL men, 12 g/dL non-pregnant women."
+ada = "American Diabetes Association. Standards of Care in Diabetes, section 2: Diagnosis and Classification of Diabetes (current edition)."
+ncep = "NCEP Expert Panel. Executive summary of the Third Report (Adult Treatment Panel III). JAMA 2001;285:2486-97."
+friedewald = "Friedewald WT, Levy RI, Fredrickson DS. Clin Chem 1972;18:499-502. Not valid when triglycerides are 400 mg/dL or more."
+adag = "Nathan DM et al. Translating the A1C assay into estimated average glucose values. Diabetes Care 2008;31:1473-8."
+ata = "Stagnaro-Green A et al. ATA guidelines for thyroid disease during pregnancy and postpartum. Thyroid 2011;21:1081-125. The 2017 update prefers trimester ranges from your own population and kit."
+texts = "Typical adult interval from standard laboratory medicine texts. Replace with the range on your kit insert."
+cutoff = "Kit-defined cut-off index (sample signal / cut-off). Confirm against your kit insert."
+
+[option_sets]
+neg_pos = [
+  { value = "Negative", default = true },
+  { value = "Positive", abnormal = true },
+]
+reactive = [
+  { value = "Non-reactive", default = true },
+  { value = "Reactive", abnormal = true },
+  { value = "Indeterminate", abnormal = true },
+]
+dengue = [
+  { value = "Negative", default = true },
+  { value = "Positive", abnormal = true },
+  { value = "Equivocal", abnormal = true },
+]
+pregnancy = [
+  { value = "Negative", default = true },
+  { value = "Positive" },
+]
+abo = [
+  { value = "A" },
+  { value = "B" },
+  { value = "AB" },
+  { value = "O" },
+]
+rh = [
+  { value = "Positive" },
+  { value = "Negative" },
+]
+urine_grade = [
+  { value = "Nil", default = true },
+  { value = "Trace", abnormal = true },
+  { value = "+", abnormal = true },
+  { value = "++", abnormal = true },
+  { value = "+++", abnormal = true },
+  { value = "++++", abnormal = true },
+]
+dipstick = [
+  { value = "Negative", default = true },
+  { value = "Trace", abnormal = true },
+  { value = "+", abnormal = true },
+  { value = "++", abnormal = true },
+  { value = "+++", abnormal = true },
+]
+absent_present = [
+  { value = "Absent", default = true },
+  { value = "Present", abnormal = true },
+]
+nil_present = [
+  { value = "Nil", default = true },
+  { value = "Present", abnormal = true },
+]
+urobilinogen = [
+  { value = "Normal", default = true },
+  { value = "Increased", abnormal = true },
+]
+urine_colour = [
+  { value = "Pale yellow", default = true },
+  { value = "Colourless" },
+  { value = "Yellow" },
+  { value = "Dark yellow" },
+  { value = "Amber" },
+  { value = "Red", abnormal = true },
+  { value = "Brown", abnormal = true },
+]
+appearance = [
+  { value = "Clear", default = true },
+  { value = "Slightly turbid", abnormal = true },
+  { value = "Turbid", abnormal = true },
+]
+cells_hpf = [
+  { value = "Nil", default = true },
+  { value = "0-2" },
+  { value = "2-4" },
+  { value = "4-6" },
+  { value = "6-8", abnormal = true },
+  { value = "8-10", abnormal = true },
+  { value = "10-15", abnormal = true },
+  { value = "15-20", abnormal = true },
+  { value = "20-30", abnormal = true },
+  { value = "Plenty", abnormal = true },
+]
+rbc_hpf = [
+  { value = "Nil", default = true },
+  { value = "0-2" },
+  { value = "2-4", abnormal = true },
+  { value = "4-6", abnormal = true },
+  { value = "6-10", abnormal = true },
+  { value = "10-20", abnormal = true },
+  { value = "Plenty", abnormal = true },
+]
+casts = [
+  { value = "Nil", default = true },
+  { value = "Hyaline casts seen" },
+  { value = "Granular casts seen", abnormal = true },
+  { value = "RBC casts seen", abnormal = true },
+  { value = "WBC casts seen", abnormal = true },
+]
+crystals = [
+  { value = "Nil", default = true },
+  { value = "Calcium oxalate" },
+  { value = "Uric acid" },
+  { value = "Amorphous urates" },
+  { value = "Amorphous phosphates" },
+  { value = "Triple phosphate" },
+]
+widal_o = [
+  { value = "Below 1:20", default = true },
+  { value = "1:20" },
+  { value = "1:40" },
+  { value = "1:80", abnormal = true },
+  { value = "1:160", abnormal = true },
+  { value = "1:320", abnormal = true },
+  { value = "1:640", abnormal = true },
+]
+widal_h = [
+  { value = "Below 1:20", default = true },
+  { value = "1:20" },
+  { value = "1:40" },
+  { value = "1:80" },
+  { value = "1:160", abnormal = true },
+  { value = "1:320", abnormal = true },
+  { value = "1:640", abnormal = true },
+]
+malaria = [
+  { value = "Not detected", default = true },
+  { value = "P. vivax seen", abnormal = true },
+  { value = "P. falciparum seen", abnormal = true },
+  { value = "Mixed P. vivax and P. falciparum seen", abnormal = true },
+]
+filaria = [
+  { value = "Not detected", default = true },
+  { value = "Microfilariae seen", abnormal = true },
+]
+
+# Haematology
+
+[parameters.HB]
+name = "Haemoglobin"
+unit = "g/dL"
+decimals = 1
+absurd = [1, 25]
+ranges = [
+  { sex = "M", low = 13.0, high = 17.0, cite = "hb" },
+  { sex = "F", low = 12.0, high = 15.0, cite = "hb" },
+]
+
+[parameters.RBC]
+name = "RBC count"
+unit = "10*6/uL"
+decimals = 2
+absurd = [0.5, 10]
+ranges = [
+  { sex = "M", low = 4.5, high = 5.5, cite = "dacie" },
+  { sex = "F", low = 3.8, high = 4.8, cite = "dacie" },
+]
+
+[parameters.PCV]
+name = "Packed cell volume (PCV)"
+unit = "%"
+decimals = 1
+absurd = [5, 75]
+ranges = [
+  { sex = "M", low = 40, high = 50, cite = "dacie" },
+  { sex = "F", low = 36, high = 46, cite = "dacie" },
+]
+
+[parameters.MCV]
+name = "Mean corpuscular volume (MCV)"
+unit = "fL"
+decimals = 1
+absurd = [40, 150]
+ranges = [{ low = 83, high = 101, cite = "dacie" }]
+
+[parameters.MCH]
+name = "Mean corpuscular haemoglobin (MCH)"
+unit = "pg"
+decimals = 1
+absurd = [10, 60]
+ranges = [{ low = 27, high = 32, cite = "dacie" }]
+
+[parameters.MCHC]
+name = "Mean corpuscular haemoglobin concentration (MCHC)"
+unit = "g/dL"
+decimals = 1
+absurd = [20, 45]
+ranges = [{ low = 31.5, high = 34.5, cite = "dacie" }]
+
+[parameters.WBC]
+name = "Total WBC count"
+unit = "/uL"
+decimals = 0
+absurd = [100, 500000]
+ranges = [{ low = 4000, high = 10000, cite = "dacie" }]
+
+[parameters.NEUT]
+name = "Neutrophils"
+unit = "%"
+decimals = 0
+absurd = [0, 100]
+ranges = [{ low = 40, high = 80, cite = "dacie" }]
+
+[parameters.LYMPH]
+name = "Lymphocytes"
+unit = "%"
+decimals = 0
+absurd = [0, 100]
+ranges = [{ low = 20, high = 40, cite = "dacie" }]
+
+[parameters.EOS]
+name = "Eosinophils"
+unit = "%"
+decimals = 0
+absurd = [0, 100]
+ranges = [{ low = 1, high = 6, cite = "dacie" }]
+
+[parameters.MONO]
+name = "Monocytes"
+unit = "%"
+decimals = 0
+absurd = [0, 100]
+ranges = [{ low = 2, high = 10, cite = "dacie" }]
+
+[parameters.BASO]
+name = "Basophils"
+unit = "%"
+decimals = 0
+absurd = [0, 100]
+ranges = [{ low = 0, high = 2, cite = "dacie" }]
+
+[parameters.PLT]
+name = "Platelet count"
+unit = "10*5/uL"
+decimals = 2
+absurd = [0.01, 20]
+ranges = [{ low = 1.5, high = 4.1, cite = "dacie" }]
+
+[parameters.ESR]
+name = "ESR (1 hour)"
+unit = "mm/h"
+decimals = 0
+absurd = [0, 200]
+ranges = [
+  { sex = "M", low = 0, high = 15, cite = "texts" },
+  { sex = "F", low = 0, high = 20, cite = "texts" },
+]
+
+[parameters.ABO]
+name = "Blood group (ABO)"
+type = "option"
+options = "abo"
+
+[parameters.RH]
+name = "Rh (D) type"
+type = "option"
+options = "rh"
+
+[parameters.BT]
+name = "Bleeding time"
+unit = "min"
+decimals = 1
+absurd = [0, 60]
+ranges = [{ low = 2, high = 7, cite = "texts" }]
+
+[parameters.CT]
+name = "Clotting time"
+unit = "min"
+decimals = 1
+absurd = [0, 60]
+ranges = [{ low = 4, high = 10, cite = "texts" }]
+
+[parameters.MP]
+name = "Malaria parasite"
+type = "option"
+options = "malaria"
+
+[parameters.MF]
+name = "Microfilaria"
+type = "option"
+options = "filaria"
+
+# Glucose and HbA1c
+
+[parameters.GLUF]
+name = "Glucose, fasting"
+unit = "mg/dL"
+decimals = 0
+absurd = [10, 1500]
+
+[[parameters.GLUF.ranges]]
+low = 70
+high = 99
+cite = "ada"
+bands = [
+  { low = 70, high = 99, label = "Normal", severity = "normal" },
+  { low = 100, high = 125, label = "Prediabetes", severity = "borderline" },
+  { low = 126, label = "Diabetes range", severity = "abnormal" },
+]
+
+[parameters.GLUPP]
+name = "Glucose, post-prandial (2 hours)"
+unit = "mg/dL"
+decimals = 0
+absurd = [10, 1500]
+ranges = [{ low = 70, high = 139, cite = "texts" }]
+
+[parameters.GLUR]
+name = "Glucose, random"
+unit = "mg/dL"
+decimals = 0
+absurd = [10, 1500]
+ranges = [{ low = 70, high = 139, cite = "texts" }]
+
+[parameters.GLU1H]
+name = "Glucose, 1 hour"
+unit = "mg/dL"
+decimals = 0
+
+[parameters.GLU2H]
+name = "Glucose, 2 hours"
+unit = "mg/dL"
+decimals = 0
+absurd = [10, 1500]
+
+[[parameters.GLU2H.ranges]]
+high = 139
+cite = "ada"
+bands = [
+  { high = 139, label = "Normal", severity = "normal" },
+  { low = 140, high = 199, label = "Impaired glucose tolerance", severity = "borderline" },
+  { low = 200, label = "Diabetes range", severity = "abnormal" },
+]
+
+[parameters.UGLU0]
+name = "Urine glucose, fasting"
+type = "option"
+options = "urine_grade"
+
+[parameters.UGLU1]
+name = "Urine glucose, 1 hour"
+type = "option"
+options = "urine_grade"
+
+[parameters.UGLU2]
+name = "Urine glucose, 2 hours"
+type = "option"
+options = "urine_grade"
+
+[parameters.A1C]
+name = "HbA1c"
+unit = "%"
+decimals = 1
+absurd = [2, 20]
+
+[[parameters.A1C.ranges]]
+high = 5.6
+cite = "ada"
+bands = [
+  { high = 5.6, label = "Normal", severity = "normal" },
+  { low = 5.7, high = 6.4, label = "Prediabetes", severity = "borderline" },
+  { low = 6.5, label = "Diabetes range", severity = "abnormal" },
+]
+
+[parameters.EAG]
+name = "Estimated average glucose"
+type = "calculated"
+unit = "mg/dL"
+decimals = 0
+formula = "28.7 * A1C - 46.7"
+
+# Lipids
+
+[parameters.TC]
+name = "Total cholesterol"
+unit = "mg/dL"
+decimals = 0
+absurd = [20, 1500]
+
+[[parameters.TC.ranges]]
+high = 199
+cite = "ncep"
+bands = [
+  { high = 199, label = "Desirable", severity = "normal" },
+  { low = 200, high = 239, label = "Borderline high", severity = "borderline" },
+  { low = 240, label = "High", severity = "abnormal" },
+]
+
+[parameters.TG]
+name = "Triglycerides"
+unit = "mg/dL"
+decimals = 0
+absurd = [10, 10000]
+
+[[parameters.TG.ranges]]
+high = 149
+cite = "ncep"
+bands = [
+  { high = 149, label = "Normal", severity = "normal" },
+  { low = 150, high = 199, label = "Borderline high", severity = "borderline" },
+  { low = 200, high = 499, label = "High", severity = "abnormal" },
+  { low = 500, label = "Very high", severity = "abnormal" },
+]
+
+[parameters.HDL]
+name = "HDL cholesterol"
+unit = "mg/dL"
+decimals = 0
+absurd = [2, 250]
+
+[[parameters.HDL.ranges]]
+low = 40
+cite = "ncep"
+bands = [
+  { high = 39, label = "Low", severity = "abnormal" },
+  { low = 40, high = 59, label = "Normal", severity = "normal" },
+  { low = 60, label = "High (protective)", severity = "normal" },
+]
+
+[parameters.VLDL]
+name = "VLDL cholesterol"
+type = "calculated"
+unit = "mg/dL"
+decimals = 0
+formula = "TG / 5"
+valid_if = "TG < 400"
+
+[parameters.LDL]
+name = "LDL cholesterol"
+type = "calculated"
+unit = "mg/dL"
+decimals = 0
+formula = "TC - HDL - TG / 5"
+valid_if = "TG < 400"
+
+[[parameters.LDL.ranges]]
+high = 99
+cite = "ncep"
+bands = [
+  { high = 99, label = "Optimal", severity = "normal" },
+  { low = 100, high = 129, label = "Near optimal", severity = "borderline" },
+  { low = 130, high = 159, label = "Borderline high", severity = "borderline" },
+  { low = 160, high = 189, label = "High", severity = "abnormal" },
+  { low = 190, label = "Very high", severity = "abnormal" },
+]
+
+[parameters.NONHDL]
+name = "Non-HDL cholesterol"
+type = "calculated"
+unit = "mg/dL"
+decimals = 0
+formula = "TC - HDL"
+ranges = [{ high = 129, cite = "ncep" }]
+
+[parameters.TC_HDL]
+name = "Total cholesterol / HDL ratio"
+type = "calculated"
+unit = "{ratio}"
+decimals = 1
+formula = "TC / HDL"
+
+[parameters.LDL_HDL]
+name = "LDL / HDL ratio"
+type = "calculated"
+unit = "{ratio}"
+decimals = 1
+formula = "LDL / HDL"
+valid_if = "TG < 400"
+
+# Liver
+
+[parameters.TBIL]
+name = "Bilirubin, total"
+unit = "mg/dL"
+decimals = 2
+absurd = [0, 50]
+ranges = [{ low = 0.3, high = 1.2, cite = "texts" }]
+
+[parameters.DBIL]
+name = "Bilirubin, direct"
+unit = "mg/dL"
+decimals = 2
+absurd = [0, 40]
+ranges = [{ low = 0, high = 0.3, cite = "texts" }]
+
+[parameters.IBIL]
+name = "Bilirubin, indirect"
+type = "calculated"
+unit = "mg/dL"
+decimals = 2
+formula = "TBIL - DBIL"
+ranges = [{ low = 0.1, high = 1.0, cite = "texts" }]
+
+[parameters.AST]
+name = "AST (SGOT)"
+unit = "U/L"
+decimals = 0
+absurd = [0, 20000]
+ranges = [{ high = 40, cite = "texts" }]
+
+[parameters.ALT]
+name = "ALT (SGPT)"
+unit = "U/L"
+decimals = 0
+absurd = [0, 20000]
+ranges = [{ high = 40, cite = "texts" }]
+
+[parameters.ALP]
+name = "Alkaline phosphatase"
+unit = "U/L"
+decimals = 0
+absurd = [0, 5000]
+ranges = [{ low = 40, high = 130, cite = "texts" }]
+
+[parameters.GGT]
+name = "Gamma glutamyl transferase (GGT)"
+unit = "U/L"
+decimals = 0
+absurd = [0, 5000]
+ranges = [
+  { sex = "M", high = 55, cite = "texts" },
+  { sex = "F", high = 38, cite = "texts" },
+]
+
+[parameters.TP]
+name = "Total protein"
+unit = "g/dL"
+decimals = 1
+absurd = [1, 15]
+ranges = [{ low = 6.4, high = 8.3, cite = "texts" }]
+
+[parameters.ALB]
+name = "Albumin"
+unit = "g/dL"
+decimals = 1
+absurd = [0.5, 8]
+ranges = [{ low = 3.5, high = 5.2, cite = "texts" }]
+
+[parameters.GLOB]
+name = "Globulin"
+type = "calculated"
+unit = "g/dL"
+decimals = 1
+formula = "TP - ALB"
+ranges = [{ low = 2.0, high = 3.5, cite = "texts" }]
+
+[parameters.AG]
+name = "Albumin / globulin ratio"
+type = "calculated"
+unit = "{ratio}"
+decimals = 2
+formula = "ALB / GLOB"
+ranges = [{ low = 1.0, high = 2.2, cite = "texts" }]
+
+# Kidney, minerals and others
+
+[parameters.UREA]
+name = "Urea"
+unit = "mg/dL"
+decimals = 0
+absurd = [1, 600]
+ranges = [{ low = 15, high = 45, cite = "texts" }]
+
+[parameters.CREAT]
+name = "Creatinine"
+unit = "mg/dL"
+decimals = 2
+absurd = [0.1, 30]
+ranges = [
+  { sex = "M", low = 0.7, high = 1.3, cite = "texts" },
+  { sex = "F", low = 0.6, high = 1.1, cite = "texts" },
+]
+
+[parameters.UA]
+name = "Uric acid"
+unit = "mg/dL"
+decimals = 1
+absurd = [0.1, 30]
+ranges = [
+  { sex = "M", low = 3.5, high = 7.2, cite = "texts" },
+  { sex = "F", low = 2.6, high = 6.0, cite = "texts" },
+]
+
+[parameters.CA]
+name = "Calcium"
+unit = "mg/dL"
+decimals = 1
+absurd = [2, 20]
+ranges = [{ low = 8.6, high = 10.3, cite = "texts" }]
+
+[parameters.PHOS]
+name = "Phosphorus"
+unit = "mg/dL"
+decimals = 1
+absurd = [0.3, 20]
+ranges = [{ low = 2.5, high = 4.5, cite = "texts" }]
+
+[parameters.CRP]
+name = "C-reactive protein (CRP)"
+unit = "mg/L"
+decimals = 1
+absurd = [0, 500]
+ranges = [{ high = 5.0, cite = "texts" }]
+
+[parameters.LDH]
+name = "Lactate dehydrogenase (LDH)"
+unit = "U/L"
+decimals = 0
+absurd = [10, 20000]
+ranges = [{ low = 120, high = 246, cite = "texts" }]
+
+[parameters.TROP]
+name = "Troponin I"
+type = "option"
+options = "neg_pos"
+
+[parameters.PROG]
+name = "Progesterone"
+unit = "ng/mL"
+decimals = 2
+absurd = [0, 1000]
+ranges = [
+  { sex = "M", low = 0.2, high = 1.4, cite = "texts" },
+  { sex = "F", condition = "follicular", low = 0.2, high = 1.5, cite = "texts" },
+  { sex = "F", condition = "luteal", low = 1.7, high = 27.0, cite = "texts" },
+  { sex = "F", condition = "postmenopausal", low = 0.1, high = 0.8, cite = "texts" },
+  { sex = "F", condition = "pregnancy_t1", low = 11.0, high = 90.0, cite = "texts" },
+  { sex = "F", condition = "pregnancy_t2", low = 25.0, high = 90.0, cite = "texts" },
+  { sex = "F", condition = "pregnancy_t3", low = 48.0, high = 420.0, cite = "texts" },
+]
+
+# Thyroid
+
+[parameters.T3]
+name = "Triiodothyronine, total (T3)"
+unit = "ng/dL"
+decimals = 0
+absurd = [10, 1000]
+ranges = [{ low = 80, high = 200, cite = "texts" }]
+
+[parameters.T4]
+name = "Thyroxine, total (T4)"
+unit = "ug/dL"
+decimals = 1
+absurd = [0.5, 40]
+ranges = [{ low = 5.1, high = 14.1, cite = "texts" }]
+
+[parameters.TSH]
+name = "Thyroid stimulating hormone (TSH)"
+unit = "u[IU]/mL"
+decimals = 2
+absurd = [0, 500]
+ranges = [
+  { low = 0.4, high = 4.0, cite = "texts" },
+  { sex = "F", condition = "pregnancy_t1", low = 0.1, high = 2.5, cite = "ata" },
+  { sex = "F", condition = "pregnancy_t2", low = 0.2, high = 3.0, cite = "ata" },
+  { sex = "F", condition = "pregnancy_t3", low = 0.3, high = 3.0, cite = "ata" },
+]
+
+# Urine and stool
+
+[parameters.UPT]
+name = "Urine pregnancy test (hCG)"
+type = "option"
+options = "pregnancy"
+
+[parameters.USUG]
+name = "Urine sugar"
+type = "option"
+options = "urine_grade"
+
+[parameters.UALB]
+name = "Urine albumin"
+type = "option"
+options = "urine_grade"
+
+[parameters.COLOUR]
+name = "Colour"
+type = "option"
+options = "urine_colour"
+
+[parameters.APPEAR]
+name = "Appearance"
+type = "option"
+options = "appearance"
+
+[parameters.PH]
+name = "pH"
+decimals = 1
+absurd = [3, 10]
+ranges = [{ low = 4.5, high = 8.0, cite = "texts" }]
+
+[parameters.SG]
+name = "Specific gravity"
+decimals = 3
+absurd = [1.000, 1.060]
+ranges = [{ low = 1.005, high = 1.030, cite = "texts" }]
+
+[parameters.UPROT]
+name = "Protein"
+type = "option"
+options = "urine_grade"
+
+[parameters.UGLUC]
+name = "Glucose"
+type = "option"
+options = "urine_grade"
+
+[parameters.KET]
+name = "Ketone bodies"
+type = "option"
+options = "dipstick"
+
+[parameters.UBLD]
+name = "Blood"
+type = "option"
+options = "dipstick"
+
+[parameters.BILSALT]
+name = "Bile salts"
+type = "option"
+options = "absent_present"
+
+[parameters.BILPIG]
+name = "Bile pigments"
+type = "option"
+options = "absent_present"
+
+[parameters.UROB]
+name = "Urobilinogen"
+type = "option"
+options = "urobilinogen"
+
+[parameters.NITRITE]
+name = "Nitrite"
+type = "option"
+options = "neg_pos"
+
+[parameters.PUS]
+name = "Pus cells (per HPF)"
+type = "option"
+options = "cells_hpf"
+
+[parameters.EPI]
+name = "Epithelial cells (per HPF)"
+type = "option"
+options = "cells_hpf"
+
+[parameters.URBC]
+name = "Red blood cells (per HPF)"
+type = "option"
+options = "rbc_hpf"
+
+[parameters.CASTS]
+name = "Casts"
+type = "option"
+options = "casts"
+
+[parameters.CRYST]
+name = "Crystals"
+type = "option"
+options = "crystals"
+
+[parameters.BACT]
+name = "Bacteria"
+type = "option"
+options = "absent_present"
+
+[parameters.YEAST]
+name = "Budding yeast cells"
+type = "option"
+options = "nil_present"
+
+[parameters.UOTHER]
+name = "Others"
+type = "text"
+
+[parameters.FOB]
+name = "Occult blood"
+type = "option"
+options = "neg_pos"
+
+# Serology
+
+[parameters.HIV_SCO]
+name = "HIV 1 and 2 antibody index"
+unit = "{s_co_ratio}"
+decimals = 2
+absurd = [0, 100]
+ranges = [{ high = 0.99, display = "Non-reactive below 1.00; reactive at 1.00 or more", cite = "cutoff" }]
+
+[parameters.HIV]
+name = "HIV 1 and 2 antibody"
+type = "option"
+options = "reactive"
+
+[parameters.HBSAG_SCO]
+name = "HBsAg index"
+unit = "{s_co_ratio}"
+decimals = 2
+absurd = [0, 100]
+ranges = [{ high = 0.99, display = "Non-reactive below 1.00; reactive at 1.00 or more", cite = "cutoff" }]
+
+[parameters.HBSAG]
+name = "Hepatitis B surface antigen (HBsAg)"
+type = "option"
+options = "reactive"
+
+[parameters.HCV_SCO]
+name = "HCV antibody index"
+unit = "{s_co_ratio}"
+decimals = 2
+absurd = [0, 100]
+ranges = [{ high = 0.99, display = "Non-reactive below 1.00; reactive at 1.00 or more", cite = "cutoff" }]
+
+[parameters.HCV]
+name = "Hepatitis C virus antibody"
+type = "option"
+options = "reactive"
+
+[parameters.VDRL]
+name = "VDRL"
+type = "option"
+options = "reactive"
+
+[parameters.TO]
+name = "S. Typhi O antigen"
+type = "option"
+options = "widal_o"
+
+[parameters.TH]
+name = "S. Typhi H antigen"
+type = "option"
+options = "widal_h"
+
+[parameters.AH]
+name = "S. Paratyphi AH antigen"
+type = "option"
+options = "widal_h"
+
+[parameters.BH]
+name = "S. Paratyphi BH antigen"
+type = "option"
+options = "widal_h"
+
+[parameters.NS1]
+name = "Dengue NS1 antigen"
+type = "option"
+options = "dengue"
+
+[parameters.DENG_IGM]
+name = "Dengue IgM antibody"
+type = "option"
+options = "dengue"
+
+[parameters.DENG_IGG]
+name = "Dengue IgG antibody"
+type = "option"
+options = "dengue"
+
+# General examination
+
+[parameters.HT]
+name = "Height"
+unit = "cm"
+decimals = 1
+
+[parameters.WT]
+name = "Weight"
+unit = "kg"
+decimals = 1
+
+[parameters.BMI]
+name = "Body mass index (BMI)"
+type = "calculated"
+unit = "kg/m2"
+decimals = 1
+formula = "WT / (HT / 100) ** 2"
+
+[parameters.BP]
+name = "Blood pressure"
+type = "text"
+unit = "mm[Hg]"
+pattern = '^\d{2,3}/\d{2,3}$'
+
+[parameters.INDUR]
+name = "Induration after 48 to 72 hours"
+unit = "mm"
+decimals = 0
+
+[parameters.MANTOUX]
+name = "Mantoux result"
+type = "option"
+options = "neg_pos"
+
+[[departments]]
+name = "Haematology"
+[[departments]]
+name = "Biochemistry"
+[[departments]]
+name = "Clinical Pathology"
+[[departments]]
+name = "Serology"
+[[departments]]
+name = "General Examination"
+
+[[specimens]]
+code = "EDTA"
+name = "Whole blood (EDTA)"
+container = "Lavender top"
+[[specimens]]
+code = "SERUM"
+name = "Serum"
+container = "Red or gold top"
+[[specimens]]
+code = "FLUORIDE"
+name = "Fluoride plasma"
+container = "Grey top"
+[[specimens]]
+code = "CITRATE"
+name = "Citrated blood for ESR"
+container = "Black top"
+[[specimens]]
+code = "URINE"
+name = "Urine"
+container = "Sterile urine container"
+[[specimens]]
+code = "STOOL"
+name = "Stool"
+container = "Stool container"
+
+[[tests]]
+code = "cbc"
+aliases = ["haemogram", "hemogram"]
+name = "Complete blood count"
+short_name = "CBC"
+department = "Haematology"
+specimen = "EDTA"
+tat_hours = 6
+methods = ["Automated haematology analyser"]
+parameters = ["HB", "RBC", "PCV", "MCV", "MCH", "MCHC", "WBC", "NEUT", "LYMPH", "EOS", "MONO", "BASO", "PLT"]
+
+[[tests]]
+code = "hb"
+aliases = ["hgb"]
+name = "Haemoglobin"
+department = "Haematology"
+specimen = "EDTA"
+tat_hours = 4
+methods = ["Cyanmethaemoglobin", "Automated haematology analyser"]
+parameters = ["HB"]
+
+[[tests]]
+code = "esr"
+name = "Erythrocyte sedimentation rate"
+short_name = "ESR"
+department = "Haematology"
+specimen = "CITRATE"
+tat_hours = 4
+methods = ["Westergren"]
+parameters = ["ESR"]
+
+[[tests]]
+code = "bg"
+aliases = ["abo", "grouping"]
+name = "Blood group and Rh type"
+department = "Haematology"
+specimen = "EDTA"
+tat_hours = 2
+methods = ["Slide and tube agglutination"]
+parameters = ["ABO", "RH"]
+
+[[tests]]
+code = "btct"
+aliases = ["bt", "ct"]
+name = "Bleeding time and clotting time"
+department = "Haematology"
+tat_hours = 2
+methods = ["Duke method (BT), capillary tube method (CT)"]
+parameters = ["BT", "CT"]
+
+[[tests]]
+code = "mp"
+aliases = ["mpmf", "qbc"]
+name = "Malaria parasite and microfilaria"
+short_name = "MP/MF"
+department = "Haematology"
+specimen = "EDTA"
+tat_hours = 4
+methods = ["Quantitative buffy coat (QBC)", "Peripheral smear"]
+parameters = ["MP", "MF"]
+
+[[tests]]
+code = "fbs"
+aliases = ["glu-f", "sf"]
+name = "Glucose, fasting"
+short_name = "FBS"
+department = "Biochemistry"
+specimen = "FLUORIDE"
+tat_hours = 4
+methods = ["Glucose oxidase-peroxidase (GOD-POD)"]
+parameters = ["GLUF"]
+interpretation = "Fasting means no food or drink other than water for at least 8 hours before the sample."
+
+[[tests]]
+code = "ppbs"
+aliases = ["glu-pp", "spp"]
+name = "Glucose, post-prandial"
+short_name = "PPBS"
+department = "Biochemistry"
+specimen = "FLUORIDE"
+tat_hours = 4
+methods = ["Glucose oxidase-peroxidase (GOD-POD)"]
+parameters = ["GLUPP"]
+
+[[tests]]
+code = "rbs"
+aliases = ["glu-r", "sr"]
+name = "Glucose, random"
+short_name = "RBS"
+department = "Biochemistry"
+specimen = "FLUORIDE"
+tat_hours = 2
+methods = ["Glucose oxidase-peroxidase (GOD-POD)"]
+parameters = ["GLUR"]
+
+[[tests]]
+code = "gtt"
+aliases = ["ogtt"]
+name = "Glucose tolerance test (75 g oral glucose)"
+short_name = "GTT"
+department = "Biochemistry"
+specimen = "FLUORIDE"
+tat_hours = 6
+methods = ["Glucose oxidase-peroxidase (GOD-POD)"]
+parameters = ["GLUF", "UGLU0", "GLU1H", "UGLU1", "GLU2H", "UGLU2"]
+
+[[tests]]
+code = "hba1c"
+aliases = ["a1c", "ghb"]
+name = "Glycated haemoglobin (HbA1c)"
+short_name = "HbA1c"
+department = "Biochemistry"
+specimen = "EDTA"
+tat_hours = 24
+methods = ["HPLC"]
+parameters = ["A1C", "EAG"]
+interpretation = "HbA1c reflects the average blood glucose over the previous two to three months. Estimated average glucose is calculated from HbA1c with the ADAG formula."
+
+[[tests]]
+code = "lipid"
+aliases = ["lp"]
+name = "Lipid profile"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Enzymatic (CHOD-PAP, GPO-PAP, direct HDL)"]
+parameters = ["TC", "TG", "HDL", "VLDL", "LDL", "NONHDL", "TC_HDL", "LDL_HDL"]
+interpretation = "LDL and VLDL are calculated with the Friedewald formula, which is not valid when triglycerides are 400 mg/dL or more; LDL should then be measured directly. A fasting sample of 9 to 12 hours is preferred."
+
+[[tests]]
+code = "tc"
+aliases = ["chol"]
+name = "Total cholesterol"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Enzymatic (CHOD-PAP)"]
+parameters = ["TC"]
+
+[[tests]]
+code = "lft"
+name = "Liver function test"
+short_name = "LFT"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Automated clinical chemistry analyser"]
+parameters = ["TBIL", "DBIL", "IBIL", "AST", "ALT", "ALP", "GGT", "TP", "ALB", "GLOB", "AG"]
+
+[[tests]]
+code = "bil"
+aliases = ["bilirubin"]
+name = "Bilirubin (total, direct, indirect)"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Diazo method"]
+parameters = ["TBIL", "DBIL", "IBIL"]
+
+[[tests]]
+code = "sgot"
+aliases = ["ast"]
+name = "AST (SGOT)"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["IFCC kinetic"]
+parameters = ["AST"]
+
+[[tests]]
+code = "sgpt"
+aliases = ["alt"]
+name = "ALT (SGPT)"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["IFCC kinetic"]
+parameters = ["ALT"]
+
+[[tests]]
+code = "urea"
+aliases = ["bu"]
+name = "Urea"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Urease-GLDH"]
+parameters = ["UREA"]
+
+[[tests]]
+code = "creat"
+aliases = ["cr", "sc"]
+name = "Creatinine"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Jaffe kinetic", "Enzymatic"]
+parameters = ["CREAT"]
+
+[[tests]]
+code = "ua"
+aliases = ["uric"]
+name = "Uric acid"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Uricase-peroxidase"]
+parameters = ["UA"]
+
+[[tests]]
+code = "ca"
+aliases = ["calcium"]
+name = "Calcium"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Arsenazo III"]
+parameters = ["CA"]
+
+[[tests]]
+code = "phos"
+aliases = ["po4"]
+name = "Phosphorus"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Phosphomolybdate UV"]
+parameters = ["PHOS"]
+
+[[tests]]
+code = "crp"
+name = "C-reactive protein, quantitative"
+short_name = "CRP"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 6
+methods = ["Turbidimetry"]
+parameters = ["CRP"]
+
+[[tests]]
+code = "ldh"
+name = "Lactate dehydrogenase"
+short_name = "LDH"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["IFCC kinetic"]
+parameters = ["LDH"]
+
+[[tests]]
+code = "trop"
+aliases = ["tni"]
+name = "Troponin I, rapid card"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 2
+methods = ["Immunochromatography"]
+parameters = ["TROP"]
+interpretation = "A negative card soon after chest pain does not rule out myocardial injury; repeat the test or use a quantitative assay as advised by the doctor."
+
+[[tests]]
+code = "prog"
+name = "Progesterone"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Chemiluminescence immunoassay"]
+parameters = ["PROG"]
+
+[[tests]]
+code = "tft"
+aliases = ["t3t4tsh"]
+name = "Thyroid function test (T3, T4, TSH)"
+short_name = "TFT"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Chemiluminescence immunoassay"]
+parameters = ["T3", "T4", "TSH"]
+
+[[tests]]
+code = "tsh"
+name = "Thyroid stimulating hormone"
+short_name = "TSH"
+department = "Biochemistry"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Chemiluminescence immunoassay"]
+parameters = ["TSH"]
+
+[[tests]]
+code = "urine"
+aliases = ["ure", "urm"]
+name = "Urine routine examination"
+department = "Clinical Pathology"
+specimen = "URINE"
+tat_hours = 4
+methods = ["Reagent strip and microscopy"]
+parameters = ["COLOUR", "APPEAR", "PH", "SG", "UPROT", "UGLUC", "KET", "UBLD", "BILSALT", "BILPIG", "UROB", "NITRITE", "PUS", "EPI", "URBC", "CASTS", "CRYST", "BACT", "YEAST", "UOTHER"]
+
+[[tests]]
+code = "usa"
+aliases = ["usugalb"]
+name = "Urine sugar and albumin"
+department = "Clinical Pathology"
+specimen = "URINE"
+tat_hours = 2
+methods = ["Benedict's test (sugar), sulphosalicylic acid test (albumin)"]
+parameters = ["USUG", "UALB"]
+
+[[tests]]
+code = "upt"
+aliases = ["hcg-u"]
+name = "Urine pregnancy test"
+short_name = "UPT"
+department = "Clinical Pathology"
+specimen = "URINE"
+tat_hours = 1
+methods = ["Immunochromatography (hCG card)"]
+parameters = ["UPT"]
+
+[[tests]]
+code = "fob"
+aliases = ["occult"]
+name = "Stool occult blood"
+department = "Clinical Pathology"
+specimen = "STOOL"
+tat_hours = 4
+methods = ["Immunochromatography"]
+parameters = ["FOB"]
+
+[[tests]]
+code = "hiv"
+name = "HIV 1 and 2 antibody"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["ELISA", "Rapid card"]
+parameters = ["HIV_SCO", "HIV"]
+interpretation = "A reactive screening result must be confirmed by the national testing strategy before a diagnosis is made."
+
+[[tests]]
+code = "hbsag"
+aliases = ["hbs"]
+name = "Hepatitis B surface antigen"
+short_name = "HBsAg"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["ELISA", "Rapid card"]
+parameters = ["HBSAG_SCO", "HBSAG"]
+
+[[tests]]
+code = "hcv"
+name = "Hepatitis C virus antibody"
+short_name = "Anti-HCV"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["ELISA", "Rapid card"]
+parameters = ["HCV_SCO", "HCV"]
+
+[[tests]]
+code = "vdrl"
+aliases = ["rpr"]
+name = "VDRL"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Slide flocculation"]
+parameters = ["VDRL"]
+
+[[tests]]
+code = "widal"
+name = "Widal test"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 24
+methods = ["Slide agglutination", "Tube agglutination"]
+parameters = ["TO", "TH", "AH", "BH"]
+interpretation = "A single Widal result has limited value. A four-fold rise in titre between an acute and a convalescent sample is more meaningful; antibodies usually appear from the end of the first week of fever."
+
+[[tests]]
+code = "dengue"
+aliases = ["ns1"]
+name = "Dengue NS1 antigen, IgM and IgG"
+department = "Serology"
+specimen = "SERUM"
+tat_hours = 6
+methods = ["Immunochromatography", "ELISA"]
+parameters = ["NS1", "DENG_IGM", "DENG_IGG"]
+interpretation = "NS1 antigen is usually detectable in the first days of fever; IgM appears from about day 5. A negative result early in the illness does not rule out dengue."
+
+[[tests]]
+code = "bmi"
+aliases = ["htwt"]
+name = "Height, weight and BMI"
+department = "General Examination"
+tat_hours = 1
+parameters = ["HT", "WT", "BMI"]
+
+[[tests]]
+code = "bp"
+name = "Blood pressure"
+department = "General Examination"
+tat_hours = 1
+parameters = ["BP"]
+
+[[tests]]
+code = "mantoux"
+aliases = ["tst", "ppd"]
+name = "Mantoux test (tuberculin skin test)"
+department = "General Examination"
+tat_hours = 72
+methods = ["Intradermal tuberculin (Mantoux)"]
+parameters = ["INDUR", "MANTOUX"]
+interpretation = "Read 48 to 72 hours after injection. Induration (not redness) of 10 mm or more is usually taken as positive; lower cut-offs apply to people with HIV or other immune suppression. A positive test shows past or present infection, not active disease."
+
+[[packages]]
+code = "fbs+ppbs"
+name = "Glucose, fasting and post-prandial"
+tests = ["fbs", "ppbs"]
+
+[[packages]]
+code = "fbs+ppbs+bp"
+name = "Glucose, fasting and post-prandial, with blood pressure"
+tests = ["fbs", "ppbs", "bp"]
+
+[[packages]]
+code = "bmi+bp"
+name = "Height, weight, BMI and blood pressure"
+tests = ["bmi", "bp"]
+
+[[packages]]
+code = "sgot+sgpt"
+name = "AST and ALT"
+tests = ["sgot", "sgpt"]
+
+[[packages]]
+code = "renal"
+name = "Renal profile (urea, creatinine, uric acid)"
+tests = ["urea", "creat", "ua"]
+
+[[packages]]
+code = "rbs+urea+creat"
+name = "Random glucose, urea and creatinine"
+tests = ["rbs", "urea", "creat"]
+
+[[packages]]
+code = "rbs+hb"
+name = "Random glucose and haemoglobin"
+tests = ["rbs", "hb"]
+
+[[packages]]
+code = "rbs+ua"
+name = "Random glucose and uric acid"
+tests = ["rbs", "ua"]
+
+[[packages]]
+code = "fbs+hb"
+name = "Fasting glucose and haemoglobin"
+tests = ["fbs", "hb"]
+
+[[packages]]
+code = "fbs+bg"
+name = "Fasting glucose and blood group"
+tests = ["fbs", "bg"]
+
+[[packages]]
+code = "tc+creat+hb"
+name = "Total cholesterol, creatinine and haemoglobin"
+tests = ["tc", "creat", "hb"]
+
+[[packages]]
+code = "esr+ua"
+name = "ESR and uric acid"
+tests = ["esr", "ua"]
+
+[[packages]]
+code = "crp+esr"
+name = "CRP and ESR"
+tests = ["crp", "esr"]
+
+[[packages]]
+code = "crp+hb"
+name = "CRP and haemoglobin"
+tests = ["crp", "hb"]
+
+[[packages]]
+code = "hb+bg"
+name = "Haemoglobin and blood group"
+tests = ["hb", "bg"]
+
+[[packages]]
+code = "bg+btct"
+name = "Blood group, bleeding time and clotting time"
+tests = ["bg", "btct"]
+
+[[packages]]
+code = "widal+mp"
+name = "Widal and malaria parasite"
+tests = ["widal", "mp"]
+
+[[packages]]
+code = "viral"
+name = "Viral markers (HIV, HBsAg, HCV)"
+tests = ["hiv", "hbsag", "hcv"]
+
+[[packages]]
+code = "hbsag+hcv"
+name = "HBsAg and anti-HCV"
+tests = ["hbsag", "hcv"]
+
+[[packages]]
+code = "hbsag+hiv"
+name = "HBsAg and HIV"
+tests = ["hbsag", "hiv"]
+
+[[packages]]
+code = "hbsag+vdrl"
+name = "HBsAg and VDRL"
+tests = ["hbsag", "vdrl"]

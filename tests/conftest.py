@@ -95,7 +95,7 @@ def client(app: FastAPI) -> Iterator[TestClient]:
 
 @pytest.fixture(scope="session")
 def pg_engine() -> Iterator[Engine]:
-    from testcontainers.postgres import PostgresContainer
+    from testcontainers.community.postgres import PostgresContainer
 
     from labra.core.migrate import alembic_config
 

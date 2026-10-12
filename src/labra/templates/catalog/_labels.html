@@ -1,0 +1,48 @@
+{% macro sex_label(sex) -%}
+{{ {'M': 'Male', 'F': 'Female', 'O': 'Other'}.get(sex, 'Any') }}
+{%- endmacro %}
+
+{% macro condition_label(condition) -%}
+{{ {
+  'pregnancy_t1': 'Pregnancy, 1st trimester',
+  'pregnancy_t2': 'Pregnancy, 2nd trimester',
+  'pregnancy_t3': 'Pregnancy, 3rd trimester',
+  'follicular': 'Follicular phase',
+  'luteal': 'Luteal phase',
+  'postmenopausal': 'Postmenopausal',
+}.get(condition, '') }}
+{%- endmacro %}
+
+{% macro type_label(result_type) -%}
+{{ {'numeric': 'Number', 'text': 'Text', 'option': 'Choice', 'calculated': 'Calculated'}.get(result_type, result_type) }}
+{%- endmacro %}
+
+{% macro limits(low, high) -%}
+{% if low is not none and high is not none %}{{ low }} – {{ high }}{% elif low is not none %}≥ {{ low }}{% elif high is not none %}≤ {{ high }}{% else %}—{% endif %}
+{%- endmacro %}
+
+{% macro age(days) -%}
+{% if days < 365 %}{{ days }} days{% else %}{{ '%g' | format((days / 365.25) | round(1)) }} years{% endif %}
+{%- endmacro %}
+
+{% macro ages(r) -%}
+{% if r.age_min_days == 0 and r.age_max_days >= 54750 %}Any age{% elif r.age_max_days >= 54750 %}From {{ age(r.age_min_days) }}{% else %}{{ age(r.age_min_days) }} to {{ age(r.age_max_days) }}{% endif %}
+{%- endmacro %}
+
+{% macro approval(r) -%}
+{% if r.approved_at %}<span class="badge">Approved</span>{% else %}<span class="badge-destructive">Waiting for approval</span>{% endif %}
+{%- endmacro %}
+
+{% macro status(active, on='Active', off='Not in use') -%}
+{% if active %}<span class="badge">{{ on }}</span>{% else %}<span class="badge-outline">{{ off }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro catalog_menu(current) -%}
+<p class="stack">
+  <a {% if current == 'tests' %}aria-current="page"{% endif %} href="/admin/catalog">Tests</a> ·
+  <a {% if current == 'packages' %}aria-current="page"{% endif %} href="/admin/catalog/packages">Packages</a> ·
+  <a {% if current == 'departments' %}aria-current="page"{% endif %} href="/admin/catalog/departments">Departments and specimens</a> ·
+  <a {% if current == 'ranges' %}aria-current="page"{% endif %} href="/admin/catalog/ranges">Ranges to approve</a> ·
+  <a {% if current == 'presets' %}aria-current="page"{% endif %} href="/admin/catalog/presets">Comment presets</a>
+</p>
+{%- endmacro %}

@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 10/20 · Minimal 5/33 · After pilot (P2) 0/9 · Checklist gate P 0/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/20 · Minimal 5/33 · After pilot (P2) 0/9 · Checklist gate P 20/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -66,10 +66,10 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M02~~ | ~~Branches~~ | P | done | 2026-10-09 · 0a85c84 |
 | M03 | Patients | P | todo | |
 | M04 | Referrers | P | todo | |
-| M05 | Catalog (calculated parameters, preset comments) | P | todo | |
-| M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | P | todo | |
-| M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | P | todo | |
-| M06 | Prices: branch override and history | P | todo | |
+| M05 | Catalog (calculated parameters, preset comments) | P | doing | |
+| M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | P | doing | |
+| M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | P | doing | |
+| M06 | Prices: branch override and history | P | doing | |
 | M07 | Visit and billing: bill of supply, payments, dues | P | todo | |
 | M08 | Barcode sample labels | P | todo | |
 | M09 | Manual routing, in-house or external, showing cost and margin | P | todo | |
@@ -82,7 +82,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M13 | Reports for the owner | P | todo | |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
-| M14 | Admin (SQLAdmin) | P | todo | |
+| M14 | Admin screens (own HTMX, ADR-0010) | P | doing | |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
@@ -94,7 +94,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M21 | Delivery tracking and outsourcing timeline | P | todo | |
 | M22 | Lab status board (TV) | P2 | todo | |
 | M23 | Currency display settings (§8) | P | todo | |
-| M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | P | todo | |
+| M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | P | doing | |
 | M24.1 | Rest of the ~300-test starter set | P2 | todo | |
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
@@ -176,17 +176,17 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 ## Enterprise checklist (counts only; tick the items in §14a)
 | Section | IDs | Gate P | Gate 1 | Gate L |
 |---|---|---|---|---|
-| A Security | EC-A01–A16 | 0/12 | 0/3 | 0/1 |
-| B Data integrity and money | EC-B01–B08 | 0/7 | 0/1 | — |
-| C Privacy and compliance | EC-C01–C09 | 0/5 | 0/3 | 0/1 |
-| D Reliability, backup, DR | EC-D01–D09 | 0/7 | 0/1 | 0/1 |
-| E Observability and support | EC-E01–E06 | 0/4 | 0/2 | — |
+| A Security | EC-A01–A16 | 7/12 | 0/3 | 0/1 |
+| B Data integrity and money | EC-B01–B08 | 2/7 | 0/1 | — |
+| C Privacy and compliance | EC-C01–C09 | 1/5 | 0/3 | 0/1 |
+| D Reliability, backup, DR | EC-D01–D09 | 1/7 | 0/1 | 0/1 |
+| E Observability and support | EC-E01–E06 | 1/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 0/3 | 0/1 | — |
-| G Upgrades and migrations | EC-G01–G06 | 0/4 | 0/2 | — |
-| H Code quality and testing | EC-H01–H07 | 0/5 | 0/2 | — |
-| I Supply chain | EC-I01–I07 | 0/5 | 0/2 | — |
+| G Upgrades and migrations | EC-G01–G06 | 1/4 | 0/2 | — |
+| H Code quality and testing | EC-H01–H07 | 2/5 | 0/2 | — |
+| I Supply chain | EC-I01–I07 | 3/5 | 0/2 | — |
 | J Usability | EC-J01–J05 | 0/3 | 0/2 | — |
-| K Configuration safety | EC-K01–K05 | 0/3 | 0/2 | — |
+| K Configuration safety | EC-K01–K05 | 2/3 | 0/2 | — |
 | L Documentation | EC-L01–L05 | 0/3 | 0/2 | — |
 | O Open-source health | EC-O01–O08 | — | 0/8 | — |
 

@@ -14,7 +14,7 @@ One Python application, server-rendered:
 
 - FastAPI, SQLAlchemy 2 (sync) and Alembic on PostgreSQL 18
 - Jinja2 pages with HTMX, Alpine.js (CSP build) and Basecoat; no SPA build step
-- WeasyPrint for A4 PDFs; SQLAdmin for the admin screens
+- WeasyPrint for A4 PDFs; ~~SQLAdmin for the admin screens~~ (superseded by [ADR-0010](0010-own-admin-screens.md): own HTMX screens)
 - No Redis, Kafka or Kubernetes; everything fits on an old laptop
 
 Modules live in `src/labra/<module>/` with `models.py`, `service.py`, `routes.py` and `templates/`. Routes stay thin and all rules live in `service.py`. Details: design §1d.

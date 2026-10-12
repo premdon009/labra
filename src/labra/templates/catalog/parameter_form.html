@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% from "_macros.html" import field, checkbox, csrf %}
+{% from "catalog/_labels.html" import sex_label, condition_label, type_label, limits, ages, approval %}
+
+{% block title %}{{ parameter.name if parameter and parameter.id else 'Add parameter' }}{% endblock %}
+
+{% block content %}
+
+{% set saved = parameter and parameter.id %}
+
+<div class="page-head"><h1>{{ test.code }} · {{ parameter.name if saved else 'Add parameter' }}</h1></div>
+
+<p><a href="/admin/catalog/tests/{{ test.id }}">Back to {{ test.name }}</a></p>
+
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+
+<form method="post" action="/admin/catalog/parameters">
+
+  {{ csrf(csrf_token) }}
+
+  <input type="hidden" name="test_id" value="{{ test.id }}">
+  <input type="hidden" name="parameter_id" value="{{ parameter.id if saved else '' }}">
+  <input type="hidden" name="row_version" value="{{ parameter.row_version if saved else 0 }}">
+  <fieldset class="form-grid" {% if not can_edit %}disabled{% endif %}>
+
+    {{ field('code', 'Code', parameter.code if parameter, errors, required=True, hint='Used in formulas, for example TC or HDL.') }}
+
+    {{ field('name', 'Name', parameter.name if parameter, errors, required=True, hint='As printed on the report.') }}
+
+    <div class="field-row">
+      <label class="label" for="f-result_type">Result type *</label>
+      <select class="select" id="f-result_type" name="result_type">
+
+        {% for t in result_types %}
+
+        <option value="{{ t }}" {% if parameter and parameter.result_type == t %}selected{% endif %}>{{ type_label(t) }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('result_type') %}<p class="field-error">{{ errors.result_type }}</p>{% endif %}
+
+    </div>
+    <div class="field-row">
+      <label class="label" for="f-unit_ucum">Unit</label>
+      <select class="select" id="f-unit_ucum" name="unit_ucum">
+        <option value="">None</option>
+
+        {% for code, label in units.items() %}
+
+        <option value="{{ code }}" {% if parameter and parameter.unit_ucum == code %}selected{% endif %}>{{ label }}</option>
+
+        {% endfor %}
+
+      </select>
+
+      {% if errors.get('unit_ucum') %}<p class="field-error">{{ errors.unit_ucum }}</p>{% endif %}
+
+    </div>
+
+    {{ field('decimals', 'Decimal places', parameter.decimals if parameter else 0, errors, type='number', hint='Numbers and calculated values are shown with this many.') }}
+
+    {{ field('display_order', 'Order on the report', parameter.display_order if parameter else 0, errors, type='number') }}
+
+    {{ field('formula', 'Formula', parameter.formula if parameter, errors, hint='Calculated only. Other parameter codes of this test, + - * / **, ( ), min, max, abs, ln, log10. For example TC - HDL - TG / 5.') }}
+
+    {{ field('formula_valid_if', 'Calculate only when', parameter.formula_valid_if if parameter, errors, hint='Calculated only, optional. For example TG < 400.') }}
+
+    {{ field('text_pattern', 'Text must look like', parameter.text_pattern if parameter, errors, hint='Text only, optional. A pattern, for example ^\\d{2,3}/\\d{2,3}$ for 120/80.') }}
+
+  </fieldset>
+
+  <h2>Choices</h2>
+  <p class="muted">For the Choice type only. Tick the choices that are abnormal, so they are marked on the report.</p>
+
+  {% if errors.get('options') %}<p class="field-error">{{ errors.options }}</p>{% endif %}
+
+  <table class="table">
+    <thead><tr><th>Choice</th><th>Abnormal</th><th>Default</th></tr></thead>
+    <tbody>
+
+      {% for o in options %}
+
+      <tr>
+        <td><input class="input" name="option_value" value="{{ o.get('value', '') }}" aria-label="Choice {{ loop.index }}" {% if not can_edit %}disabled{% endif %}></td>
+        <td><input class="input" type="checkbox" name="option_abnormal" value="{{ loop.index0 }}" aria-label="Choice {{ loop.index }} is abnormal" {% if o.get('abnormal') %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+        <td><input class="input" type="radio" name="option_default" value="{{ loop.index0 }}" aria-label="Choice {{ loop.index }} is the default" {% if o.get('default') %}checked{% endif %} {% if not can_edit %}disabled{% endif %}></td>
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+  </table>
+
+  <p>{{ checkbox('is_reportable', 'Print on the report', parameter.is_reportable if parameter else True) }}</p>
+
+  {% if saved %}<p>{{ checkbox('is_active', 'Parameter is in use', parameter.is_active) }}</p>{% endif %}
+
+  {% if can_edit %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/admin/catalog/tests/{{ test.id }}">Cancel</a>
+  </div>
+
+  {% endif %}
+
+</form>
+
+{% if saved and parameter.result_type in ('numeric', 'calculated') %}
+
+<div class="page-head">
+  <h2>Reference ranges</h2>
+
+  {% if can_edit %}<a class="btn-outline" href="/admin/catalog/parameters/{{ parameter.id }}/ranges/new">Add range</a>{% endif %}
+
+</div>
+<table class="table">
+  <thead><tr><th>Sex</th><th>Age</th><th>Condition</th><th>Normal</th><th>Critical</th><th>Approval</th><th></th></tr></thead>
+  <tbody>
+
+    {% for r in ranges %}
+
+    <tr>
+      <td>{{ sex_label(r.sex) }}</td>
+      <td>{{ ages(r) }}</td>
+      <td>{{ condition_label(r.condition) }}</td>
+      <td>{{ r.display_text or limits(r.low, r.high) }}</td>
+      <td>{{ limits(r.critical_low, r.critical_high) }}</td>
+      <td>{% if r.is_active %}{{ approval(r) }}{% else %}<span class="badge-outline">Not in use</span>{% endif %}</td>
+      <td><a href="/admin/catalog/ranges/{{ r.id }}">Open</a></td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="7">No ranges yet.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endif %}
+
+{% endblock %}

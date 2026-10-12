@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% from "catalog/_labels.html" import status, catalog_menu %}
+
+{% block title %}Test catalog{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <h1>Test catalog</h1>
+
+  {% if can_edit %}<a class="btn" href="/admin/catalog/tests/new">Add test</a>{% endif %}
+
+</div>
+
+{{ catalog_menu('tests') }}
+
+{% if waiting %}
+
+<div class="alert" role="status"><h2>{{ waiting }} reference range{{ 's are' if waiting != 1 else ' is' }} waiting for a signatory's approval.</h2>
+  <section><a href="/admin/catalog/ranges">See the ranges to approve</a></section></div>
+
+{% endif %}
+
+{% if not tests and not q and not department and can_edit %}
+
+<div class="alert" role="status"><h2>The catalog is empty.</h2>
+  <section>Start from the <a href="/admin/catalog/starter">starter catalog</a>, or add your tests one by one.</section></div>
+
+{% endif %}
+
+<form method="get" action="/admin/catalog" class="form-actions">
+  <label class="label" for="f-q">Find</label>
+  <input class="input" id="f-q" name="q" value="{{ q }}" placeholder="Code, alias or name">
+  <label class="label" for="f-department">Department</label>
+  <select class="select" id="f-department" name="department">
+    <option value="">All</option>
+
+    {% for d in departments.values() %}
+
+    <option value="{{ d.id }}" {% if d.id == department %}selected{% endif %}>{{ d.name }}</option>
+
+    {% endfor %}
+
+  </select>
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th>Aliases</th><th>Department</th><th>Price (₹)</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+
+    {% for t in tests %}
+
+    <tr>
+      <td>{{ t.code }}</td>
+      <td>{{ t.name }}</td>
+      <td>{{ t.aliases | join(', ') }}</td>
+      <td>{{ departments[t.department_id].name if t.department_id in departments }}</td>
+      <td>{{ prices.get(t.id) if prices.get(t.id) is not none else '—' }}</td>
+      <td>{{ status(t.is_active) }}</td>
+      <td><a href="/admin/catalog/tests/{{ t.id }}">{{ 'Edit' if can_edit else 'Open' }}</a></td>
+    </tr>
+
+    {% else %}
+
+    <tr><td colspan="7">No tests found.</td></tr>
+
+    {% endfor %}
+
+  </tbody>
+</table>
+
+{% endblock %}
