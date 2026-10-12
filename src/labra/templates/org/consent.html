@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Consent notice{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Consent notice</h1></div>
+<p>Version {{ notice.version }}, in force since {{ notice.effective_from | local_time }}.</p>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>The notice was not changed.</h2></div>{% endif %}
+<form method="post" action="/admin/settings/consent">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="was" value="{{ notice.version }}">
+  <div class="field-row">
+    <label class="label" for="body_text">What the patient agrees to</label>
+    <textarea class="textarea" id="body_text" name="body_text" rows="8" maxlength="{{ max_length }}"
+      {% if not can_edit %}readonly{% endif %}>{{ body_text }}</textarea>
+    <p class="muted">Publishing makes a new version. Patients tick consent again at their next visit.</p>
+    {% if errors.get('body_text') %}<p class="field-error">{{ errors['body_text'] }}</p>{% endif %}
+  </div>
+  {% if can_edit %}
+  <div class="form-actions"><button type="submit" class="btn">Publish as version {{ notice.version + 1 }}</button></div>
+  {% endif %}
+</form>
+{% endblock %}

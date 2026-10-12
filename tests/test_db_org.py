@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from labra.auth import service as auth
 from labra.auth.principal import Principal
-from labra.core import lab_settings
+from labra.core import consent, lab_settings
 from labra.core.currency import load_format
 from labra.core.errors import (
     AuthenticationError,
@@ -21,7 +21,7 @@ from labra.core.errors import (
     ValidationFailedError,
 )
 from labra.core.ids import utcnow
-from labra.core.models import AuditLog, NumberSeries
+from labra.core.models import AuditLog, ConsentNotice, NumberSeries
 from labra.core.numbering import DEFAULT_SERIES, next_number
 from labra.core.registry import Platform
 from labra.org import service as org
@@ -236,6 +236,53 @@ def test_numbering_form_shows_16_char_problem(
     assert "at most 16 characters" in r.text
     assert "{BR}/BILL/{FY2}/{SEQ:5}" in r.text
     assert _series(seeded, "B2", "bos").format == "{BR}/{FY2}/{SEQ:5}"
+
+
+# Consent notice
+
+
+@pytest.mark.item("EC-C01")
+def test_consent_notice_publishes_new_versions(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    first = consent.current_notice(seeded)
+    assert first.version == 1
+    _sign_in(db_client, "anil")
+    page = db_client.get("/admin/settings/consent")
+    assert page.status_code == 200
+    assert "Version 1" in page.text
+    assert "Replace this with your lab" in page.text
+
+    wording = "I agree to these tests and to sharing my sample with a referral lab."
+    r = _post(db_client, "/admin/settings/consent", {"body_text": wording + "\r\n", "was": 1})
+    assert r.status_code == 303
+    second = consent.current_notice(seeded)
+    assert (second.version, second.body_text) == (2, wording)
+    assert seeded.get(ConsentNotice, first.id) is not None
+    assert seeded.scalar(select(AuditLog).where(AuditLog.action == "consent_notice.publish"))
+
+    # The same words again publish nothing; an edit of an older version is refused.
+    assert (
+        _post(db_client, "/admin/settings/consent", {"body_text": wording, "was": 2}).status_code
+        == 303
+    )
+    assert consent.current_notice(seeded).version == 2
+    assert (
+        _post(db_client, "/admin/settings/consent", {"body_text": "Old", "was": 1}).status_code
+        == 409
+    )
+    r = _post(db_client, "/admin/settings/consent", {"body_text": "  ", "was": 2})
+    assert r.status_code == 422
+    assert "Write the notice" in r.text
+    assert consent.current_notice(seeded).version == 2
+
+
+@pytest.mark.item("EC-C01")
+def test_only_admin_publishes_consent_notice(seeded: Session, platform: Platform) -> None:
+    manager = _as(seeded, platform, "b3desk")
+    with pytest.raises(PermissionDeniedError):
+        org.publish_consent_notice(seeded, manager, "New words", 1)
+    assert consent.current_notice(seeded).version == 1
 
 
 # Currency

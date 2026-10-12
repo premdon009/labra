@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.auth.service import end_all_sessions
-from labra.core import audit
+from labra.core import audit, consent
 from labra.core.db import TrackedMixin
 from labra.core.errors import (
     ConflictError,
@@ -19,7 +19,7 @@ from labra.core.errors import (
     ValidationFailedError,
 )
 from labra.core.ids import IST, lab_today, utcnow
-from labra.core.models import NumberSeries
+from labra.core.models import ConsentNotice, NumberSeries
 from labra.core.numbering import DOC_LABELS, ensure_series, format_problems
 from labra.core.paging import Page, page_of
 from labra.core.ports import IdentityProvider
@@ -220,6 +220,39 @@ def set_series_format(
         user_id=principal.user_id,
     )
     return True
+
+
+# Consent notice
+
+
+def publish_consent_notice(
+    db: Session, principal: Principal, body_text: str, was_version: int
+) -> ConsentNotice | None:
+    """Publish new wording as the next version; None when the text is unchanged.
+    `was_version` is the version the user edited, so a newer one is never overwritten."""
+    _check(principal, "setting.edit")
+    current = consent.current_notice(db)
+    if current.version != was_version:
+        raise ConflictError("Someone published a new consent notice. Reload, then try again.")
+    text = body_text.replace("\r\n", "\n").strip()
+    if not text:
+        raise ValidationFailedError({"body_text": "Write the notice patients agree to."})
+    if len(text) > consent.MAX_NOTICE_LENGTH:
+        raise ValidationFailedError(
+            {"body_text": f"Keep the notice to {consent.MAX_NOTICE_LENGTH} characters."}
+        )
+    if text == current.body_text:
+        return None
+    notice = consent.publish_notice(db, text)
+    audit.record(
+        db,
+        "consent_notice.publish",
+        "consent_notice",
+        notice.id,
+        {"version": notice.version},
+        user_id=principal.user_id,
+    )
+    return notice
 
 
 # Roles

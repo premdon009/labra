@@ -62,6 +62,20 @@ def test_audit_log_is_append_only(db: Session, statement: str) -> None:
         db.execute(text(statement))
 
 
+@pytest.mark.item("EC-C01")
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "update consent_notice set body_text = 'changed'",
+        "delete from consent_notice",
+        "truncate consent_notice cascade",
+    ],
+)
+def test_consent_notice_is_append_only(db: Session, statement: str) -> None:
+    with pytest.raises(DBAPIError, match="append-only"), db.begin_nested():
+        db.execute(text(statement))
+
+
 @pytest.mark.item("M15")
 def test_audit_tamper_detected(db: Session) -> None:
     audit.record(db, "setting.change", "setting", "a", {"value": 1})

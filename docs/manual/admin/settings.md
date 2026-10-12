@@ -1,6 +1,6 @@
 ---
 title: Settings
-features: [W04, M02, M07.1]
+features: [W04, M02, M07.1, EC-C01]
 ---
 
 # Settings
@@ -65,6 +65,22 @@ Administrators can change a format; branch managers can only look.
   last one.
 - If someone else changed the same format while you were editing, Labra asks you to
   reload instead of overwriting their change.
+
+## Consent notice
+
+Select **Consent notice** at the top of the page to see the words a patient agrees to
+before their samples are tested or sent to a referral lab. Administrators can change them;
+branch managers can only look.
+
+1. Change the text under **What the patient agrees to**.
+2. Select **Publish as version N**. The new wording applies from that moment.
+
+- Old wording is never changed or removed. Each consent the front desk records keeps
+  pointing at the exact version the patient saw.
+- After a new version, patients tick consent again at their next visit.
+- A new lab starts with placeholder wording. Replace it with your own before the first
+  visit.
+- If someone else published a version while you were editing, Labra asks you to reload.
 
 ## Related pages
 

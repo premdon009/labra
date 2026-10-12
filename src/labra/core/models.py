@@ -8,7 +8,15 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, ForeignKey, Identity, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    ForeignKey,
+    Identity,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -95,6 +103,19 @@ class AuditLog(Base):
     hash: Mapped[str] = mapped_column(String(64))
 
 
+class ConsentNotice(IdMixin, Base):
+    """The wording a patient agrees to. Never edited: a change is a new version, so every
+    consent row still points at the text that was shown."""
+
+    __tablename__ = "consent_notice"
+    __table_args__ = (UniqueConstraint("version", "language"),)
+
+    version: Mapped[int]
+    language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
+    body_text: Mapped[str] = mapped_column(Text)
+    effective_from: Mapped[datetime] = mapped_column(default=utcnow)
+
+
 class Consent(IdMixin, Base):
     """A person's consent for one purpose (DPDP Act). Withdrawal is a new timestamp, never
     a deleted row."""
@@ -108,3 +129,4 @@ class Consent(IdMixin, Base):
     given_at: Mapped[datetime] = mapped_column(default=utcnow)
     withdrawn_at: Mapped[datetime | None]
     recorded_by: Mapped[uuid.UUID | None]
+    notice_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("consent_notice.id"))

@@ -16,7 +16,15 @@ from labra.catalog.models import (
     TestParameter,
 )
 from labra.core.db import Base
-from labra.core.models import AuditLog, Consent, EventOutbox, NumberSeries, Setting, StoredFile
+from labra.core.models import (
+    AuditLog,
+    Consent,
+    ConsentNotice,
+    EventOutbox,
+    NumberSeries,
+    Setting,
+    StoredFile,
+)
 from labra.org.models import AppUser, Branch, Role, RolePermission, UserBranchRole
 
 __all__ = [
@@ -26,6 +34,7 @@ __all__ = [
     "Branch",
     "CommentPreset",
     "Consent",
+    "ConsentNotice",
     "Department",
     "EventOutbox",
     "LocalCredential",

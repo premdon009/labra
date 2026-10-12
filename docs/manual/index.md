@@ -10,6 +10,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Signing in](getting-started/login.md) |
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
+| EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |

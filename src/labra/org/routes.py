@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from labra.auth.deps import require
 from labra.auth.principal import Principal
-from labra.core import lab_settings
+from labra.core import consent, lab_settings
 from labra.core.currency import CurrencyFormat, amount_in_words, format_from, load_format
 from labra.core.db import get_session
 from labra.core.errors import NotFoundError, ValidationFailedError
@@ -443,3 +443,51 @@ def numbering_save(
         return _numbering_form(request, db, principal, entered, errors, status=422)
     db.commit()
     return RedirectResponse("/admin/settings/numbering", status_code=303)
+
+
+@router.get("/settings/consent", response_class=HTMLResponse)
+@page("admin/settings", "org/consent.html")
+def consent_page(
+    request: Request, db: DB, principal: Annotated[Principal, Depends(require("setting.view"))]
+) -> Response:
+    return _consent_form(request, db, principal, None, {})
+
+
+def _consent_form(
+    request: Request,
+    db: DB,
+    principal: Principal,
+    entered: str | None,
+    errors: dict[str, str],
+    status: int = 200,
+) -> Response:
+    notice = consent.current_notice(db)
+    return render(
+        request,
+        "org/consent.html",
+        {
+            "notice": notice,
+            "body_text": notice.body_text if entered is None else entered,
+            "max_length": consent.MAX_NOTICE_LENGTH,
+            "can_edit": principal.can("setting.edit"),
+            "errors": errors,
+        },
+        status_code=status,
+    )
+
+
+@router.post("/settings/consent")
+def consent_save(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("setting.edit"))],
+    body_text: Annotated[str, Form()] = "",
+    was: Annotated[int, Form()] = 0,
+) -> Response:
+    try:
+        service.publish_consent_notice(db, principal, body_text, was)
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _consent_form(request, db, principal, body_text, exc.errors, status=422)
+    db.commit()
+    return RedirectResponse("/admin/settings/consent", status_code=303)
