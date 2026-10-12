@@ -1,6 +1,6 @@
 ---
 title: Reference ranges
-features: [M05.2]
+features: [M05.2, EC-F03]
 ---
 
 # Reference ranges
@@ -53,6 +53,8 @@ To approve ranges (signatory):
 
 ## Good to know
 
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 - A new range, and any change to a range or its tiers, waits for a signatory's approval. The
   catalog shows how many ranges are waiting.
 - Two ranges in use for the same sex and condition can't share an age, so it is always clear

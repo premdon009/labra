@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import pager %}
 {% block title %}Branches{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -8,7 +9,7 @@
 <table class="table">
   <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>State</th><th>Status</th><th></th></tr></thead>
   <tbody>
-    {% for b in branches %}
+    {% for b in branches.items %}
     <tr>
       <td>{{ b.code }}</td>
       <td>{{ b.name }}</td>
@@ -22,4 +23,5 @@
     {% endfor %}
   </tbody>
 </table>
+{{ pager(branches, request) }}
 {% endblock %}

@@ -335,12 +335,12 @@ def test_only_a_signatory_approves_and_any_change_needs_approval_again(
     rng = catalog.save_range(
         seeded, admin, hdl, catalog.RangeInput(low="40", absurd_low="2", source_citation="NCEP")
     )
-    assert [r.id for _, _, r in catalog.unapproved_ranges(seeded, admin)] == [rng.id]
+    assert [r.id for _, _, r in catalog.unapproved_ranges(seeded, admin).items] == [rng.id]
     with pytest.raises(PermissionDeniedError):
         catalog.approve_range(seeded, admin, rng.id, rng.row_version)
     catalog.approve_range(seeded, signatory, rng.id, rng.row_version)
     assert rng.approved_by == signatory.user_id
-    assert catalog.unapproved_ranges(seeded, admin) == []
+    assert catalog.unapproved_ranges(seeded, admin).items == []
 
     # Saving the same values is not a change; a new limit is.
     same = catalog.RangeInput(low="40", absurd_low="2", source_citation="NCEP")

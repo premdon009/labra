@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% from "_macros.html" import csrf %}
+{% from "_macros.html" import csrf, pager %}
 {% from "catalog/_labels.html" import catalog_menu %}
 
 {% macro error(key, row) -%}
@@ -25,7 +25,7 @@
   <thead><tr><th>Name</th><th>Order</th><th>In use</th><th></th></tr></thead>
   <tbody>
 
-    {% for d in departments %}
+    {% for d in departments.items %}
 
     {% set row = 'department-' ~ d.id %}
 
@@ -59,6 +59,7 @@
 
   </tbody>
 </table>
+{{ pager(departments, request, 'dpage') }}
 
 {% if can_edit %}
 
@@ -69,7 +70,7 @@
   <label class="label" for="f-new-department">New department</label>
   <input class="input" id="f-new-department" name="name" required>
   <label class="label" for="f-new-order">Order</label>
-  <input class="input" id="f-new-order" type="number" name="report_order" value="{{ (departments | map(attribute='report_order') | max | default(0)) + 10 }}">
+  <input class="input" id="f-new-order" type="number" name="report_order" value="{{ next_order }}">
   <button type="submit" class="btn-outline">Add department</button>
 </form>
 
@@ -83,7 +84,7 @@
   <thead><tr><th>Code</th><th>Name</th><th>Container</th><th>In use</th><th></th></tr></thead>
   <tbody>
 
-    {% for s in specimens %}
+    {% for s in specimens.items %}
 
     {% set row = 'specimen-' ~ s.id %}
 
@@ -118,6 +119,7 @@
 
   </tbody>
 </table>
+{{ pager(specimens, request, 'spage') }}
 
 {% if can_edit %}
 

@@ -137,7 +137,7 @@ def test_front_desk_cannot_edit_branches_or_staff(seeded: Session, platform: Pla
     signed = service.login(seeded, platform.identity, "priya", DEMO_PASSWORD, "10.0.0.5", utcnow())
     principal = service.principal_for(seeded, signed.session)
     with pytest.raises(PermissionDeniedError):
-        org.list_users(seeded, principal)
+        org.user_page(seeded, principal, 1)
     with pytest.raises(PermissionDeniedError):
         org.create_branch(
             seeded, principal, org.BranchInput(code="B9", name="New", kind="collection_centre")

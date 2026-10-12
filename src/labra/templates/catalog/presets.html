@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% from "_macros.html" import csrf %}
+{% from "_macros.html" import csrf, pager %}
 {% from "catalog/_labels.html" import catalog_menu %}
 
 {% macro error(key, row) -%}
@@ -25,7 +25,7 @@
   <thead><tr><th>Label</th><th>Comment</th><th>For</th><th>In use</th><th></th></tr></thead>
   <tbody>
 
-    {% for p in presets %}
+    {% for p in presets.items %}
 
     {% set row = 'preset-' ~ p.id %}
 
@@ -61,6 +61,7 @@
 
   </tbody>
 </table>
+{{ pager(presets, request) }}
 
 {% if can_edit %}
 

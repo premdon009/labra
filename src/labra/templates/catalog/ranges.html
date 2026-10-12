@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% from "_macros.html" import csrf %}
+{% from "_macros.html" import csrf, pager %}
 {% from "catalog/_labels.html" import sex_label, condition_label, limits, ages, catalog_menu %}
 
 {% block title %}Ranges to approve{% endblock %}
@@ -17,7 +17,7 @@
   <thead><tr><th>Test</th><th>Parameter</th><th>Sex</th><th>Age</th><th>Condition</th><th>Normal</th><th>Source</th><th></th></tr></thead>
   <tbody>
 
-    {% for test, parameter, r in rows %}
+    {% for test, parameter, r in rows.items %}
 
     <tr>
       <td>{{ test.code }}</td>
@@ -53,5 +53,6 @@
 
   </tbody>
 </table>
+{{ pager(rows, request) }}
 
 {% endblock %}

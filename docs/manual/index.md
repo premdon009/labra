@@ -11,6 +11,12 @@ Every feature Labra has, and the manual page that explains it.
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
+| EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
+| EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
+| EC-F03 | Pagination everywhere | [Methods and comment presets](admin/methods.md) |
+| EC-F03 | Pagination everywhere | [Prices](admin/prices.md) |
+| EC-F03 | Pagination everywhere | [Reference ranges](admin/reference-ranges.md) |
+| EC-F03 | Pagination everywhere | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |

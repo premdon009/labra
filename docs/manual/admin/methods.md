@@ -1,6 +1,6 @@
 ---
 title: Methods and comment presets
-features: [M05]
+features: [M05, EC-F03]
 ---
 
 # Methods and comment presets
@@ -42,6 +42,8 @@ To add a comment preset:
 
 ## Good to know
 
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 - A test has at most one default method. Making another method the default takes the mark
   off the old one.
 - A method that is no longer used is switched off by unticking **In use**, so old reports

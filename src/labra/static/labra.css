@@ -19,4 +19,5 @@
 .field-row { display: grid; gap: 0.4rem; }
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .muted { opacity: 0.7; }
+.pager { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; }
 @media (max-width: 48rem) { .app { grid-template-columns: 1fr; } .app-nav { border-right: 0; } }

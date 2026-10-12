@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import pager %}
 {% block title %}Staff and roles{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -8,7 +9,7 @@
 <table class="table">
   <thead><tr><th>Name</th><th>Username</th><th>Signs in</th><th>Status</th><th></th></tr></thead>
   <tbody>
-    {% for u in users %}
+    {% for u in users.items %}
     <tr>
       <td>{{ u.full_name }}</td>
       <td>{{ u.username }}</td>
@@ -21,4 +22,5 @@
     {% endfor %}
   </tbody>
 </table>
+{{ pager(users, request) }}
 {% endblock %}

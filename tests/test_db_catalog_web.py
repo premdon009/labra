@@ -155,6 +155,30 @@ def test_every_catalog_screen_renders(seeded: Session, db_client: TestClient) ->
     assert db_client.get(f"/admin/prices/visit/{lipid.id}").status_code == 404
 
 
+@pytest.mark.item("EC-F03")
+def test_catalog_lists_paginate(seeded: Session, db_client: TestClient) -> None:
+    _sign_in(db_client, "anil")
+    assert _post(db_client, "/admin/catalog/starter", {}).status_code == 200
+    first = db_client.get("/admin/catalog").text
+    assert first.count(">Edit</a>") == 25
+    assert 'href="/admin/catalog?page=2" rel="next"' in first
+    assert 'rel="prev"' not in first
+    second = db_client.get("/admin/catalog?page=2").text
+    assert 'href="/admin/catalog?page=1" rel="prev"' in second
+    # The pager keeps the search and filters.
+    found = db_client.get("/admin/catalog?q=a&page=2").text
+    assert 'href="/admin/catalog?q=a&amp;page=1" rel="prev"' in found
+    # Search runs in the database: code or name contains the text, or an alias starts with it.
+    assert "Lipid profile" in db_client.get("/admin/catalog?q=lp").text
+    assert "Lipid profile" in db_client.get("/admin/catalog?q=LIPID").text
+    assert "No tests found." in db_client.get("/admin/catalog?q=%25").text
+    prices = db_client.get("/admin/prices").text
+    assert prices.count('href="/admin/prices/test/') == 25
+    assert 'href="/admin/prices?page=2" rel="next"' in prices
+    for url in ("/admin/catalog/ranges", "/admin/catalog/ranges?page=2", "/admin/prices?page=9"):
+        assert db_client.get(url).status_code == 200, url
+
+
 # Saving
 
 

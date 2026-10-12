@@ -113,7 +113,7 @@ def test_import_creates_everything_unapproved_and_cited(
     assert all(r.approved_at is None and r.source_citation for r in ranges)
     assert all(r.age_min_days == starter.ADULT_FROM_DAYS for r in ranges)
     assert (seeded.scalar(select(func.count()).select_from(ReferenceBand)) or 0) > 0
-    assert len(catalog.unapproved_ranges(seeded, admin)) == len(ranges)
+    assert catalog.count_unapproved_ranges(seeded, admin) == len(ranges)
 
     lipid = seeded.scalar(select(Test).where(Test.code == "lipid"))
     assert lipid is not None

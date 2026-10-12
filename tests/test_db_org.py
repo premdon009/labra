@@ -305,7 +305,7 @@ def test_create_user_with_roles_then_sign_in(seeded: Session, platform: Platform
     )
     assert user.username == "ravi.k"
     assert org.user_roles(seeded, user.id) == {(b2, desk)}
-    assert user in org.list_users(seeded, admin)
+    assert user in org.user_page(seeded, admin, 1).items
     assert org.get_user(seeded, admin, user.id) is user
     assert {r.code for r in org.list_roles(seeded)} >= {"admin", "front_desk"}
     signed = auth.login(seeded, platform.identity, "ravi.k", NEW_PASSWORD, "10.0.0.5", utcnow())

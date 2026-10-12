@@ -35,6 +35,12 @@ def _uuid(value: str) -> uuid.UUID:
         raise NotFoundError() from None
 
 
+def _page_no(request: Request, param: str) -> int:
+    """The page asked for in the query string; page 1 when missing or not a number."""
+    value = request.query_params.get(param, "1")
+    return int(value) if value.isdecimal() else 1
+
+
 def _optional_uuid(value: str) -> uuid.UUID | None:
     return _uuid(value) if value else None
 
@@ -80,23 +86,17 @@ def _age_days(value: str, unit: str, errors: dict[str, str], key: str, default: 
 @router.get("/catalog", response_class=HTMLResponse)
 @page("admin/catalog", "catalog/tests.html")
 def tests(
-    request: Request, db: DB, principal: Viewer, q: str = "", department: str = ""
+    request: Request,
+    db: DB,
+    principal: Viewer,
+    q: str = "",
+    department: str = "",
+    page: int = 1,
 ) -> Response:
     departments = service.list_departments(db, principal)
     dept_id = _optional_uuid(department)
-    rows = service.list_tests(db, principal, dept_id)
-    text = q.strip().lower()
-    if text:
-        rows = [
-            t
-            for t in rows
-            if text in t.code
-            or text in t.name.lower()
-            or any(a.startswith(text) for a in t.aliases)
-        ]
-    prices = {
-        r.item_id: r.lab_price for r in service.price_list(db, principal) if r.item_type == "test"
-    }
+    rows = service.test_page(db, principal, page, dept_id, q)
+    prices = service.lab_prices(db, [t.id for t in rows.items])
     return render(
         request,
         "catalog/tests.html",
@@ -106,7 +106,7 @@ def tests(
             "department": dept_id,
             "q": q,
             "prices": prices,
-            "waiting": len(service.unapproved_ranges(db, principal)),
+            "waiting": service.count_unapproved_ranges(db, principal),
             "can_edit": principal.can("catalog.edit"),
         },
     )
@@ -331,8 +331,9 @@ def _setup_page(
         request,
         "catalog/departments.html",
         {
-            "departments": service.list_departments(db, principal),
-            "specimens": service.list_specimen_types(db, principal),
+            "departments": service.department_page(db, principal, _page_no(request, "dpage")),
+            "specimens": service.specimen_type_page(db, principal, _page_no(request, "spage")),
+            "next_order": service.next_report_order(db),
             "errors": errors,
             "error_for": error_for,
             "can_edit": principal.can("catalog.edit"),
@@ -416,13 +417,14 @@ def specimen_save(
 
 @router.get("/catalog/packages", response_class=HTMLResponse)
 @page("admin/catalog", "catalog/packages.html")
-def packages(request: Request, db: DB, principal: Viewer) -> Response:
-    rows = service.list_packages(db, principal)
+def packages(request: Request, db: DB, principal: Viewer, page: int = 1) -> Response:
+    rows = service.package_page(db, principal, page)
     return render(
         request,
         "catalog/packages.html",
         {
-            "packages": [(p, service.package_tests(db, p.id)) for p in rows],
+            "page": rows,
+            "packages": [(p, service.package_tests(db, p.id)) for p in rows.items],
             "can_edit": principal.can("catalog.edit"),
         },
     )
@@ -551,12 +553,12 @@ def _range_form(
 
 @router.get("/catalog/ranges", response_class=HTMLResponse)
 @page("admin/reference-ranges", "catalog/ranges.html")
-def ranges_waiting(request: Request, db: DB, principal: Viewer) -> Response:
+def ranges_waiting(request: Request, db: DB, principal: Viewer, page: int = 1) -> Response:
     return render(
         request,
         "catalog/ranges.html",
         {
-            "rows": service.unapproved_ranges(db, principal),
+            "rows": service.unapproved_ranges(db, principal, page),
             "can_approve": principal.can("range.approve"),
         },
     )
@@ -756,7 +758,7 @@ def _presets_page(
         request,
         "catalog/presets.html",
         {
-            "presets": service.list_presets(db, principal),
+            "presets": service.preset_page(db, principal, _page_no(request, "page")),
             "tests": tests,
             "errors": errors,
             "error_for": error_for,
@@ -813,13 +815,15 @@ def preset_save(
 
 @router.get("/prices", response_class=HTMLResponse)
 @page("admin/prices", "catalog/prices.html")
-def prices(request: Request, db: DB, principal: Viewer, branch: str = "") -> Response:
+def prices(
+    request: Request, db: DB, principal: Viewer, branch: str = "", page: int = 1
+) -> Response:
     branch_id = _optional_uuid(branch)
     return render(
         request,
         "catalog/prices.html",
         {
-            "rows": service.price_list(db, principal, branch_id),
+            "rows": service.price_page(db, principal, page, branch_id),
             "branches": org.list_branches(db, principal),
             "branch": branch_id,
         },

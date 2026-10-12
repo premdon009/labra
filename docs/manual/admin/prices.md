@@ -1,6 +1,6 @@
 ---
 title: Prices
-features: [M06]
+features: [M06, EC-F03]
 ---
 
 # Prices
@@ -39,6 +39,8 @@ again** on its row under **Branch prices in force**.
 
 ## Good to know
 
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 - A test or package without a price shows **No price**. Give it one before the front desk
   needs it.
 - Prices can't be negative or have more than two decimals.

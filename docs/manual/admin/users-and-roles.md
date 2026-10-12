@@ -1,6 +1,6 @@
 ---
 title: Staff and roles
-features: [M01, M01.1, M01.2]
+features: [M01, M01.1, M01.2, EC-F03]
 ---
 
 # Staff and roles
@@ -51,6 +51,8 @@ works here**. Their name stays on the records they made.
 - Front desk, phlebotomist, technician and signatory gain their own screens as Labra grows.
 - You can't switch off your own sign-in, so a lab is never left without an administrator.
 - Every change is recorded in the audit log.
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 
 ## Related pages
 

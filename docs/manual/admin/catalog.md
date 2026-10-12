@@ -1,6 +1,6 @@
 ---
 title: Test catalog
-features: [M05, M05.1, M14]
+features: [M05, M05.1, M14, EC-F03]
 ---
 
 # Test catalog
@@ -63,6 +63,8 @@ To add a package (tests billed together, such as `fbs+ppbs`), open **Packages**,
 
 ## Good to know
 
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 - A test or package that is no longer offered is switched off, not deleted: untick **Test is
   in use**. Old visits and reports keep showing it.
 - Another code can't be used by two tests or by a test and a package.

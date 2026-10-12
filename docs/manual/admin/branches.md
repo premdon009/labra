@@ -1,6 +1,6 @@
 ---
 title: Branches
-features: [M02]
+features: [M02, EC-F03]
 ---
 
 # Branches
@@ -36,6 +36,8 @@ close a branch, untick **Active**: its records stay, but no new work can be adde
 
 ## Good to know
 
+- Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
+  through them; a search or filter you chose stays in place.
 - There can be only one main lab.
 - Two branches can't share a code.
 - Bill and invoice numbers can be at most 16 characters (GST rules). A four-letter code

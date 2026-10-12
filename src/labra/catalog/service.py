@@ -4,12 +4,12 @@ prices. Every function takes the acting Principal and checks it, so a route can'
 
 import re
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, literal, or_, select, union_all, update
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
@@ -36,6 +36,7 @@ from labra.catalog.units import UNITS
 from labra.core import audit
 from labra.core.errors import NotFoundError, PermissionDeniedError, ValidationFailedError
 from labra.core.ids import utcnow
+from labra.core.paging import Page, page_of
 from labra.org.models import Branch
 from labra.org.service import stale
 
@@ -113,6 +114,17 @@ def _decimal(raw: str | Decimal | None, problems: dict[str, str], key: str) -> D
 # Departments and specimen types
 
 
+def department_page(db: Session, principal: Principal, page: int) -> Page[Department]:
+    _check(principal, "catalog.view")
+    stmt = select(Department).order_by(Department.report_order, Department.name, Department.id)
+    return page_of(db, stmt, page)
+
+
+def next_report_order(db: Session) -> int:
+    """Where a new department goes by default: after the last one."""
+    return (db.scalar(select(func.max(Department.report_order))) or 0) + 10
+
+
 def list_departments(db: Session, principal: Principal) -> list[Department]:
     _check(principal, "catalog.view")
     return list(db.scalars(select(Department).order_by(Department.report_order, Department.name)))
@@ -140,6 +152,11 @@ def save_department(
     dept = _get(db, Department, department_id)
     _apply(db, principal, dept, values, row_version, "department.update")
     return dept
+
+
+def specimen_type_page(db: Session, principal: Principal, page: int) -> Page[SpecimenType]:
+    _check(principal, "catalog.view")
+    return page_of(db, select(SpecimenType).order_by(SpecimenType.name, SpecimenType.id), page)
 
 
 def list_specimen_types(db: Session, principal: Principal) -> list[SpecimenType]:
@@ -243,6 +260,31 @@ def _validate_test(db: Session, data: TestInput, test_id: uuid.UUID | None) -> N
         problems["default_tat_hours"] = "Between 1 and 1440 hours."
     if problems:
         raise ValidationFailedError(problems)
+
+
+def test_page(
+    db: Session,
+    principal: Principal,
+    page: int,
+    department_id: uuid.UUID | None = None,
+    text: str = "",
+) -> Page[Test]:
+    """Tests whose code or name contains `text`, or with an alias starting with it."""
+    _check(principal, "catalog.view")
+    q = select(Test).order_by(Test.code)
+    if department_id:
+        q = q.where(Test.department_id == department_id)
+    text = text.strip().lower()
+    if text:
+        aliases = literal(" ") + func.array_to_string(Test.aliases, " ")
+        q = q.where(
+            or_(
+                func.lower(Test.code).contains(text, autoescape=True),
+                func.lower(Test.name).contains(text, autoescape=True),
+                aliases.contains(" " + text, autoescape=True),
+            )
+        )
+    return page_of(db, q, page)
 
 
 def list_tests(
@@ -658,18 +700,32 @@ def approve_range(
 
 
 def unapproved_ranges(
-    db: Session, principal: Principal
-) -> list[tuple[Test, TestParameter, ReferenceRange]]:
+    db: Session, principal: Principal, page: int = 1
+) -> Page[tuple[Test, TestParameter, ReferenceRange]]:
     """Active ranges still waiting for a signatory, in catalog order."""
     _check(principal, "catalog.view")
-    rows = db.execute(
+    stmt = (
         select(Test, TestParameter, ReferenceRange)
         .join(TestParameter, TestParameter.test_id == Test.id)
         .join(ReferenceRange, ReferenceRange.parameter_id == TestParameter.id)
         .where(ReferenceRange.approved_at.is_(None), ReferenceRange.is_active)
-        .order_by(Test.code, TestParameter.display_order, ReferenceRange.age_min_days)
+        .order_by(
+            Test.code, TestParameter.display_order, ReferenceRange.age_min_days, ReferenceRange.id
+        )
     )
-    return [(t, p, r) for t, p, r in rows]
+    return page_of(db, stmt, page)
+
+
+def count_unapproved_ranges(db: Session, principal: Principal) -> int:
+    _check(principal, "catalog.view")
+    return (
+        db.scalar(
+            select(func.count())
+            .select_from(ReferenceRange)
+            .where(ReferenceRange.approved_at.is_(None), ReferenceRange.is_active)
+        )
+        or 0
+    )
 
 
 # Methods and comment presets
@@ -733,6 +789,11 @@ def save_method(
     return method
 
 
+def preset_page(db: Session, principal: Principal, page: int) -> Page[CommentPreset]:
+    _check(principal, "catalog.view")
+    return page_of(db, select(CommentPreset).order_by(CommentPreset.label, CommentPreset.id), page)
+
+
 def list_presets(
     db: Session, principal: Principal, test_id: uuid.UUID | None = None
 ) -> list[CommentPreset]:
@@ -780,9 +841,9 @@ def save_preset(
 # Packages
 
 
-def list_packages(db: Session, principal: Principal) -> list[Package]:
+def package_page(db: Session, principal: Principal, page: int) -> Page[Package]:
     _check(principal, "catalog.view")
-    return list(db.scalars(select(Package).order_by(Package.code)))
+    return page_of(db, select(Package).order_by(Package.code), page)
 
 
 def get_package(db: Session, principal: Principal, package_id: uuid.UUID) -> Package:
@@ -1023,34 +1084,55 @@ class PriceRow:
     branch_price: Decimal | None
 
 
-def price_list(
-    db: Session, principal: Principal, branch_id: uuid.UUID | None = None
-) -> list[PriceRow]:
-    """Every test and package with its lab-wide price today and, given a branch, that
-    branch's own price where it has one."""
-    _check(principal, "catalog.view")
-    open_prices = db.execute(
+def _open_prices(
+    db: Session, item_ids: list[uuid.UUID], branch_id: uuid.UUID | None
+) -> dict[tuple[uuid.UUID, uuid.UUID | None], Decimal]:
+    rows = db.execute(
         select(Price.item_id, Price.branch_id, Price.amount).where(
             Price.valid_to.is_(None),
+            Price.item_id.in_(item_ids),
             or_(Price.branch_id.is_(None), Price.branch_id == branch_id),
         )
     ).all()
-    current = {(item_id, branch): amount for item_id, branch, amount in open_prices}
-    rows = []
-    for kind, model in (("test", Test), ("package", Package)):
-        for item in db.scalars(select(model).order_by(model.code)):
-            rows.append(
-                PriceRow(
-                    kind,
-                    item.id,
-                    item.code,
-                    item.name,
-                    item.is_active,
-                    current.get((item.id, None)),
-                    current.get((item.id, branch_id)) if branch_id else None,
-                )
-            )
-    return rows
+    return {(item_id, branch): amount for item_id, branch, amount in rows}
+
+
+def lab_prices(db: Session, item_ids: list[uuid.UUID]) -> dict[uuid.UUID, Decimal]:
+    """Today's lab-wide price of each item that has one."""
+    return {item_id: amount for (item_id, _), amount in _open_prices(db, item_ids, None).items()}
+
+
+def price_page(
+    db: Session, principal: Principal, page: int, branch_id: uuid.UUID | None = None
+) -> Page[PriceRow]:
+    """Tests, then packages, each with its lab-wide price today and, given a branch, that
+    branch's own price where it has one."""
+    _check(principal, "catalog.view")
+    items = union_all(
+        select(literal("test").label("kind"), Test.id, Test.code, Test.name, Test.is_active),
+        select(
+            literal("package").label("kind"),
+            Package.id,
+            Package.code,
+            Package.name,
+            Package.is_active,
+        ),
+    ).subquery()
+    found = page_of(db, select(items).order_by(items.c.kind.desc(), items.c.code), page)
+    current = _open_prices(db, [row[1] for row in found.items], branch_id)
+    rows = [
+        PriceRow(
+            kind,
+            item_id,
+            code,
+            name,
+            is_active,
+            current.get((item_id, None)),
+            current.get((item_id, branch_id)) if branch_id else None,
+        )
+        for kind, item_id, code, name, is_active in found.items
+    ]
+    return replace(found, items=rows)
 
 
 # Search

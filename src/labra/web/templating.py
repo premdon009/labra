@@ -8,6 +8,7 @@ from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
@@ -43,11 +44,19 @@ def local_time(value: datetime, fmt: str = "%d %b %Y %H:%M") -> str:
     return value.astimezone(IST).strftime(fmt)
 
 
+def page_url(request: Request, number: int, param: str = "page") -> str:
+    """This page's URL with the query string kept and `param` set to `number`."""
+    query = [(k, v) for k, v in request.query_params.multi_items() if k != param]
+    query.append((param, str(number)))
+    return f"{request.url.path}?{urlencode(query)}"
+
+
 templates.env.filters["local_time"] = local_time
 templates.env.filters["money"] = money_filter
 templates.env.globals.update(
     app_version=__version__,
     vendor_url=vendor_url,
+    page_url=page_url,
 )
 
 

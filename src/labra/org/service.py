@@ -21,6 +21,7 @@ from labra.core.errors import (
 from labra.core.ids import IST, lab_today, utcnow
 from labra.core.models import NumberSeries
 from labra.core.numbering import DOC_LABELS, ensure_series, format_problems
+from labra.core.paging import Page, page_of
 from labra.core.ports import IdentityProvider
 from labra.org.models import BRANCH_KINDS, AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.org.permissions import SYSTEM_ROLES
@@ -85,6 +86,11 @@ def list_branches(db: Session, principal: Principal) -> list[Branch]:
     if not visible:
         return []
     return list(db.scalars(select(Branch).where(Branch.id.in_(visible)).order_by(Branch.code)))
+
+
+def branch_page(db: Session, principal: Principal, page: int) -> Page[Branch]:
+    visible = principal.branches_with("branch.view")
+    return page_of(db, select(Branch).where(Branch.id.in_(visible)).order_by(Branch.code), page)
 
 
 def get_branch(db: Session, principal: Principal, branch_id: uuid.UUID) -> Branch:
@@ -274,9 +280,9 @@ class UserInput:
         return p
 
 
-def list_users(db: Session, principal: Principal) -> list[AppUser]:
+def user_page(db: Session, principal: Principal, page: int) -> Page[AppUser]:
     _check(principal, "user.view")
-    return list(db.scalars(select(AppUser).order_by(AppUser.full_name)))
+    return page_of(db, select(AppUser).order_by(AppUser.full_name, AppUser.id), page)
 
 
 def get_user(db: Session, principal: Principal, user_id: uuid.UUID) -> AppUser:

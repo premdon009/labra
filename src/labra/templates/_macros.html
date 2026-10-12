@@ -15,3 +15,13 @@
 {% macro csrf(token) -%}
 <input type="hidden" name="csrf_token" value="{{ token }}">
 {%- endmacro %}
+
+{% macro pager(page, request, param='page') -%}
+{% if page.has_prev or page.has_next %}
+<nav class="pager" aria-label="Pages">
+  {% if page.has_prev %}<a class="btn-outline" href="{{ page_url(request, page.number - 1, param) }}" rel="prev">Previous</a>{% endif %}
+  <span>Page {{ page.number }}</span>
+  {% if page.has_next %}<a class="btn-outline" href="{{ page_url(request, page.number + 1, param) }}" rel="next">Next</a>{% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}

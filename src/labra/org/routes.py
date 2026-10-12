@@ -37,13 +37,16 @@ def _uuid(value: str) -> uuid.UUID:
 @router.get("/branches", response_class=HTMLResponse)
 @page("admin/branches", "org/branches.html")
 def branches(
-    request: Request, db: DB, principal: Annotated[Principal, Depends(require("branch.view"))]
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("branch.view"))],
+    page: int = 1,
 ) -> Response:
     return render(
         request,
         "org/branches.html",
         {
-            "branches": service.list_branches(db, principal),
+            "branches": service.branch_page(db, principal, page),
             "can_edit": principal.can("branch.edit"),
         },
     )
@@ -127,12 +130,15 @@ def branch_save(
 @router.get("/users", response_class=HTMLResponse)
 @page("admin/users-and-roles", "org/users.html")
 def users(
-    request: Request, db: DB, principal: Annotated[Principal, Depends(require("user.view"))]
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("user.view"))],
+    page: int = 1,
 ) -> Response:
     return render(
         request,
         "org/users.html",
-        {"users": service.list_users(db, principal), "can_edit": principal.can("user.edit")},
+        {"users": service.user_page(db, principal, page), "can_edit": principal.can("user.edit")},
     )
 
 

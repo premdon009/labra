@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import pager %}
 
 {% block title %}Prices{% endblock %}
 
@@ -25,7 +26,7 @@
   <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Lab price (₹)</th>{% if branch %}<th>Branch price (₹)</th>{% endif %}<th></th></tr></thead>
   <tbody>
 
-    {% for r in rows %}
+    {% for r in rows.items %}
 
     <tr>
       <td>{{ r.code }}</td>
@@ -46,5 +47,6 @@
 
   </tbody>
 </table>
+{{ pager(rows, request) }}
 
 {% endblock %}
