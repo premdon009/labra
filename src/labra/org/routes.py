@@ -297,3 +297,55 @@ def settings_save(
         return _settings_form(request, db, principal, errors, status=422)
     db.commit()
     return RedirectResponse("/admin/settings", status_code=303)
+
+
+@router.get("/settings/numbering", response_class=HTMLResponse)
+@page("admin/settings", "org/numbering.html")
+def numbering_page(
+    request: Request, db: DB, principal: Annotated[Principal, Depends(require("setting.view"))]
+) -> Response:
+    return _numbering_form(request, db, principal, {}, {})
+
+
+def _numbering_form(
+    request: Request,
+    db: DB,
+    principal: Principal,
+    entered: dict[str, str],
+    errors: dict[str, str],
+    status: int = 200,
+) -> Response:
+    return render(
+        request,
+        "org/numbering.html",
+        {
+            "rows": service.list_series(db, principal),
+            "can_edit": principal.can("setting.edit"),
+            "entered": entered,
+            "errors": errors,
+        },
+        status_code=status,
+    )
+
+
+@router.post("/settings/numbering")
+def numbering_save(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("setting.edit"))],
+    series: Annotated[list[str], Form()] = [],  # noqa: B006
+    was: Annotated[list[str], Form()] = [],  # noqa: B006
+    fmt: Annotated[list[str], Form()] = [],  # noqa: B006
+) -> Response:
+    errors: dict[str, str] = {}
+    for sid, old, new in zip(series, was, fmt, strict=False):
+        try:
+            service.set_series_format(db, principal, _uuid(sid), new, old)
+        except ValidationFailedError as exc:
+            errors.update(exc.errors)
+    if errors:
+        db.rollback()
+        entered = dict(zip(series, fmt, strict=False))
+        return _numbering_form(request, db, principal, entered, errors, status=422)
+    db.commit()
+    return RedirectResponse("/admin/settings/numbering", status_code=303)

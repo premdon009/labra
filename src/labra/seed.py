@@ -10,22 +10,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from labra.core.errors import ConfigError
-from labra.core.models import NumberSeries
-from labra.core.numbering import financial_year, format_problems
+from labra.core.numbering import ensure_series
 from labra.core.ports import IdentityProvider
 from labra.org.models import AppUser, Branch, Role, UserBranchRole
 from labra.org.service import sync_system_roles
 
 DEMO_PASSWORD = "demo-password-1"  # noqa: S105  synthetic demo data only
 FAKER_SEED = 2026
-
-SERIES = {
-    "patient": "{BR}/P/{SEQ:6}",
-    "visit": "{BR}/V/{FY2}/{SEQ:5}",
-    # At most 16 characters with a four-letter branch code: MAIN/2627/00001.
-    "bos": "{BR}/{FY2}/{SEQ:5}",
-    "receipt": "{BR}/RC/{FY2}/{SEQ:5}",
-}
 
 # (username, full name, can_login, [(branch code, role code)])
 CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
@@ -73,23 +64,6 @@ def make_user(
     return user
 
 
-def make_series(db: Session, branch: Branch, doc_type: str, fmt: str, today: date) -> None:
-    found = db.scalar(
-        select(NumberSeries).where(
-            NumberSeries.doc_type == doc_type, NumberSeries.branch_id == branch.id
-        )
-    )
-    if found is None:
-        problems = format_problems(doc_type, fmt, branch.code)
-        if problems:
-            raise ConfigError(" ".join(problems))
-        db.add(
-            NumberSeries(
-                branch_id=branch.id, doc_type=doc_type, format=fmt, fin_year=financial_year(today)
-            )
-        )
-
-
 def seed(db: Session, identity: IdentityProvider, today: date) -> None:
     known = {c[0] for c in CAST} | {f"staff{i}" for i in range(1, 4)}
     others = db.scalars(select(AppUser.username).where(AppUser.username.not_in(known))).first()
@@ -107,8 +81,7 @@ def seed(db: Session, identity: IdentityProvider, today: date) -> None:
         "B3": make_branch(db, "B3", "Branch 3"),
     }
     for branch in branches.values():
-        for doc_type, fmt in SERIES.items():
-            make_series(db, branch, doc_type, fmt, today)
+        ensure_series(db, branch.id, branch.code, today)
     for username, full_name, can_login, roles in CAST:
         make_user(
             db,

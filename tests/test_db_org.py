@@ -1,8 +1,11 @@
 """Branches and staff through the org service against real Postgres, using the demo cast."""
 
+import re
 import uuid
+from datetime import date
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,7 +19,8 @@ from labra.core.errors import (
     ValidationFailedError,
 )
 from labra.core.ids import utcnow
-from labra.core.models import AuditLog
+from labra.core.models import AuditLog, NumberSeries
+from labra.core.numbering import DEFAULT_SERIES, next_number
 from labra.core.registry import Platform
 from labra.org import service as org
 from labra.org.models import AppUser, Branch, Role
@@ -146,6 +150,81 @@ def test_branch_manager_cannot_edit_branches(seeded: Session, platform: Platform
         )
     with pytest.raises(NotFoundError):
         org.get_branch(seeded, _as(seeded, platform, "anil"), uuid.uuid4())
+
+
+# Number series
+
+
+@pytest.mark.item("M07")
+@pytest.mark.item("M02")
+def test_new_branch_gets_number_series(seeded: Session, platform: Platform) -> None:
+    admin = _as(seeded, platform, "anil")
+    branch = org.create_branch(
+        seeded, admin, org.BranchInput(code="B4", name="Branch 4", kind="collection_centre")
+    )
+    have = seeded.scalars(select(NumberSeries.doc_type).where(NumberSeries.branch_id == branch.id))
+    assert set(have) == set(DEFAULT_SERIES)
+    day = date(2026, 10, 9)
+    assert next_number(seeded, "bos", branch.id, "B4", day) == "B4/2627/00001"
+    assert next_number(seeded, "sample", branch.id, "B4", day) == "B42627000001"
+
+
+def _series(db: Session, code: str, doc_type: str) -> NumberSeries:
+    return db.scalars(
+        select(NumberSeries)
+        .join(Branch, Branch.id == NumberSeries.branch_id)
+        .where(Branch.code == code, NumberSeries.doc_type == doc_type)
+    ).one()
+
+
+@pytest.mark.item("M07.1")
+def test_series_format_change(seeded: Session, platform: Platform) -> None:
+    admin = _as(seeded, platform, "anil")
+    bos = _series(seeded, "MAIN", "bos")
+    with pytest.raises(ValidationFailedError) as long:
+        org.set_series_format(seeded, admin, bos.id, "{BR}/BILL/{FY2}/{SEQ:5}", bos.format)
+    assert "at most 16 characters" in long.value.errors[str(bos.id)]
+    assert org.set_series_format(seeded, admin, bos.id, "{BR}-{FY2}-{SEQ:5}", bos.format)
+    assert _actions(seeded, bos.id) == ["number_series.update"]
+    # The form showed the old format, so this edit is from before the change above.
+    with pytest.raises(ConflictError):
+        org.set_series_format(seeded, admin, bos.id, "{BR}/{FY2}/{SEQ:5}", "{BR}/{FY2}/{SEQ:5}")
+    with pytest.raises(PermissionDeniedError):
+        org.set_series_format(
+            seeded, _as(seeded, platform, "b3desk"), bos.id, "{BR}/{SEQ:5}", bos.format
+        )
+
+
+@pytest.mark.item("M07.1")
+def test_numbering_form_shows_16_char_problem(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    db_client.cookies.clear()
+    page = db_client.get("/login")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text)
+    assert token is not None
+    form = {"username": "anil", "password": DEMO_PASSWORD, "csrf_token": token.group(1)}
+    assert db_client.post("/login", data=form, follow_redirects=False).status_code == 303
+    page = db_client.get("/admin/settings/numbering")
+    assert page.status_code == 200
+    assert "{BR}/P/{SEQ:6}" in page.text
+    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text)
+    assert token is not None
+    bos = _series(seeded, "B2", "bos")
+    r = db_client.post(
+        "/admin/settings/numbering",
+        data={
+            "series": str(bos.id),
+            "was": bos.format,
+            "fmt": "{BR}/BILL/{FY2}/{SEQ:5}",
+            "csrf_token": token.group(1),
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 422
+    assert "at most 16 characters" in r.text
+    assert "{BR}/BILL/{FY2}/{SEQ:5}" in r.text
+    assert _series(seeded, "B2", "bos").format == "{BR}/{FY2}/{SEQ:5}"
 
 
 # Staff

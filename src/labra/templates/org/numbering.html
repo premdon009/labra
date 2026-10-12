@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Number formats{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Number formats</h1></div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>No formats were changed.</h2></div>{% endif %}
+<form method="post" action="/admin/settings/numbering">
+  {{ csrf(csrf_token) }}
+  <table class="table">
+    <thead><tr><th>Branch</th><th>Number</th><th>Format</th><th>Next</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      {% set sid = row.series.id | string %}
+      <tr>
+        <td>{{ row.branch.code }}</td>
+        <td><label for="n-{{ loop.index }}">{{ row.label }}</label></td>
+        <td>
+          <input type="hidden" name="series" value="{{ sid }}">
+          <input type="hidden" name="was" value="{{ row.series.format }}">
+          <input class="input" id="n-{{ loop.index }}" name="fmt" value="{{ entered.get(sid, row.series.format) }}"
+            maxlength="60" {% if not can_edit %}readonly{% endif %}>
+          {% if errors.get(sid) %}<p class="field-error">{{ errors[sid] }}</p>{% endif %}
+        </td>
+        <td>{{ row.series.next_value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if can_edit %}
+  <div class="form-actions"><button type="submit" class="btn">Save</button></div>
+  {% endif %}
+</form>
+{% endblock %}

@@ -2,7 +2,10 @@
 {% from "_macros.html" import csrf %}
 {% block title %}Settings{% endblock %}
 {% block content %}
-<div class="page-head"><h1>Settings</h1></div>
+<div class="page-head">
+  <h1>Settings</h1>
+  <a class="btn-outline" href="/admin/settings/numbering">Number formats</a>
+</div>
 {% if errors %}<div class="alert-destructive" role="alert"><h2>Some settings were not saved.</h2></div>{% endif %}
 <form method="post" action="/admin/settings">
   {{ csrf(csrf_token) }}

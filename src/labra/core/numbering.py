@@ -1,4 +1,4 @@
-"""Document numbers: `{BR}/BS/{FY2}/{SEQ:5}` → `B2/BS/2627/00123` (design §5.1).
+"""Document numbers: `{BR}/{FY2}/{SEQ:5}` → `B2/2627/00123` (design §5.1).
 
 Numbers with the year in them restart each Indian financial year (1 April). Issuing one
 locks the series row, so two counters never get the same number and none is skipped.
@@ -23,6 +23,26 @@ _GST_CHARS = re.compile(r"^[A-Za-z0-9/-]+$")
 _TOKEN = re.compile(r"\{([A-Z0-9]+)(?::(\d))?\}")
 _YEAR = re.compile(r"\{FY2?\}")
 MAX_BRANCH_CODE = 4
+
+# The series every branch starts with, and what the numbering screen calls them.
+DEFAULT_SERIES = {
+    "patient": "{BR}/P/{SEQ:6}",
+    "visit": "{BR}/V/{FY2}/{SEQ:5}",
+    # At most 16 characters with a four-letter branch code: MAIN/2627/00001.
+    "bos": "{BR}/{FY2}/{SEQ:5}",
+    "receipt": "{BR}/RC/{FY2}/{SEQ:5}",
+    "refund": "{BR}/RF/{FY2}/{SEQ:5}",
+    # Printed as a barcode, so no slashes: MAIN2627000123.
+    "sample": "{BR}{FY2}{SEQ:6}",
+}
+DOC_LABELS = {
+    "patient": "Patient number",
+    "visit": "Visit number",
+    "bos": "Bill number",
+    "receipt": "Receipt number",
+    "refund": "Refund number",
+    "sample": "Sample number",
+}
 
 
 def financial_year(day: date) -> int:
@@ -67,6 +87,23 @@ def format_problems(doc_type: str, fmt: str, branch_code: str | None = None) -> 
         if not _GST_CHARS.match(longest):
             problems.append("Bill and invoice numbers may use only letters, digits, - and /.")
     return problems
+
+
+def ensure_series(db: Session, branch_id: uuid.UUID, branch_code: str, today: date) -> None:
+    """Give a branch every default series it lacks. Formats already set are left alone."""
+    have = set(db.scalars(select(NumberSeries.doc_type).where(NumberSeries.branch_id == branch_id)))
+    for doc_type, fmt in DEFAULT_SERIES.items():
+        if doc_type in have:
+            continue
+        problems = format_problems(doc_type, fmt, branch_code)
+        if problems:
+            raise ConfigError(" ".join(problems))
+        db.add(
+            NumberSeries(
+                branch_id=branch_id, doc_type=doc_type, format=fmt, fin_year=financial_year(today)
+            )
+        )
+    db.flush()
 
 
 def next_number(

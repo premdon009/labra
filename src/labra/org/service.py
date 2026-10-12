@@ -18,7 +18,9 @@ from labra.core.errors import (
     PermissionDeniedError,
     ValidationFailedError,
 )
-from labra.core.ids import IST, utcnow
+from labra.core.ids import IST, lab_today, utcnow
+from labra.core.models import NumberSeries
+from labra.core.numbering import DOC_LABELS, ensure_series, format_problems
 from labra.core.ports import IdentityProvider
 from labra.org.models import BRANCH_KINDS, AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.org.permissions import SYSTEM_ROLES
@@ -128,6 +130,7 @@ def create_branch(db: Session, principal: Principal, data: BranchInput) -> Branc
     for role_id in editing_roles:
         db.add(UserBranchRole(user_id=principal.user_id, branch_id=branch.id, role_id=role_id))
     db.flush()
+    ensure_series(db, branch.id, branch.code, lab_today())
     audit.record(
         db, "branch.create", "branch", branch.id, {"code": branch.code}, user_id=principal.user_id
     )
@@ -152,6 +155,65 @@ def update_branch(
             db, "branch.update", "branch", branch.id, {"fields": changed}, user_id=principal.user_id
         )
     return branch
+
+
+# Number series
+
+
+@dataclass(frozen=True)
+class SeriesRow:
+    series: NumberSeries
+    branch: Branch
+    label: str
+
+
+def list_series(db: Session, principal: Principal) -> list[SeriesRow]:
+    _check(principal, "setting.view")
+    order = list(DOC_LABELS)
+    found = db.execute(
+        select(NumberSeries, Branch).join(Branch, Branch.id == NumberSeries.branch_id)
+    ).all()
+    rows = [SeriesRow(s, b, DOC_LABELS.get(s.doc_type, s.doc_type)) for s, b in found]
+    rank = {doc_type: i for i, doc_type in enumerate(order)}
+    rows.sort(key=lambda r: (r.branch.code, rank.get(r.series.doc_type, len(order))))
+    return rows
+
+
+def set_series_format(
+    db: Session, principal: Principal, series_id: uuid.UUID, fmt: str, was: str
+) -> bool:
+    """Change one series' format; numbering carries on from the next value. `was` is the
+    format the user saw, so two admins editing at once don't overwrite each other.
+    Issuing numbers bumps `row_version`, so that can't be the check here."""
+    _check(principal, "setting.edit")
+    found = db.execute(
+        select(NumberSeries, Branch)
+        .join(Branch, Branch.id == NumberSeries.branch_id)
+        .where(NumberSeries.id == series_id)
+    ).first()
+    if found is None:
+        raise NotFoundError()
+    series, branch = found
+    if series.format != was:
+        raise ConflictError("Someone changed this number format. Reload, then try again.")
+    fmt = fmt.strip()
+    if fmt == series.format:
+        return False
+    problems = format_problems(series.doc_type, fmt, branch.code)
+    if problems:
+        raise ValidationFailedError({str(series.id): " ".join(problems)})
+    series.format = fmt
+    series.updated_by = principal.user_id
+    db.flush()
+    audit.record(
+        db,
+        "number_series.update",
+        "number_series",
+        series.id,
+        {"doc_type": series.doc_type, "format": fmt},
+        user_id=principal.user_id,
+    )
+    return True
 
 
 # Roles
