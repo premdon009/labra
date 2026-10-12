@@ -185,6 +185,23 @@ def test_admin_sees_every_branch(seeded: Session, db_client: TestClient) -> None
         assert code in page.text
 
 
+@pytest.mark.item("M02")
+@pytest.mark.item("M01.1")
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [("/admin/branches", "Enter the branch name."), ("/admin/users", "Enter the full name.")],
+)
+def test_an_empty_form_shows_the_problems_on_the_page(
+    seeded: Session, db_client: TestClient, url: str, message: str
+) -> None:
+    _sign_in(db_client, "anil")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', db_client.get(url).text)
+    assert token is not None
+    r = db_client.post(url, data={"csrf_token": token.group(1)}, follow_redirects=False)
+    assert r.status_code == 422
+    assert r.headers["content-type"].startswith("text/html") and message in r.text
+
+
 @pytest.mark.item("W16")
 def test_readyz_ok_on_migrated_database(db_client: TestClient) -> None:
     r = db_client.get("/readyz")
