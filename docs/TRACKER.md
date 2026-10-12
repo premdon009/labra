@@ -64,14 +64,14 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M02~~ | ~~Branches~~ | P | done | 2026-10-09 · 0a85c84 |
-| M03 | Patients | P | todo | |
-| M04 | Referrers | P | todo | |
+| M03 | Patients | P | doing | |
+| M04 | Referrers | P | doing | |
 | ~~M05~~ | ~~Catalog (calculated parameters, preset comments)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M05.1~~ | ~~Test short codes + aliases; code-first search with confirm line (§1d)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M05.2~~ | ~~Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M06~~ | ~~Prices: branch override and history~~ | P | done | 2026-10-12 · 00f924d |
-| M07 | Visit and billing: bill of supply, payments, dues | P | todo | |
-| M08 | Barcode sample labels | P | todo | |
+| M07 | Visit and billing: bill of supply, payments, dues | P | doing | |
+| M08 | Barcode sample labels | P | doing | |
 | M09 | Manual routing, in-house or external, showing cost and margin | P | todo | |
 | M10 | External labs and result PDF upload | P | todo | |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | P | todo | |
@@ -80,27 +80,27 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | P | todo | |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | todo | |
 | M13 | Reports for the owner | P | todo | |
-| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
+| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | doing | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | ~~M14~~ | ~~Admin screens (own HTMX, ADR-0010)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
-| M18 | Fast front desk: one-screen visit | P | todo | |
+| M18 | Fast front desk: one-screen visit | P | doing | |
 | M18.1 | Keyboard shortcuts and `?` overlay (§1c); the shortcuts themselves ship in M18, the overlay waits | P2 | todo | |
 | M19 | Patient history and cumulative results | P | todo | |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | P | todo | |
 | M21 | Delivery tracking and outsourcing timeline | P | todo | |
 | M22 | Lab status board (TV) | P2 | todo | |
-| M23 | Currency display settings (§8) | P | todo | |
+| M23 | Currency display settings (§8) | P | doing | |
 | ~~M24~~ | ~~Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c)~~ | P | done | 2026-10-12 · 00f924d |
 | M24.1 | Rest of the ~300-test starter set | P2 | todo | |
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
 | M25.3 | In-app `?` help and printable manual PDF | P2 | todo | |
-| M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | P | todo | |
+| M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | P | doing | |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
 
 ## Next expansion (0.x, after the pilot)
