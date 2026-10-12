@@ -98,6 +98,14 @@ def test_numbers_are_sequential_and_reset_each_year(db: Session) -> None:
 
 
 @pytest.mark.item("W04")
+@pytest.mark.item("M03")
+def test_patient_series_does_not_reset_on_1_april(db: Session) -> None:
+    _series(db, "patient", "{BR}/P/{SEQ:6}", 2026)
+    assert next_number(db, "patient", None, "B2", date(2027, 3, 31)) == "B2/P/000001"
+    assert next_number(db, "patient", None, "B2", date(2027, 4, 1)) == "B2/P/000002"
+
+
+@pytest.mark.item("W04")
 def test_missing_series_refused(db: Session) -> None:
     with pytest.raises(NotFoundError):
         next_number(db, "refund", None, "B2", date(2026, 10, 9))

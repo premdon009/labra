@@ -1,7 +1,7 @@
 """Document numbers: `{BR}/BS/{FY2}/{SEQ:5}` → `B2/BS/2627/00123` (design §5.1).
 
-Numbers restart each Indian financial year (1 April). Issuing one locks the series row, so
-two counters never get the same number and none is skipped.
+Numbers with the year in them restart each Indian financial year (1 April). Issuing one
+locks the series row, so two counters never get the same number and none is skipped.
 """
 
 import re
@@ -21,6 +21,7 @@ GST_MAX_LENGTH = 16
 _GST_CHARS = re.compile(r"^[A-Za-z0-9/-]+$")
 
 _TOKEN = re.compile(r"\{([A-Z0-9]+)(?::(\d))?\}")
+_YEAR = re.compile(r"\{FY2?\}")
 MAX_BRANCH_CODE = 4
 
 
@@ -82,7 +83,9 @@ def next_number(
     fy = financial_year(today)
     if series.fin_year != fy:
         series.fin_year = fy
-        series.next_value = 1
+        # A number without the year in it must never repeat, so only year formats restart.
+        if _YEAR.search(series.format):
+            series.next_value = 1
     number = render(series.format, branch_code, fy, series.next_value)
     if doc_type in GST_DOC_TYPES and len(number) > GST_MAX_LENGTH:
         # The format check should have caught this; refuse rather than print a bad invoice.
