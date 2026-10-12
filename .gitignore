@@ -161,3 +161,4 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.hypothesis/

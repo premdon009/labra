@@ -22,13 +22,13 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 
 | Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status | Backing | Why we use it | Alternative · exit cost | Reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `fastapi` | runtime | P | MIT | 0.142.4 | 0.143.0 · 2026-10-08 | 92 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
+| `fastapi` | runtime | P | MIT | 0.142.4 | 0.143.0 · 2026-10-08 | 90 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
 | `starlette` | runtime | P | BSD-3-Clause | 1.7.0 | 1.7.0 · 2026-09-23 | 22 | Active | team | under FastAPI | — | 2026-10-09 |
 | `uvicorn` | runtime | P | BSD-3-Clause | 0.54.0 | 0.54.0 · 2026-09-25 | 23 | Active | team | ASGI server | Granian · low | 2026-10-09 |
-| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.0 · 2026-10-08 | 19 | Active | company | validation, under FastAPI | — | 2026-10-09 |
+| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.1 · 2026-10-11 | 20 | Active | company | validation, under FastAPI | — | 2026-10-09 |
 | `pydantic-settings` | runtime | P | MIT | 2.15.0 | 2.15.0 · 2026-08-07 | 7 | Active | company | typed settings from the environment and secret files | own env parsing · low | 2026-10-09 |
-| `sqlalchemy` | runtime | P | MIT | 2.1.4 | 2.1.4 · 2026-10-07 | 21 | Active | team | ORM and Core | — | 2026-10-09 |
-| `alembic` | runtime | P | MIT | 1.20.0 | 1.20.0 · 2026-09-11 | 13 | Active | team | database migrations | — | 2026-10-09 |
+| `sqlalchemy` | runtime | P | MIT | 2.1.4 | 2.1.4 · 2026-10-07 | 20 | Active | team | ORM and Core | — | 2026-10-09 |
+| `alembic` | runtime | P | MIT | 1.20.0 | 1.20.0 · 2026-09-11 | 12 | Active | team | database migrations | — | 2026-10-09 |
 | `psycopg` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 10 | Active | team | the reference Postgres driver; licence exception (ADR-0002) | pg8000 (BSD) · low | 2026-10-09 |
 | `psycopg-binary` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 10 | Active | team | prebuilt psycopg with libpq | build psycopg from source · low | 2026-10-09 |
 | `jinja2` | runtime | P | BSD-3-Clause | 3.1.6 | 3.1.6 · 2025-03-05 | 0 | Watch | team | page templates and the sandbox (EC-A08); no release for 19 months | none at the same fit; plain features only · very high | 2026-10-09 |
@@ -36,17 +36,21 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `argon2-cffi` | runtime | P | MIT | 25.1.0 | 25.1.0 · 2025-06-03 | 0 | Stable | single maintainer (long-standing) | password hashing with rehash on login (EC-A01) | hashlib.scrypt · low | 2026-10-09 |
 | `structlog` | runtime | P | MIT OR Apache-2.0 | 26.1.0 | 26.1.0 · 2026-06-06 | 2 | Active | single maintainer (long-standing) | JSON logs with request ID (EC-E01) | stdlib logging + JSON formatter · low | 2026-10-09 |
 | `prometheus-client` | runtime | P | Apache-2.0 AND BSD-2-Clause | 0.26.0 | 0.26.0 · 2026-07-24 | 4 | Active | foundation | `/metrics` in the format every monitor reads | OpenTelemetry SDK · low | 2026-10-09 |
-| `faker` | seed | P | MIT | 40.41.0 | 40.41.0 · 2026-10-05 | 62 | Active | team | synthetic demo data (`labra seed`) | hand-written lists · low | 2026-10-09 |
+| `babel` | runtime | P | BSD-3-Clause | 2.18.0 | 2.18.0 · 2026-02-01 | 1 | Stable | team | money formatting with Indian digit grouping; later UI translations | own grouping code (~40 lines) · low | 2026-10-12 |
+| `python-barcode` | runtime | P | MIT | 0.16.1 | 0.16.1 · 2025-08-27 | 0 | Stable | single maintainer (long-standing) | Code 128 patterns for sample labels; drawn as SVG by our template, no Pillow | own Code 128 encoder (~150 lines) · low | 2026-10-12 |
+| `faker` | seed | P | MIT | 40.41.0 | 40.43.0 · 2026-10-09 | 64 | Active | team | synthetic demo data (`labra seed`) | hand-written lists · low | 2026-10-09 |
 | `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.13.1 · 2026-09-23 | 18 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |
 | `pytest` | dev | P | MIT | 9.1.1 | 9.1.1 · 2026-06-19 | 6 | Active | team | tests | — | 2026-10-09 |
 | `pytest-cov` | dev | P | MIT | 7.1.0 | 7.1.0 · 2026-03-21 | 1 | Stable | team | coverage (EC-H01) | coverage run · low | 2026-10-09 |
 | `testcontainers` | dev | P | Apache-2.0 | 4.15.0 | 4.15.0 · 2026-07-24 | 9 | Active | company | real Postgres in tests | a Compose test service · low | 2026-10-09 |
-| `ruff` | dev | P | MIT | 0.16.10 | 0.16.10 · 2026-10-01 | 48 | Active | company | lint and format | — | 2026-10-09 |
+| `ruff` | dev | P | MIT | 0.16.10 | 0.17.0 · 2026-10-09 | 49 | Active | company | lint and format | — | 2026-10-09 |
 | `pyright` | dev | P | MIT | 1.1.414 | 1.1.414 · 2026-09-10 | 8 | Active | company | type checks; ty is pre-1.0, re-check at gate 1 | ty · low | 2026-10-09 |
-| `import-linter` | dev | P | BSD-2-Clause | 2.15 | 2.15 · 2026-09-04 | 12 | Active | single maintainer | keeps domain code off adapters (ADR-0008) | a small AST check · low | 2026-10-09 |
+| `import-linter` | dev | P | BSD-2-Clause | 2.15 | 2.15 · 2026-09-04 | 10 | Active | single maintainer | keeps domain code off adapters (ADR-0008) | a small AST check · low | 2026-10-09 |
 | `pip-audit` | dev | P | Apache-2.0 | 2.10.1 | 2.10.1 · 2026-06-10 | 2 | Active | foundation | known-vulnerability scan of Python packages | osv-scanner alone · low | 2026-10-09 |
 | `pre-commit` | dev | P | MIT | 4.6.2 | 4.6.2 · 2026-08-10 | 6 | Active | team | runs the gates before each commit | git hooks by hand · low | 2026-10-09 |
 | `zensical` | dev | P | MIT | 0.0.69 | 0.0.69 · 2026-10-08 | 66 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
+| `hypothesis` | dev | P | MPL-2.0 | 6.169.0 | 6.169.0 · 2026-10-11 | 134 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
+| `playwright` | dev | P | Apache-2.0 | 1.63.0 | 1.63.0 · 2026-09-15 | 8 | Active | company | the front-desk browser test (keys, 1366×768); browsers installed separately | Selenium · medium | 2026-10-12 |
 | `hatchling` | build | P | MIT | — | — | — | Active | team | builds the wheel | setuptools · low | 2026-10-09 |
 | `htmx.org` | vendored | P | 0BSD | 4.0.0 | 4.0.0 · 2026-08-28 | — | Active | single maintainer (long-standing) | server-driven pages without a JS build | plain fetch · medium | 2026-10-09 |
 | `@alpinejs/csp` | vendored | P | MIT | 3.17.4 | 3.17.4 · 2026-09-21 | — | Active | team | small UI state; the CSP build needs no `unsafe-eval` | plain JS · low | 2026-10-09 |
