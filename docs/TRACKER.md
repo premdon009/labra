@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 10/20 · Minimal 5/33 · After pilot (P2) 0/9 · Checklist gate P 20/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/20 · Minimal 11/33 · After pilot (P2) 0/9 · Checklist gate P 20/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -66,10 +66,10 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M02~~ | ~~Branches~~ | P | done | 2026-10-09 · 0a85c84 |
 | M03 | Patients | P | todo | |
 | M04 | Referrers | P | todo | |
-| M05 | Catalog (calculated parameters, preset comments) | P | doing | |
-| M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | P | doing | |
-| M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | P | doing | |
-| M06 | Prices: branch override and history | P | doing | |
+| ~~M05~~ | ~~Catalog (calculated parameters, preset comments)~~ | P | done | 2026-10-12 · 00f924d |
+| ~~M05.1~~ | ~~Test short codes + aliases; code-first search with confirm line (§1d)~~ | P | done | 2026-10-12 · 00f924d |
+| ~~M05.2~~ | ~~Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d)~~ | P | done | 2026-10-12 · 00f924d |
+| ~~M06~~ | ~~Prices: branch override and history~~ | P | done | 2026-10-12 · 00f924d |
 | M07 | Visit and billing: bill of supply, payments, dues | P | todo | |
 | M08 | Barcode sample labels | P | todo | |
 | M09 | Manual routing, in-house or external, showing cost and margin | P | todo | |
@@ -82,7 +82,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M13 | Reports for the owner | P | todo | |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
-| M14 | Admin screens (own HTMX, ADR-0010) | P | doing | |
+| ~~M14~~ | ~~Admin screens (own HTMX, ADR-0010)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
@@ -94,7 +94,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M21 | Delivery tracking and outsourcing timeline | P | todo | |
 | M22 | Lab status board (TV) | P2 | todo | |
 | M23 | Currency display settings (§8) | P | todo | |
-| M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | P | doing | |
+| ~~M24~~ | ~~Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c)~~ | P | done | 2026-10-12 · 00f924d |
 | M24.1 | Rest of the ~300-test starter set | P2 | todo | |
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
@@ -141,6 +141,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | X33 | `/api/v1` token auth + read endpoints, added only when a real consumer exists (§17) | | todo | |
 | X34 | Mirror the tracker to GitHub Issues + Projects; ADR on which is the source of truth (§0 item 4) | when outside contributors arrive | todo | |
 | X35 | OpenTelemetry export (traces, metrics, logs over OTLP) as the optional extra `labra[otel]` (§17.6) | when a lab runs a collector | todo | |
+| X36 | Database guard against overlapping reference ranges (exclusion constraint; needs the `btree_gist` extension and a register row). Today the service check alone can let two simultaneous saves overlap | if several administrators edit ranges | todo | |
 
 ## Later (1.x / 2.x)
 | ID | Item | Release | Status | Done (date · PR) |
