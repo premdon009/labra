@@ -24,6 +24,7 @@ nav = [
       "manual/admin/branches.md",
       "manual/admin/users-and-roles.md",
       "manual/admin/settings.md",
+      "manual/admin/currency.md",
       "manual/admin/catalog.md",
       "manual/admin/reference-ranges.md",
       "manual/admin/methods.md",

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Currency{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Currency</h1>
+  <a class="btn-outline" href="/admin/settings">All settings</a>
+</div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Some settings were not saved.</h2></div>{% endif %}
+<form method="post" action="/admin/settings/currency">
+  {{ csrf(csrf_token) }}
+  <section class="card" aria-live="polite">
+    <header><h2>How amounts will look</h2></header>
+    <div id="currency-sample" hx-post="/admin/settings/currency/preview"
+      hx-trigger="change from:closest form" hx-swap="innerHTML">
+      {% include "org/_currency_sample.html" %}
+    </div>
+  </section>
+  {% include "org/_setting_rows.html" %}
+  {% if can_edit_lab or can_edit_branch %}
+  <div class="form-actions"><button type="submit" class="btn">Save</button></div>
+  {% endif %}
+</form>
+{% endblock %}

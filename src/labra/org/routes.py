@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Annotated
 
@@ -9,11 +10,13 @@ from sqlalchemy.orm import Session
 from labra.auth.deps import require
 from labra.auth.principal import Principal
 from labra.core import lab_settings
+from labra.core.currency import CurrencyFormat, amount_in_words, format_from, load_format
 from labra.core.db import get_session
 from labra.core.errors import NotFoundError, ValidationFailedError
 from labra.core.registry import get_platform
 from labra.org import service
 from labra.org.models import BRANCH_KINDS
+from labra.web.money_format import format_money, money_filter
 from labra.web.templating import page, render
 
 router = APIRouter(prefix="/admin")
@@ -240,7 +243,14 @@ def settings_page(
 
 
 def _settings_form(
-    request: Request, db: DB, principal: Principal, errors: dict[str, str], status: int = 200
+    request: Request,
+    db: DB,
+    principal: Principal,
+    errors: dict[str, str],
+    status: int = 200,
+    group: str = "",
+    template: str = "org/settings.html",
+    extra: dict[str, object] | None = None,
 ) -> Response:
     rows = [
         {
@@ -249,28 +259,26 @@ def _settings_form(
             "is_int": d.type is int,
         }
         for d in lab_settings.DEFINITIONS.values()
+        if d.group == group
     ]
     return render(
         request,
-        "org/settings.html",
+        template,
         {
             "rows": rows,
             "can_edit_lab": principal.can("setting.edit"),
             "can_edit_branch": principal.can("setting.edit_branch"),
             "errors": errors,
+            **(extra or {}),
         },
         status_code=status,
     )
 
 
-@router.post("/settings")
-def settings_save(
-    request: Request,
-    db: DB,
-    principal: Annotated[Principal, Depends(require("setting.view"))],
-    key: Annotated[list[str], Form()] = [],  # noqa: B006
-    value: Annotated[list[str], Form()] = [],  # noqa: B006
-) -> Response:
+def _save_settings(
+    db: DB, principal: Principal, key: list[str], value: list[str]
+) -> dict[str, str]:
+    """Save each changed setting the user may change; the errors for the rest."""
     errors: dict[str, str] = {}
     for k, raw in zip(key, value, strict=False):
         d = lab_settings.DEFINITIONS.get(k)
@@ -292,11 +300,91 @@ def settings_save(
             errors[k] = "You can't change this setting."
             continue
         lab_settings.set_value(db, k, new, principal.user_id, branch)
+    return errors
+
+
+@router.post("/settings")
+def settings_save(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("setting.view"))],
+    key: Annotated[list[str], Form()] = [],  # noqa: B006
+    value: Annotated[list[str], Form()] = [],  # noqa: B006
+) -> Response:
+    errors = _save_settings(db, principal, key, value)
     if errors:
         db.rollback()
         return _settings_form(request, db, principal, errors, status=422)
     db.commit()
     return RedirectResponse("/admin/settings", status_code=303)
+
+
+SAMPLE_AMOUNT = Decimal("123456.50")
+
+
+def _currency_sample(fmt: CurrencyFormat) -> dict[str, str]:
+    return {
+        "amount": format_money(SAMPLE_AMOUNT, fmt),
+        "column": money_filter(SAMPLE_AMOUNT, fmt, column=True),
+        "words": amount_in_words(SAMPLE_AMOUNT, fmt),
+    }
+
+
+def _currency_form(
+    request: Request, db: DB, principal: Principal, errors: dict[str, str], status: int = 200
+) -> Response:
+    sample = _currency_sample(load_format(db, principal.branch_id))
+    return _settings_form(
+        request, db, principal, errors, status, "currency", "org/currency.html", {"sample": sample}
+    )
+
+
+@router.get("/settings/currency", response_class=HTMLResponse)
+@page("admin/currency", "org/currency.html")
+def currency_page(
+    request: Request, db: DB, principal: Annotated[Principal, Depends(require("setting.view"))]
+) -> Response:
+    return _currency_form(request, db, principal, {})
+
+
+@router.post("/settings/currency")
+def currency_save(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("setting.view"))],
+    key: Annotated[list[str], Form()] = [],  # noqa: B006
+    value: Annotated[list[str], Form()] = [],  # noqa: B006
+) -> Response:
+    errors = _save_settings(db, principal, key, value)
+    if errors:
+        db.rollback()
+        return _currency_form(request, db, principal, errors, status=422)
+    db.commit()
+    return RedirectResponse("/admin/settings/currency", status_code=303)
+
+
+@router.post("/settings/currency/preview", response_class=HTMLResponse)
+def currency_preview(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("setting.view"))],
+    key: Annotated[list[str], Form()] = [],  # noqa: B006
+    value: Annotated[list[str], Form()] = [],  # noqa: B006
+) -> Response:
+    """The sample for the values on the form, before they are saved. Values that aren't
+    allowed keep the saved value."""
+    entered = dict(zip(key, value, strict=False))
+    values: dict[str, str] = {}
+    for k, d in lab_settings.DEFINITIONS.items():
+        if d.group != "currency":
+            continue
+        try:
+            values[k.removeprefix("currency.")] = lab_settings.coerce(d, entered[k])
+        except (KeyError, ValidationFailedError):
+            values[k.removeprefix("currency.")] = lab_settings.get_value(db, k, principal.branch_id)
+    return render(
+        request, "org/_currency_sample.html", {"sample": _currency_sample(format_from(values))}
+    )
 
 
 @router.get("/settings/numbering", response_class=HTMLResponse)

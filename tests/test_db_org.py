@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from labra.auth import service as auth
 from labra.auth.principal import Principal
+from labra.core import lab_settings
+from labra.core.currency import load_format
 from labra.core.errors import (
     AuthenticationError,
     ConflictError,
@@ -195,36 +197,96 @@ def test_series_format_change(seeded: Session, platform: Platform) -> None:
         )
 
 
+def _token(html: str) -> str:
+    token = re.search(r'name="csrf_token" value="([^"]+)"', html)
+    assert token is not None
+    return token.group(1)
+
+
+def _sign_in(client: TestClient, username: str) -> None:
+    client.cookies.clear()
+    form = {
+        "username": username,
+        "password": DEMO_PASSWORD,
+        "csrf_token": _token(client.get("/login").text),
+    }
+    assert client.post("/login", data=form, follow_redirects=False).status_code == 303
+
+
+def _post(client: TestClient, url: str, data: dict[str, object]):
+    token = _token(client.get("/").text)
+    return client.post(url, data={**data, "csrf_token": token}, follow_redirects=False)
+
+
 @pytest.mark.item("M07.1")
 def test_numbering_form_shows_16_char_problem(
     seeded: Session, platform: Platform, db_client: TestClient
 ) -> None:
-    db_client.cookies.clear()
-    page = db_client.get("/login")
-    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text)
-    assert token is not None
-    form = {"username": "anil", "password": DEMO_PASSWORD, "csrf_token": token.group(1)}
-    assert db_client.post("/login", data=form, follow_redirects=False).status_code == 303
+    _sign_in(db_client, "anil")
     page = db_client.get("/admin/settings/numbering")
     assert page.status_code == 200
     assert "{BR}/P/{SEQ:6}" in page.text
-    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text)
-    assert token is not None
     bos = _series(seeded, "B2", "bos")
-    r = db_client.post(
+    r = _post(
+        db_client,
         "/admin/settings/numbering",
-        data={
-            "series": str(bos.id),
-            "was": bos.format,
-            "fmt": "{BR}/BILL/{FY2}/{SEQ:5}",
-            "csrf_token": token.group(1),
-        },
-        follow_redirects=False,
+        {"series": str(bos.id), "was": bos.format, "fmt": "{BR}/BILL/{FY2}/{SEQ:5}"},
     )
     assert r.status_code == 422
     assert "at most 16 characters" in r.text
     assert "{BR}/BILL/{FY2}/{SEQ:5}" in r.text
     assert _series(seeded, "B2", "bos").format == "{BR}/{FY2}/{SEQ:5}"
+
+
+# Currency
+
+
+def _currency_form(**changes: str) -> dict[str, object]:
+    keys = [k for k, d in lab_settings.DEFINITIONS.items() if d.group == "currency"]
+    values = [
+        changes.get(k.removeprefix("currency."), lab_settings.DEFINITIONS[k].default) for k in keys
+    ]
+    return {"key": keys, "value": values}
+
+
+@pytest.mark.item("M23")
+def test_currency_screen_saves_per_branch(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "b3desk")
+    page = db_client.get("/admin/settings/currency")
+    assert page.status_code == 200
+    assert "₹1,23,456.50" in page.text
+    assert "Rupees one lakh twenty-three thousand four hundred fifty-six and fifty paise only" in (
+        page.text
+    )
+    # The preview shows the change before it is saved.
+    preview = _post(
+        db_client, "/admin/settings/currency/preview", _currency_form(grouping="international")
+    )
+    assert "₹123,456.50" in preview.text
+    assert load_format(seeded, _branch(seeded, "B3").id).grouping == "indian"
+    # A branch manager may change their own branch's currency display.
+    r = _post(
+        db_client,
+        "/admin/settings/currency",
+        _currency_form(grouping="international", symbol_position="after_space"),
+    )
+    assert r.status_code == 303, r.text
+    assert "123,456.50 ₹" in db_client.get("/admin/settings/currency").text
+    assert load_format(seeded, _branch(seeded, "B3").id).grouping == "international"
+    assert load_format(seeded, _branch(seeded, "B2").id).grouping == "indian"
+    bad = _post(db_client, "/admin/settings/currency", _currency_form(decimals="3"))
+    assert bad.status_code == 422
+    assert "Choose one of the listed values." in bad.text
+
+
+@pytest.mark.item("M23")
+def test_currency_screen_needs_settings_permission(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "priya")
+    assert db_client.get("/admin/settings/currency").status_code == 403
 
 
 # Staff

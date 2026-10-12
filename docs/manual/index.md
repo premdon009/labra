@@ -26,6 +26,7 @@ Every feature Labra has, and the manual page that explains it.
 | M06 | Prices: branch override and history | [Prices](admin/prices.md) |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Settings](admin/settings.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
+| M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |

@@ -18,8 +18,8 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 
 1. Change the values you need. The **Applies to** column says whether a value is for the
    whole lab or for the branch you are working at.
-2. Select **Save**. Values that aren't allowed are shown in red with the reason, and the
-   others are saved.
+2. Select **Save**. Values that aren't allowed are shown in red with the reason, and
+   nothing is saved until they are fixed.
 
 ## Screenshot
 
@@ -69,3 +69,4 @@ Administrators can change a format; branch managers can only look.
 ## Related pages
 
 - [Branches](branches.md)
+- [Currency](currency.md): how amounts look, and what bill totals are rounded to.

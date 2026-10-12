@@ -1,0 +1,29 @@
+<table class="table">
+  <thead><tr><th>Setting</th><th>Applies to</th><th>Value</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    {% set d = row.def %}
+    {% set editable = can_edit_lab or (d.per_branch and can_edit_branch) %}
+    <tr>
+      <td><label for="s-{{ loop.index }}">{{ d.label }}</label></td>
+      <td>{{ 'Your current branch' if d.per_branch else 'Whole lab' }}</td>
+      <td>
+        <input type="hidden" name="key" value="{{ d.key }}">
+        {% if d.choices %}
+        <select class="select" id="s-{{ loop.index }}" name="value" {% if not editable %}disabled{% endif %}>
+          {% for choice, label in d.choices %}
+          <option value="{{ choice }}" {% if choice == row.value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if not editable %}<input type="hidden" name="value" value="{{ row.value }}">{% endif %}
+        {% else %}
+        <input class="input" id="s-{{ loop.index }}" name="value" value="{{ row.value }}"
+          {% if row.is_int %}type="number"{% if d.min_value is not none %} min="{{ d.min_value }}"{% endif %}{% if d.max_value is not none %} max="{{ d.max_value }}"{% endif %}{% else %}maxlength="{{ d.max_length }}"{% endif %}
+          {% if not editable %}readonly{% endif %}>
+        {% endif %}
+        {% if errors.get(d.key) %}<p class="field-error">{{ errors[d.key] }}</p>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

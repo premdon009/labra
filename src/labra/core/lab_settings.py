@@ -1,6 +1,7 @@
 """Typed lab settings that admins change at runtime. A branch value beats the instance value,
 which beats the default in code."""
 
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -22,6 +23,13 @@ class SettingDef:
     per_branch: bool = False
     min_value: int | None = None
     max_value: int | None = None
+    # (value, label) pairs; the first is the default.
+    choices: tuple[tuple[str, str], ...] = ()
+    max_length: int = 500
+    pattern: str | None = None
+    pattern_hint: str = ""
+    # Settings with a group are edited on their own screen, not the main settings page.
+    group: str = ""
 
 
 DEFINITIONS: dict[str, SettingDef] = {}
@@ -50,6 +58,74 @@ define(
 define(SettingDef("branch.receipt_footer", str, "", "Footer printed on receipts", per_branch=True))
 
 
+def _currency(key: str, default: str, label: str, **kw: Any) -> None:
+    define(
+        SettingDef(f"currency.{key}", str, default, label, per_branch=True, group="currency", **kw)
+    )
+
+
+_currency(
+    "code",
+    "INR",
+    "Currency code",
+    max_length=3,
+    pattern=r"[A-Z]{3}",
+    pattern_hint="Use the three capital letters of the currency, such as INR.",
+)
+_currency("symbol", "₹", "Currency symbol (may be blank)", max_length=5)
+_currency(
+    "symbol_position",
+    "before",
+    "Where the symbol goes",
+    choices=(
+        ("before", "Before the amount: ₹1,737.00"),
+        ("before_space", "Before, with a space: ₹ 1,737.00"),
+        ("after", "After the amount: 1,737.00₹"),
+        ("after_space", "After, with a space: 1,737.00 ₹"),
+    ),
+)
+_currency(
+    "grouping",
+    "indian",
+    "Digit grouping",
+    choices=(
+        ("indian", "Lakh and crore: 1,23,45,678"),
+        ("international", "Thousands and millions: 12,345,678"),
+    ),
+)
+_currency(
+    "decimals",
+    "2",
+    "Decimals shown",
+    choices=(("2", "Two: 1,737.50"), ("0", "None: 1,738")),
+)
+_currency(
+    "show_in_columns",
+    "header",
+    "Symbol in bill columns",
+    choices=(("header", "Once, in the column heading"), ("every", "On every amount")),
+)
+_currency(
+    "words",
+    "indian",
+    "Amount in words",
+    choices=(("indian", "Lakh and crore"), ("international", "Million and billion")),
+)
+_currency("word_major", "rupees", "Word for the main unit", max_length=20)
+_currency("word_minor", "paise", "Word for the small unit", max_length=20)
+_currency(
+    "round_off_to",
+    "1.00",
+    "Round bill totals to",
+    choices=(
+        ("1.00", "The nearest rupee"),
+        ("0.50", "The nearest 50 paise"),
+        ("0.10", "The nearest 10 paise"),
+        ("none", "No rounding"),
+    ),
+)
+
+
 def coerce(d: SettingDef, raw: Any) -> Any:
     """Turn a form or JSON value into the setting's type, or raise ValidationFailedError."""
     try:
@@ -69,8 +145,12 @@ def coerce(d: SettingDef, raw: Any) -> Any:
             raise ValidationFailedError({d.key: f"Must be at least {d.min_value}."})
         if d.max_value is not None and value > d.max_value:
             raise ValidationFailedError({d.key: f"Must be at most {d.max_value}."})
-    if d.type is str and len(value) > 500:
-        raise ValidationFailedError({d.key: "Keep it under 500 characters."})
+    if d.type is str and len(value) > d.max_length:
+        raise ValidationFailedError({d.key: f"Use at most {d.max_length} characters."})
+    if d.choices and value not in {c for c, _ in d.choices}:
+        raise ValidationFailedError({d.key: "Choose one of the listed values."})
+    if d.pattern is not None and not re.fullmatch(d.pattern, value):
+        raise ValidationFailedError({d.key: d.pattern_hint or "That value isn't allowed."})
     return value
 
 

@@ -17,6 +17,7 @@ from labra import __version__
 from labra.auth.deps import csrf_cookie, csrf_token
 from labra.core.config import get_settings
 from labra.core.ids import IST
+from labra.web.money_format import money_filter
 
 PACKAGE = Path(str(files("labra")))
 TEMPLATES = PACKAGE / "templates"
@@ -43,6 +44,7 @@ def local_time(value: datetime, fmt: str = "%d %b %Y %H:%M") -> str:
 
 
 templates.env.filters["local_time"] = local_time
+templates.env.filters["money"] = money_filter
 templates.env.globals.update(
     app_version=__version__,
     vendor_url=vendor_url,
