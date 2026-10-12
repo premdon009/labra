@@ -2,6 +2,7 @@
 
 from labra.adapters.identity_local import LocalCredential
 from labra.auth.models import LoginAttempt, UserSession
+from labra.billing.models import Bill, BillLine, Payment, Refund
 from labra.catalog.models import (
     CommentPreset,
     Department,
@@ -26,11 +27,15 @@ from labra.core.models import (
     StoredFile,
 )
 from labra.org.models import AppUser, Branch, Role, RolePermission, UserBranchRole
+from labra.patients.models import Patient, Referrer
+from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 
 __all__ = [
     "AppUser",
     "AuditLog",
     "Base",
+    "Bill",
+    "BillLine",
     "Branch",
     "CommentPreset",
     "Consent",
@@ -40,13 +45,20 @@ __all__ = [
     "LocalCredential",
     "LoginAttempt",
     "NumberSeries",
+    "OrderItem",
+    "OrderTest",
     "Package",
     "PackageItem",
+    "Patient",
+    "Payment",
     "Price",
     "ReferenceBand",
     "ReferenceRange",
+    "Referrer",
+    "Refund",
     "Role",
     "RolePermission",
+    "Sample",
     "Setting",
     "SpecimenType",
     "StoredFile",
@@ -55,4 +67,5 @@ __all__ = [
     "TestParameter",
     "UserBranchRole",
     "UserSession",
+    "Visit",
 ]
