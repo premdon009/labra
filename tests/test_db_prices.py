@@ -80,6 +80,20 @@ def test_a_price_change_closes_the_old_row_and_is_audited(
     )
 
 
+@pytest.mark.item("M07")
+def test_price_row_at_names_the_row_a_bill_cites(seeded: Session, platform: Platform) -> None:
+    admin = _as(seeded, platform, "anil")
+    lipid = _tests(seeded, admin)["lipid"]
+    b2, b3 = _branch(seeded, "B2"), _branch(seeded, "B3")
+    assert catalog.price_row_at(seeded, "test", lipid.id, b2.id) is None
+    lab = catalog.set_price(seeded, admin, "test", lipid.id, "600")
+    own = catalog.set_price(seeded, admin, "test", lipid.id, "500", branch_id=b2.id)
+    at_b2 = catalog.price_row_at(seeded, "test", lipid.id, b2.id)
+    at_b3 = catalog.price_row_at(seeded, "test", lipid.id, b3.id)
+    assert at_b2 is not None and at_b2.id == own.id
+    assert at_b3 is not None and at_b3.id == lab.id
+
+
 @pytest.mark.item("M06")
 def test_a_branch_override_wins_at_that_branch_only(seeded: Session, platform: Platform) -> None:
     admin = _as(seeded, platform, "anil")

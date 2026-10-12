@@ -1027,18 +1027,18 @@ def end_branch_price(
     )
 
 
-def price_at(
+def price_row_at(
     db: Session,
     item_type: str,
     item_id: uuid.UUID,
     branch_id: uuid.UUID | None,
     at: datetime | None = None,
-) -> Decimal | None:
-    """The price a branch charged (or charges now): its own override if one was in force,
-    else the lab-wide price. None when the item had no price."""
+) -> Price | None:
+    """The price row a branch charged (or charges now): its own override if one was in
+    force, else the lab-wide row. A bill line keeps this row's id as its proof of rate."""
     at = at or utcnow()
-    rows = db.execute(
-        select(Price.branch_id, Price.amount).where(
+    rows = db.scalars(
+        select(Price).where(
             Price.item_type == item_type,
             Price.item_id == item_id,
             or_(Price.branch_id.is_(None), Price.branch_id == branch_id),
@@ -1046,10 +1046,22 @@ def price_at(
             or_(Price.valid_to.is_(None), Price.valid_to > at),
         )
     ).all()
-    by_scope = dict(rows)
+    by_scope = {row.branch_id: row for row in rows}
     if branch_id is not None and branch_id in by_scope:
         return by_scope[branch_id]
     return by_scope.get(None)
+
+
+def price_at(
+    db: Session,
+    item_type: str,
+    item_id: uuid.UUID,
+    branch_id: uuid.UUID | None,
+    at: datetime | None = None,
+) -> Decimal | None:
+    """The amount of `price_row_at`. None when the item had no price."""
+    row = price_row_at(db, item_type, item_id, branch_id, at)
+    return None if row is None else row.amount
 
 
 def price_history(
