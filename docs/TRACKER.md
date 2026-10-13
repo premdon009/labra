@@ -151,6 +151,9 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | X34 | Mirror the tracker to GitHub Issues + Projects; ADR on which is the source of truth (§0 item 4) | when outside contributors arrive | todo | |
 | X35 | OpenTelemetry export (traces, metrics, logs over OTLP) as the optional extra `labra[otel]` (§17.6) | when a lab runs a collector | todo | |
 | X36 | Database guard against overlapping reference ranges (exclusion constraint; needs the `btree_gist` extension and a register row). Today the service check alone can let two simultaneous saves overlap | if several administrators edit ranges | todo | |
+| X37 | Outsourcing: mark every waiting test of one outside lab as sent in one step | | todo | |
+| X38 | Outsourcing: record a result as received from the outside lab before its PDF is in hand | | todo | |
+| X39 | Audit row each time an outside lab's result PDF is downloaded | | todo | |
 
 ## Later (1.x / 2.x)
 | ID | Item | Release | Status | Done (date · PR) |
