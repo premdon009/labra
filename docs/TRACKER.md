@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 10/20 · Minimal 32/42 · After pilot (P2) 0/9 · Checklist gate P 28/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/20 · Minimal 32/42 · After pilot (P2) 0/10 · Checklist gate P 28/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -60,6 +60,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W17 | Container runtimes: same image and Compose file on Docker, Podman and Podman Desktop, containerd (nerdctl) and Incus; `scripts/stack_smoke.sh`, `scripts/compare_runtimes.sh`, tests on any Postgres, ADR-0009 (§19.2) | P | doing | verified in nested labs; CI matrix unrun; Incus full stack and Podman Desktop need a real host |
 | W18 | Image builders: Docker BuildKit, Podman, Buildah and Kaniko (fork) build the same image; `scripts/build_image.sh`, `scripts/check_image.sh` (§19.2) | P | doing | all four checked locally; CI matrix unrun |
 | W19 | Edge alternatives: nginx for Caddy, Tailscale/Headscale and NetBird profiles for Cloudflare Tunnel, WireGuard documented (§19.2) | P | doing | nginx 16/16 checks; tunnel logins need real keys; CI matrix unrun |
+| W20 | Service swap register and gate: one table of every replaceable part (database, logs, metrics, errors, identity, mail, files, backups, web proxy, remote access, container runtime, PDF engine, UI assets) with its port or open protocol, built-in default, alternative, the setting that selects it and the test that proves the swap; `scripts/check_services.py` fails when a part has no row, a row names no test, or a vendor library is imported outside its adapter (ADR-0008, §17.6, §19.2) | P2 | todo | |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
