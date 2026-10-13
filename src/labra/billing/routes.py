@@ -13,7 +13,7 @@ from labra.billing.models import Bill
 from labra.core.currency import format_from_snapshot, load_format
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
-from labra.web.forms import as_uuid, day, page_no
+from labra.web.forms import RowVersion, as_uuid, day, page_no
 from labra.web.labels import BILL_STATUS_LABELS, MODE_LABELS
 from labra.web.templating import page, render
 
@@ -155,7 +155,11 @@ def pay(
 ) -> Response:
     bill = service.get_bill(db, principal, as_uuid(bill_id))
     values = SimpleNamespace(
-        client_ref=uuid.uuid4(), mode="cash", amount=f"{bill.net - bill.paid:.2f}", reference=""
+        client_ref=uuid.uuid4(),
+        mode="cash",
+        amount=f"{bill.net - bill.paid:.2f}",
+        reference="",
+        same_payment=False,
     )
     return _pay_form(request, db, bill, values, {})
 
@@ -170,15 +174,20 @@ def pay_save(
     mode: Annotated[str, Form()] = "",
     amount: Annotated[str, Form()] = "",
     reference: Annotated[str, Form()] = "",
+    same_payment: Annotated[bool, Form()] = False,
 ) -> Response:
-    data = service.PaymentInput(mode, service.parse_amount(amount), reference)
+    data = service.PaymentInput(mode, service.parse_amount(amount), reference, same_payment)
     try:
         payment = service.take_payment(db, principal, as_uuid(bill_id), data, as_uuid(client_ref))
     except ValidationFailedError as exc:
         db.rollback()
         bill = service.get_bill(db, principal, as_uuid(bill_id))
         values = SimpleNamespace(
-            client_ref=client_ref, mode=mode, amount=amount, reference=reference
+            client_ref=client_ref,
+            mode=mode,
+            amount=amount,
+            reference=reference,
+            same_payment=same_payment,
         )
         return _pay_form(request, db, bill, values, exc.errors, status=422)
     db.commit()
@@ -233,7 +242,7 @@ def cancel_save(
     principal: Annotated[Principal, Depends(require("bill.cancel"))],
     reason: Annotated[str, Form()] = "",
     confirm: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
     refund_mode: Annotated[str, Form()] = "cash",
     refund_reference: Annotated[str, Form()] = "",
 ) -> Response:

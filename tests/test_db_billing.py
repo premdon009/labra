@@ -516,3 +516,34 @@ def test_other_branch_bill_not_found(seeded: Session, platform: Platform) -> Non
     with pytest.raises(NotFoundError):
         service.cancel_bill(seeded, b3desk, bill.id, "Not ours", True, bill.row_version)
     assert (bill.status, bill.paid) == ("open", Decimal(300))
+
+
+@pytest.mark.item("M07.3")
+def test_a_upi_reference_seen_before_is_refused_until_the_desk_confirms(
+    seeded: Session, platform: Platform
+) -> None:
+    priya = as_user(seeded, platform, "priya")
+    first = billed(seeded, priya, payment=PaymentInput("upi", Decimal(300), "AXIS426112345678"))
+    [receipt] = seeded.scalars(select(Payment).where(Payment.bill_id == first.id))
+    other = billed(seeded, priya)
+
+    # Typed in another case on another bill, it is still the same reference.
+    again = PaymentInput("upi", Decimal(100), "axis426112345678")
+    with pytest.raises(ValidationFailedError) as exc:
+        _pay(seeded, priya, other, again)
+    assert list(exc.value.errors) == ["reference", "same_payment"]
+    assert receipt.receipt_no in exc.value.errors["reference"]
+    with pytest.raises(ValidationFailedError):
+        billed(seeded, priya, payment=again)
+
+    # A card's last four digits and a new reference are not held up.
+    _pay(seeded, priya, other, PaymentInput("card", Decimal(100), "5678"))
+    _pay(seeded, priya, other, PaymentInput("upi", Decimal(100), UTR))
+
+    # One transfer for two bills goes through once the desk says so, and saving that form
+    # twice still takes the money once.
+    ref = uuid.uuid4()
+    confirmed = PaymentInput("upi", Decimal(100), "axis426112345678", same_payment=True)
+    taken = _pay(seeded, priya, other, confirmed, ref)
+    assert _pay(seeded, priya, other, again, ref).id == taken.id
+    assert billed(seeded, priya, payment=confirmed).paid == Decimal(100)

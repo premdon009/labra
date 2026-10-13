@@ -1,6 +1,6 @@
 ---
 title: Dues and payments
-features: [M07, M07.2, EC-B07, EC-F03]
+features: [M07, M07.2, M07.3, EC-B07, EC-F03]
 ---
 
 # Dues and payments
@@ -40,6 +40,9 @@ administrators see it.
 - A payment can't be changed or removed after it is saved. If it was taken by mistake, a
   branch manager cancels the bill, which records the refund.
 - Selecting **Save and print receipt** twice never takes the payment twice.
+- If the UPI reference is already on another receipt, Labra doesn't save and names that
+  receipt. Check the number on the patient's phone. If one UPI payment really covers both
+  bills, tick **The same UPI payment also pays another bill** and save again.
 - Every payment gets its own receipt number and is recorded in the audit log.
 - You see the dues of the branch shown under **Working at**.
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list.

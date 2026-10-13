@@ -138,6 +138,12 @@
     </div>
     {{ field('pay_amount', 'Amount paid now', form.pay_amount, problems, hint='Leave empty to collect later.') }}
     {{ field('pay_reference', 'UPI reference or card last 4', form.pay_reference, problems) }}
+    {% if problems.get('pay_same_payment') or form.pay_same_payment %}
+    <div class="field-row wide">
+      <label class="label"><input class="input" type="checkbox" name="pay_same_payment" value="true" {% if form.pay_same_payment %}checked{% endif %}> The same UPI payment also pays another bill</label>
+      {% if problems.get('pay_same_payment') %}<p class="field-error">{{ problems.pay_same_payment }}</p>{% endif %}
+    </div>
+    {% endif %}
     {% endif %}
     <div class="wide">
       {% if consent %}

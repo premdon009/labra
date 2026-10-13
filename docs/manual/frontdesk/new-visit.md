@@ -1,6 +1,6 @@
 ---
 title: New visit
-features: [M18, M18.2, M07, M07.2, M04, EC-C01, EC-B07, EC-J01, EC-J02]
+features: [M18, M18.2, M07, M07.2, M07.3, M04, EC-C01, EC-B07, EC-J01, EC-J02]
 ---
 
 # New visit
@@ -55,6 +55,9 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
   print** or **Alt+S** saves.
 - You can add tests and change the discount quickly, one after the other. Labra applies
   the changes in the order you made them, so the total always matches the lines shown.
+- If the UPI reference is already on another receipt, Labra doesn't save and names that
+  receipt. Check the number on the patient's phone. If one UPI payment really covers both
+  bills, tick **The same UPI payment also pays another bill** and save again.
 - You don't have to wait for one test to appear before typing the next code. What you type
   while Labra is still adding the last test stays in the box.
 - Nothing is kept until you save. If a field is wrong, Labra says **Not saved yet**, marks

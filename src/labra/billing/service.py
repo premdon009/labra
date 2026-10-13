@@ -16,7 +16,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
@@ -82,6 +82,8 @@ class PaymentInput:
     mode: str
     amount: Decimal | None
     reference: str = ""
+    # The desk has said this UPI payment also paid another bill.
+    same_payment: bool = False
 
     def problems(self, due: Decimal) -> dict[str, str]:
         p: dict[str, str] = {}
@@ -163,6 +165,32 @@ def _snapshot(
     }
 
 
+def _check_reference_is_new(db: Session, payment: PaymentInput, client_ref: uuid.UUID) -> None:
+    """A UPI reference names one transfer, so seeing it a second time is usually a mistyped
+    or reused number. One transfer can pay two bills, though, so the desk may confirm it."""
+    reference = payment.reference.strip()
+    if payment.mode != "upi" or payment.same_payment or not reference:
+        return
+    earlier = db.scalar(
+        select(Payment.receipt_no)
+        .where(
+            Payment.mode == "upi",
+            func.lower(Payment.reference) == reference.lower(),
+            Payment.client_ref != client_ref,
+        )
+        .order_by(Payment.created_at)
+        .limit(1)
+    )
+    if earlier is not None:
+        raise ValidationFailedError(
+            {
+                "reference": f"This UPI reference is already on receipt {earlier}. "
+                "Check it against the patient's phone.",
+                "same_payment": "If one UPI payment covers both bills, tick this and save again.",
+            }
+        )
+
+
 def _receive(
     db: Session,
     principal: Principal,
@@ -177,6 +205,7 @@ def _receive(
     writes it last."""
     if payment.amount is None:
         raise ValidationFailedError({"amount": "Enter the amount, such as 500 or 499.50."})
+    _check_reference_is_new(db, payment, client_ref)
     paid, _, status = apply_payment(bill.net, bill.paid, payment.amount)
     row = Payment(
         receipt_no=next_number(db, "receipt", branch.id, branch.code, today),

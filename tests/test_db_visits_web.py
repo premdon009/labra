@@ -517,3 +517,35 @@ def test_cancel_post_without_confirm_refused(
     assert "already cancelled" in db_client.get(url).text
     assert "This bill is cancelled." in db_client.get(f"/frontdesk/bills/{bill.id}/pay").text
     assert post(db_client, url, form | {"confirm": "yes"}).status_code in (409, 422)
+
+
+@pytest.mark.item("M07.3")
+def test_a_reused_upi_reference_asks_the_desk_to_confirm(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    ids = menu(seeded, as_user(seeded, platform, "anil"))
+    sign_in(db_client, "priya")
+    paid = {"pay_mode": "upi", "pay_amount": "50", "pay_reference": UTR}
+    first = _saved(seeded, db_client, _form(ids, "fbs", **paid))
+    receipt = seeded.scalars(select(Payment).where(Payment.bill_id == first.id)).one()
+    assert 'name="pay_same_payment"' not in db_client.get("/frontdesk/visits/new").text
+
+    # On the visit screen.
+    visit = _form(ids, "fbs", phone="9000000002", full_name="Meena Testcase", **paid)
+    asked = post(db_client, "/frontdesk/visits", visit)
+    assert asked.status_code == 422
+    assert f"already on receipt {receipt.receipt_no}" in asked.text
+    assert 'name="pay_same_payment" value="true" >' in asked.text
+    assert "tick this and save again" in asked.text
+    assert seeded.scalar(select(func.count()).select_from(Bill)) == 1
+    second = _saved(seeded, db_client, visit | {"pay_same_payment": "true"})
+
+    # On the take-payment screen.
+    url = f"/frontdesk/bills/{second.id}/pay"
+    assert 'name="same_payment"' not in db_client.get(url).text
+    pay = {"client_ref": str(uuid.uuid4()), "mode": "upi", "amount": "10", "reference": UTR}
+    asked = post(db_client, url, pay)
+    assert asked.status_code == 422
+    assert 'name="same_payment" value="true" >' in asked.text
+    assert post(db_client, url, pay | {"same_payment": "true"}).status_code == 303
+    assert seeded.scalar(select(func.count()).select_from(Payment)) == 3

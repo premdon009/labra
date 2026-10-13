@@ -27,6 +27,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.
 - Admin price headings use the currency symbol from settings.
+- A UPI reference that is already on another receipt is refused until the desk confirms that one payment covers both bills.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.
@@ -34,3 +35,5 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The audit log records a new visit before its bill.
 - Changing a branch code is refused when one of the branch's numbers would no longer fit in 16 characters.
 - Upgrade step `0005` gives branches made by older versions the number series they lack (samples, refunds).
+- A form that carries a row version that isn't a number is refused as out of date instead of failing.
+- Previous and Next work on the departments and specimens screen after a refused save.

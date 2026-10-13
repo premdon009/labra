@@ -21,6 +21,12 @@
     </div>
     {{ field('amount', 'Amount', values.amount, errors, required=True) }}
     {{ field('reference', 'UPI reference or card last 4', values.reference, errors, hint='Not needed for cash.') }}
+    {% if errors.get('same_payment') or values.same_payment %}
+    <div class="field-row wide">
+      <label class="label"><input class="input" type="checkbox" name="same_payment" value="true" {% if values.same_payment %}checked{% endif %}> The same UPI payment also pays another bill</label>
+      {% if errors.get('same_payment') %}<p class="field-error">{{ errors.same_payment }}</p>{% endif %}
+    </div>
+    {% endif %}
   </div>
   <div class="form-actions">
     <button type="submit" class="btn" {{ keys('alt+s') }}>Save and print receipt <kbd>Alt+S</kbd></button>

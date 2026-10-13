@@ -34,7 +34,7 @@ router = APIRouter(prefix="/frontdesk")
 
 DB = Annotated[Session, Depends(get_session)]
 
-_PAYMENT_KEYS = ("mode", "amount", "reference")
+_PAYMENT_KEYS = ("mode", "amount", "reference", "same_payment")
 # How many digits of a phone number are worth looking up.
 MIN_PHONE_DIGITS = 4
 
@@ -75,6 +75,7 @@ class VisitForm(BaseModel):
     pay_mode: str = "cash"
     pay_amount: str = ""
     pay_reference: str = ""
+    pay_same_payment: bool = False
     # What a button on the order asked for: add the typed code, add a match, remove a line,
     # add the extra charge. Empty when only the figures need working out again.
     op: str = ""
@@ -120,7 +121,10 @@ def _input(
     payment = None
     if form.pay_amount.strip():
         payment = billing.PaymentInput(
-            form.pay_mode, billing.parse_amount(form.pay_amount), form.pay_reference
+            form.pay_mode,
+            billing.parse_amount(form.pay_amount),
+            form.pay_reference,
+            form.pay_same_payment,
         )
     return service.VisitInput(
         client_ref=as_uuid(form.client_ref),

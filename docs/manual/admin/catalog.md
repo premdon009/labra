@@ -1,6 +1,6 @@
 ---
 title: Test catalog
-features: [M05, M05.1, M14, M14.1, M23.1, EC-F03]
+features: [M05, M05.1, M14, M14.1, M14.2, M23.1, EC-F03]
 ---
 
 # Test catalog
@@ -67,7 +67,8 @@ open the package, untick the test and select **Save**.
 
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
   through them; a search or filter you chose stays in place. After you save a row on a later
-  page, Labra shows that same page again.
+  page, Labra shows that same page again. **Previous** and **Next** also work on a page
+  that is showing an error.
 - If a code you typed for a package isn't a test in use, Labra doesn't save, says which code
   it didn't find and keeps the rest of what you typed.
 - Price headings show the lab's currency symbol, set under **Settings ▸ Currency**.

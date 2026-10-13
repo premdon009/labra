@@ -2,6 +2,10 @@
 
 import uuid
 from datetime import date, datetime
+from typing import Annotated
+
+from fastapi import Form
+from pydantic import BeforeValidator
 
 from labra.core.errors import NotFoundError
 from labra.core.ids import IST
@@ -44,3 +48,13 @@ def page_no(value: str) -> int:
     value = value.strip()
     # Nine digits are more pages than any list has, and never too long to read as a number.
     return max(int(value[:9]), 1) if value.isascii() and value.isdigit() else 1
+
+
+def version_no(value: object) -> int:
+    """The version of a row that a form carried back. Anything that isn't a number counts
+    as 0, which no saved row has, so the save is refused as out of date."""
+    text = str(value).strip()
+    return int(text[:9]) if text.isascii() and text.isdigit() else 0
+
+
+RowVersion = Annotated[int, BeforeValidator(version_no), Form()]

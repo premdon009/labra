@@ -16,7 +16,7 @@ from labra.core.errors import NotFoundError, ValidationFailedError
 from labra.core.registry import get_platform
 from labra.org import service
 from labra.org.models import BRANCH_KINDS
-from labra.web.forms import page_no
+from labra.web.forms import RowVersion, page_no
 from labra.web.money_format import format_money, money_filter
 from labra.web.templating import page, render
 
@@ -98,7 +98,7 @@ def branch_save(
     gstin: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     branch_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     data = service.BranchInput(
         code,
@@ -212,7 +212,7 @@ def user_save(
     password: Annotated[str, Form()] = "",
     role: Annotated[list[str], Form()] = [],  # noqa: B006
     user_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     roles = _parse_roles(role)
     data = service.UserInput(
@@ -486,7 +486,7 @@ def consent_save(
     db: DB,
     principal: Annotated[Principal, Depends(require("setting.edit"))],
     body_text: Annotated[str, Form()] = "",
-    was: Annotated[int, Form()] = 0,
+    was: RowVersion = 0,
 ) -> Response:
     try:
         service.publish_consent_notice(db, principal, body_text, was)

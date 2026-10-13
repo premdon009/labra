@@ -634,3 +634,40 @@ def test_starter_import_through_the_screen_is_safe_to_repeat(
     again = _post(db_client, "/admin/catalog/starter", {})
     assert "Added 0 tests" in " ".join(again.text.split())
     assert seeded.scalar(select(func.count()).select_from(Test)) == tests
+
+
+@pytest.mark.item("M14.2")
+def test_a_version_that_is_not_a_number_counts_as_out_of_date(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    test = _lipid(db_client, seeded)
+    form = {
+        "test_id": str(test.id),
+        "code": "lipid",
+        "name": "Lipids",
+        "department_id": str(test.department_id),
+        "is_active": "true",
+    }
+    for version in ("abc", "", "-1", "1.5", "9" * 5000):
+        r = _post(db_client, "/admin/catalog/tests", form | {"row_version": version})
+        assert r.status_code == 409, version
+        assert "changed this record" in r.text
+    seeded.refresh(test)
+    assert test.name != "Lipids"
+
+
+@pytest.mark.item("M14.2")
+def test_pager_links_after_a_refused_specimen_lead_back_to_the_list(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    for n in range(26):
+        saved = _post(
+            db_client, "/admin/catalog/specimens", {"code": f"tube{n:02d}", "name": f"Tube {n:02d}"}
+        )
+        assert saved.status_code == 303, saved.text
+    refused = _post(db_client, "/admin/catalog/specimens?spage=2", {"code": "", "name": ""})
+    assert refused.status_code == 422
+    assert 'href="/admin/catalog/departments?spage=1" rel="prev"' in refused.text
+    assert 'href="/admin/catalog/specimens' not in refused.text

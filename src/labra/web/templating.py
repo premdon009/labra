@@ -45,11 +45,12 @@ def local_time(value: datetime, fmt: str = "%d %b %Y %H:%M") -> str:
     return value.astimezone(IST).strftime(fmt)
 
 
-def page_url(request: Request, number: int, param: str = "page") -> str:
-    """This page's URL with the query string kept and `param` set to `number`."""
+def page_url(request: Request, number: int, param: str = "page", path: str = "") -> str:
+    """This page's URL with the query string kept and `param` set to `number`. A list that
+    is also shown at an address it can only be posted to gives its own `path`."""
     query = [(k, v) for k, v in request.query_params.multi_items() if k != param]
     query.append((param, str(number)))
-    return f"{request.url.path}?{urlencode(query)}"
+    return f"{path or request.url.path}?{urlencode(query)}"
 
 
 def same_query(request: Request) -> str:

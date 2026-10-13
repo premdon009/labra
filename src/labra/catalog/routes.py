@@ -16,7 +16,7 @@ from labra.core.currency import load_format
 from labra.core.db import get_session
 from labra.core.errors import NotFoundError, ValidationFailedError
 from labra.org import service as org
-from labra.web.forms import page_no
+from labra.web.forms import RowVersion, page_no
 from labra.web.templating import page, render, same_query
 
 router = APIRouter(prefix="/admin")
@@ -173,7 +173,7 @@ def test_save(
     interpretation_text: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     test_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     errors: dict[str, str] = {}
     tat = _int(default_tat_hours, errors, "default_tat_hours", 24)
@@ -276,7 +276,7 @@ def parameter_save(
     is_reportable: Annotated[bool, Form()] = False,
     is_active: Annotated[bool, Form()] = False,
     parameter_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     test = service.get_test(db, principal, _uuid(test_id))
     errors: dict[str, str] = {}
@@ -365,7 +365,7 @@ def department_save(
     report_order: Annotated[str, Form()] = "0",
     is_active: Annotated[bool, Form()] = False,
     department_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     errors: dict[str, str] = {}
     order = _int(report_order, errors, "report_order")
@@ -399,7 +399,7 @@ def specimen_save(
     container: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     specimen_type_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     try:
         service.save_specimen_type(
@@ -489,7 +489,7 @@ def package_save(
     test_codes: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     package_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     added, unknown = service.tests_by_code(db, principal, test_codes)
     chosen = {_uuid(t) for t in test_ids} | {t.id for t in added}
@@ -633,7 +633,7 @@ def range_save(
     band_low: Annotated[list[str], Form()] = [],  # noqa: B006
     band_high: Annotated[list[str], Form()] = [],  # noqa: B006
     range_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     parameter = service.get_parameter(db, principal, _uuid(parameter_id))
     errors: dict[str, str] = {}
@@ -686,7 +686,7 @@ def range_approve(
     range_id: str,
     db: DB,
     principal: Annotated[Principal, Depends(require("range.approve"))],
-    row_version: Annotated[int, Form()],
+    row_version: RowVersion,
     back: Annotated[str, Form()] = "",
 ) -> Response:
     service.approve_range(db, principal, _uuid(range_id), row_version)
@@ -740,7 +740,7 @@ def method_save(
     is_default: Annotated[bool, Form()] = False,
     is_active: Annotated[bool, Form()] = False,
     method_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     test = service.get_test(db, principal, _uuid(test_id))
     try:
@@ -802,7 +802,7 @@ def preset_save(
     test_code: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     preset_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
     back: Annotated[str, Form()] = "",
 ) -> Response:
     test = _optional_uuid(test_id)

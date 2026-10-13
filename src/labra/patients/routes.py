@@ -13,7 +13,7 @@ from labra.core.ids import lab_today
 from labra.patients import service
 from labra.patients.age import age_text
 from labra.patients.models import REFERRER_KINDS
-from labra.web.forms import as_uuid, day, page_no, whole
+from labra.web.forms import RowVersion, as_uuid, day, page_no, whole
 from labra.web.labels import KIND_LABELS, SEX_LABELS
 from labra.web.templating import page, render
 
@@ -102,7 +102,7 @@ def patient_save(
     pincode: Annotated[str, Form()] = "",
     confirm_new: Annotated[bool, Form()] = False,
     patient_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     data = service.PatientInput(
         full_name=full_name,
@@ -261,7 +261,7 @@ def referrer_save(
     phone: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     referrer_id: Annotated[str, Form()] = "",
-    row_version: Annotated[int, Form()] = 0,
+    row_version: RowVersion = 0,
 ) -> Response:
     data = service.ReferrerInput(
         kind, name, qualification, council_reg_no, phone, is_active or not referrer_id
