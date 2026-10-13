@@ -425,7 +425,8 @@ def test_shortcuts_rendered_from_registry(
         seen |= set(keys)
         for key in keys:
             assert f'aria-keyshortcuts="{SHORTCUTS[key].label}"' in html
-    assert seen == set(SHORTCUTS)
+    # The lab's key is on the menu of those who enter results, which the front desk doesn't.
+    assert seen == set(SHORTCUTS) - {"alt+w"}
     assert {"alt+s", "f2"} <= set(_SHORTCUT.findall(pages["/frontdesk/visits/new"]))
     assert {"alt+r", "alt+l"} <= set(_SHORTCUT.findall(pages[f"/frontdesk/visits/{bill.visit_id}"]))
 

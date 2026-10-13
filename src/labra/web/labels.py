@@ -19,3 +19,13 @@ SAMPLE_STATUS_LABELS = {
     "redraw": "Collect again",
     "cancelled": "Cancelled",
 }
+TEST_STATUS_LABELS = {
+    "ordered": "To collect",
+    "collected": "On its way",
+    "in_lab": "In the lab",
+    "resulted": "Waiting for verification",
+    "sent_out": "With an outside lab",
+    "verified": "Verified",
+    "released": "Released",
+    "cancelled": "Cancelled",
+}

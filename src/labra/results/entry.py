@@ -24,10 +24,8 @@ from labra.core.ids import utcnow
 from labra.org.service import stale
 from labra.results.flags import compute_flag, is_absurd
 from labra.results.models import Result
-from labra.results.worklist import Sheet, bands_of, load_sheet, plain, range_text
+from labra.results.worklist import EDITABLE, Sheet, bands_of, load_sheet, plain, range_text
 
-# Values can be typed and changed until a signatory verifies the test.
-EDITABLE = ("in_lab", "resulted")
 NOT_YET = {
     "ordered": "The sample for this test hasn't been collected yet.",
     "collected": "The sample for this test hasn't been received in the lab yet.",

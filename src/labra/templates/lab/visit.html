@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "lab/_row.html" import grid_row %}
+{% block title %}Results · {{ sheet.visit_no }}{% endblock %}
+{% block scripts %}<script src="/static/lab.js" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ sheet.patient_name }} <span class="muted">{{ sheet.age }} · {{ sexes.get(sheet.sex, sheet.sex) }} · {{ sheet.visit_no }}</span></h1>
+  <a class="btn-outline" href="/lab/worklist">Back to the worklist</a>
+</div>
+{% for block in sheet.blocks %}
+<section class="result-block" id="t-{{ block.order_test_id }}" aria-labelledby="h-{{ block.order_test_id }}">
+  <h2 id="h-{{ block.order_test_id }}">{{ block.name }} <span class="muted">{{ statuses.get(block.status, block.status) }}{% if block.route == 'external' %} · outside lab{% endif %}</span></h2>
+  {% if block.rows %}
+  <table class="table result-grid" data-result-grid>
+    <thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Flag</th><th>Reference interval</th><th>Previous</th></tr></thead>
+    <tbody>
+      {% for row in block.rows %}{{ grid_row(row, csrf_token) }}{% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">This test has no parameters yet. Ask an administrator to add them in the test catalog.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% if sheet.elsewhere %}
+<p class="muted">Done at another branch: {{ sheet.elsewhere|join(', ') }}.</p>
+{% endif %}
+<p class="result-legend muted">Legend: <span class="flag-normal">✓ normal</span> <span class="flag-high">↑ H high</span> <span class="flag-low">↓ L low</span> <span class="flag-critical">⚠ HH / LL critical</span> <span class="flag-abnormal">A abnormal</span> <span class="flag-borderline">borderline</span> · (calc.) is worked out by Labra and can't be typed. <kbd>Enter</kbd> next, <kbd>Shift+Enter</kbd> back, <kbd>Esc</kbd> undo.</p>
+{% endblock %}

@@ -57,4 +57,35 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 @media (max-width: 64rem) { .visit-grid { grid-template-columns: 1fr; } }
 @media print { .app-nav, .app-top, .app-foot, .no-print { display: none !important; } .app { display: block; } }
 
+/* The result grid. The flag colours are tokens, so a lab can change them in one place.
+   Every colour comes with a badge or an arrow: colour is never the only signal. */
+:root {
+  --flag-normal-bg: #f0fdf4; --flag-normal-fg: inherit;
+  --flag-borderline-bg: #fef3c7; --flag-borderline-fg: inherit;
+  --flag-low-bg: #e0f2fe; --flag-low-fg: #0c4a6e;
+  --flag-high-bg: #fee2e2; --flag-high-fg: #7f1d1d;
+  --flag-critical-bg: #dc2626; --flag-critical-fg: #fff;
+  --flag-abnormal-bg: #fef3c7; --flag-abnormal-fg: inherit;
+}
+.nav-group { margin-top: 0.6rem; padding: 0 0.6rem; font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
+.result-block { margin-bottom: 1.25rem; }
+.result-block h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.4rem; }
+.result-grid td, .result-grid th { padding: 0.2rem 0.5rem; vertical-align: middle; }
+.result-grid th[scope="row"] { font-weight: 500; text-align: left; }
+.result-grid .input, .result-grid .select { width: 9rem; }
+.result-grid .input:focus, .result-grid .select:focus { outline: 2px solid currentColor; outline-offset: 1px; }
+.result-value output { display: inline-block; min-width: 9rem; padding: 0 0.75rem; }
+.flag-normal .result-value, .flag-normal .result-flag, span.flag-normal { background: var(--flag-normal-bg); color: var(--flag-normal-fg); }
+.flag-borderline .result-value, .flag-borderline .result-flag, span.flag-borderline { background: var(--flag-borderline-bg); color: var(--flag-borderline-fg); }
+.flag-low .result-value, .flag-low .result-flag, span.flag-low { background: var(--flag-low-bg); color: var(--flag-low-fg); }
+.flag-high .result-value, .flag-high .result-flag, span.flag-high { background: var(--flag-high-bg); color: var(--flag-high-fg); }
+.flag-critical .result-value, .flag-critical .result-flag, span.flag-critical { background: var(--flag-critical-bg); color: var(--flag-critical-fg); font-weight: 700; }
+.flag-abnormal .result-value, .flag-abnormal .result-flag, span.flag-abnormal { background: var(--flag-abnormal-bg); color: var(--flag-abnormal-fg); }
+.flag-not-calculable .result-flag { font-style: italic; opacity: 0.7; }
+.flag-badge { font-weight: 700; white-space: nowrap; }
+.result-legend span { padding: 0 0.3rem; border-radius: 0.25rem; }
+.result-when { white-space: nowrap; }
+.range-unapproved { font-style: italic; }
+
 [hidden] { display: none !important; }

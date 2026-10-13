@@ -60,6 +60,10 @@ Every feature Labra has, and the manual page that explains it.
 | M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M10 | External labs and result PDF upload | [External labs](admin/external-labs.md) |
+| M11 | Results: worklist, flags, previous value, critical-value log, verification | [Entering results](lab/entering-results.md) |
+| M11 | Results: worklist, flags, previous value, critical-value log, verification | [Lab worklist](lab/worklist.md) |
+| M11.1 | Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d) | [Entering results](lab/entering-results.md) |
+| M11.2 | Absurd-value guard and Friedewald/formula validity checks (§1d) | [Calculated values](lab/calculated-values.md) |
 | M11.3 | Samples from another branch are scanned in at the lab before they appear on the worklist | [Receiving samples](lab/receiving-samples.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |

@@ -7,7 +7,7 @@ features: [M18, EC-J01]
 
 ## What it's for
 
-The front desk can be worked without the mouse. This page lists every key Labra uses.
+The front desk and the lab bench can be worked without the mouse. This page lists every key Labra uses.
 
 ## Where to find it
 
@@ -21,6 +21,7 @@ its name, such as **Save and print** `Alt+S`.
 | **Alt+N** | Start a new visit | Every screen |
 | **Alt+F** | Find a patient | Every screen |
 | **Alt+D** | Open the dues list | Every screen |
+| **Alt+W** | Open the lab worklist | Every screen |
 | **Alt+S** | Save | Front-desk forms |
 | **Alt+R** | Print the bill and receipt | Visit summary |
 | **Alt+L** | Print the sample labels | Visit summary |
@@ -28,6 +29,8 @@ its name, such as **Save and print** `Alt+S`.
 | **Enter** | Add the test you typed; look up the phone number | New visit |
 | **Enter** | Mark the scanned sample as collected (a barcode scanner sends it for you) | Collect samples |
 | **Esc** | Close a list that is open | New visit |
+| **Enter**, **Shift+Enter** | Save the value and move to the next or the previous box | Entering results |
+| **Esc** | Drop what you typed and keep the saved value | Entering results |
 | **Tab**, **Shift+Tab** | Move to the next or the previous field | Every screen |
 
 1. Hold **Alt** and press the letter.
@@ -53,4 +56,5 @@ its name, such as **Save and print** `Alt+S`.
 
 - [New visit](../frontdesk/new-visit.md)
 - [Sample labels and collection](../frontdesk/labels.md)
+- [Entering results](../lab/entering-results.md)
 - [Screen layout](screen-layout.md)

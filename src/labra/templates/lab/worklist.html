@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Lab worklist{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Lab worklist</h1></div>
+<form method="get" action="/lab/worklist" class="search-row" role="search">
+  <div class="field-row"><label class="label" for="f-department">Department</label>
+    <select class="select" id="f-department" name="department">
+      <option value="">All</option>
+      {% for id, name in departments %}<option value="{{ id }}" {% if department == id|string %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field-row"><label class="label" for="f-status">Status</label>
+    <select class="select" id="f-status" name="status">
+      <option value="">To do</option>
+      {% for code, label in statuses.items() %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% if branches|length > 1 %}
+  <div class="field-row"><label class="label" for="f-branch">Done at</label>
+    <select class="select" id="f-branch" name="branch">
+      {% for id, code in branches.items() %}<option value="{{ id }}" {% if branch == id %}selected{% endif %}>{{ code }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+<table class="table">
+  <thead><tr><th>Due</th><th>Sample</th><th>Patient</th><th>Test</th><th>Department</th><th>From</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for item in items.items %}
+    <tr>
+      <td>{{ item.due_at|local_time }}</td>
+      <td>{{ item.sample_no }}</td>
+      <td><a href="/lab/visits/{{ item.visit_id }}#t-{{ item.order_test_id }}">{{ item.patient_name }}</a> <span class="muted">{{ item.age }} · {{ sexes.get(item.sex, item.sex) }} · {{ item.visit_no }}</span></td>
+      <td>{{ item.test_name }}{% if item.route == 'external' %} <span class="muted">(outside lab)</span>{% endif %}</td>
+      <td>{{ item.department }}</td>
+      <td>{{ item.from_branch }}</td>
+      <td>{{ statuses.get(item.status, item.status) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">{% if department or status %}No tests match. Change the department or the status.{% else %}Nothing to do here now. Tests appear when their samples are collected.{% endif %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(items, request) }}
+{% endblock %}

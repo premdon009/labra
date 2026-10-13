@@ -2,7 +2,7 @@ import uuid
 from dataclasses import replace
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
@@ -11,8 +11,8 @@ from labra.auth.principal import Principal
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
 from labra.results import entry, service, worklist
-from labra.web.forms import RowVersion, as_uuid
-from labra.web.labels import SEX_LABELS
+from labra.web.forms import RowVersion, as_uuid, page_no
+from labra.web.labels import SEX_LABELS, TEST_STATUS_LABELS
 from labra.web.templating import page, render
 
 router = APIRouter(prefix="/lab")
@@ -66,7 +66,67 @@ def receive_save(
     return RedirectResponse(f"/lab/receive?done={sample.sample_no}", status_code=303)
 
 
-# Entering results
+# The worklist and the result grid
+
+
+def _uuid_or_none(value: str) -> uuid.UUID | None:
+    """A filter picked from a list; anything else is no filter."""
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        return None
+
+
+@router.get("/worklist", response_class=HTMLResponse)
+@page("lab/worklist", "lab/worklist.html")
+def worklist_page(
+    request: Request,
+    db: DB,
+    principal: Enterer,
+    department: str = "",
+    status: str = "",
+    branch: str = "",
+    page: Annotated[str, Query()] = "1",
+) -> Response:
+    in_view = worklist.branches_in_view(db, principal)
+    done_at = _uuid_or_none(branch)
+    if done_at not in in_view:
+        done_at = principal.branch_id
+    return render(
+        request,
+        "lab/worklist.html",
+        {
+            "items": worklist.work_page(
+                db,
+                principal,
+                page_no(page),
+                department_id=_uuid_or_none(department),
+                status=status,
+                branch_id=done_at,
+            ),
+            "departments": worklist.departments(db),
+            "department": department,
+            "status": status if status in worklist.STATUSES else "",
+            "statuses": {code: TEST_STATUS_LABELS[code] for code in worklist.STATUSES},
+            "branches": in_view,
+            "branch": done_at,
+            "sexes": SEX_LABELS,
+        },
+    )
+
+
+@router.get("/visits/{visit_id}", response_class=HTMLResponse)
+@page("lab/entering-results", "lab/visit.html")
+def visit_grid(request: Request, db: DB, principal: Enterer, visit_id: str) -> Response:
+    return render(
+        request,
+        "lab/visit.html",
+        {
+            "sheet": worklist.visit_sheet(db, principal, as_uuid(visit_id)),
+            "sexes": SEX_LABELS,
+            "statuses": TEST_STATUS_LABELS,
+        },
+    )
 
 
 def _cell_rows(
