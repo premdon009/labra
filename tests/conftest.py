@@ -8,6 +8,7 @@ and `scripts/ci_local.sh` reports the test stage as WARN (unchecked), never PASS
 """
 
 import os
+import uuid
 from collections.abc import Iterator
 from datetime import date
 from functools import cache
@@ -15,7 +16,7 @@ from functools import cache
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine, make_url
+from sqlalchemy import Engine, create_engine, make_url, text
 from sqlalchemy.orm import Session
 
 from labra.core.config import get_settings
@@ -23,7 +24,7 @@ from labra.core.db import get_session
 from labra.core.registry import Platform, use_platform
 from tests.fakes import fake_platform
 
-DB_FIXTURES = {"pg_engine", "db", "db_client", "seeded"}
+DB_FIXTURES = {"pg_engine", "db", "db_client", "seeded", "committed_engine"}
 SKIP_REASON = "no Postgres for tests"
 POSTGRES_IMAGE = os.environ.get("LABRA_TEST_POSTGRES_IMAGE", "docker.io/library/postgres:18")
 TEST_DATABASE_URL = os.environ.get("LABRA_TEST_DATABASE_URL", "")
@@ -93,21 +94,22 @@ def client(app: FastAPI) -> Iterator[TestClient]:
         yield c
 
 
-@pytest.fixture(scope="session")
-def pg_engine() -> Iterator[Engine]:
-    from testcontainers.community.postgres import PostgresContainer
+def migrated(url: str) -> Engine:
+    from alembic import command
 
     from labra.core.migrate import alembic_config
 
-    def migrated(url: str) -> Engine:
-        from alembic import command
+    engine = create_engine(url)
+    cfg = alembic_config()
+    with engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.upgrade(cfg, "head")
+    return engine
 
-        engine = create_engine(url)
-        cfg = alembic_config()
-        with engine.begin() as conn:
-            cfg.attributes["connection"] = conn
-            command.upgrade(cfg, "head")
-        return engine
+
+@pytest.fixture(scope="session")
+def pg_engine() -> Iterator[Engine]:
+    from testcontainers.community.postgres import PostgresContainer
 
     if TEST_DATABASE_URL:
         engine = migrated(checked_test_url(TEST_DATABASE_URL))
@@ -131,6 +133,35 @@ def db(pg_engine: Engine) -> Iterator[Session]:
         finally:
             session.close()
             trans.rollback()
+
+
+NO_CREATEDB = "no CREATEDB for concurrency test"
+
+
+@pytest.fixture
+def committed_engine(pg_engine: Engine) -> Iterator[Engine]:
+    """A database of its own for tests where several connections must see each other's
+    committed work. Issued bills and audit rows can't be deleted, so the whole database is
+    dropped afterwards. Skipped when the test role may not create databases."""
+    name = f"labra_conc_{uuid.uuid4().hex[:8]}_test"
+    url = checked_test_url(pg_engine.url.set(database=name).render_as_string(hide_password=False))
+    admin = pg_engine.execution_options(isolation_level="AUTOCOMMIT")
+    with admin.connect() as conn:
+        allowed = conn.scalar(
+            text("select rolcreatedb or rolsuper from pg_roles where rolname = current_user")
+        )
+        if not allowed:
+            pytest.skip(NO_CREATEDB)
+        conn.execute(text(f'CREATE DATABASE "{name}"'))
+    engine = None
+    try:
+        engine = migrated(url)
+        yield engine
+    finally:
+        if engine is not None:
+            engine.dispose()
+        with admin.connect() as conn:
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
 
 
 @pytest.fixture

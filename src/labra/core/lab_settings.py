@@ -56,6 +56,34 @@ define(
     )
 )
 define(SettingDef("branch.receipt_footer", str, "", "Footer printed on receipts", per_branch=True))
+define(
+    SettingDef(
+        "lab.legal_name",
+        str,
+        "",
+        "Legal name printed on bills (empty: the lab name)",
+        max_length=120,
+    )
+)
+define(
+    SettingDef(
+        "billing.sac_code",
+        str,
+        "999316",
+        "SAC code printed on bill lines",
+        pattern=r"^\d{4,8}$",
+        pattern_hint="Enter 4 to 8 digits.",
+    )
+)
+define(
+    SettingDef(
+        "billing.exemption_note",
+        str,
+        "Health care services by a clinical establishment are exempt from GST.",
+        "Exemption note printed on bills",
+        max_length=200,
+    )
+)
 
 
 def _currency(key: str, default: str, label: str, **kw: Any) -> None:

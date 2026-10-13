@@ -164,5 +164,6 @@ source_modules = [
     "labra.patients.service",
     "labra.visits.models",
     "labra.billing.models",
+    "labra.billing.service",
 ]
 forbidden_modules = ["labra.web"]

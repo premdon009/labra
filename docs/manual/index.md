@@ -35,6 +35,7 @@ Every feature Labra has, and the manual page that explains it.
 | M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | [Test catalog](admin/catalog.md) |
 | M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | [Reference ranges](admin/reference-ranges.md) |
 | M06 | Prices: branch override and history | [Prices](admin/prices.md) |
+| M07 | Visit and billing: bill of supply, payments, dues | [Settings](admin/settings.md) |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Settings](admin/settings.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |

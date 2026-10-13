@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.orm.exc import StaleDataError
 
 from labra.auth.deps import PUBLIC_PATHS
 from labra.auth.routes import safe_next
@@ -111,6 +112,37 @@ def test_unexpected_error_gives_reference(app: FastAPI, platform: Platform) -> N
     reports: Any = platform.errors
     assert reports.reports[0][0] == ref
     assert reports.reports[0][2]["request_id"] == "req-abc123"
+
+
+def _raising(app: FastAPI, exc: Exception) -> TestClient:
+    def clash() -> None:
+        raise exc
+
+    app.add_api_route("/clash", clash)
+    return TestClient(app, base_url="https://testserver", raise_server_exceptions=False)
+
+
+@pytest.mark.item("M07")
+def test_integrity_error_gives_409(app: FastAPI, platform: Platform) -> None:
+    exc = IntegrityError("insert into bill", {"p": 1}, Exception("uq_bill_visit_doc_type"))
+    with _raising(app, exc) as c:
+        r = c.get("/clash")
+    assert r.status_code == 409
+    assert "Reload and try again" in r.json()["error"]
+    assert "reference" not in r.json()
+    assert "uq_bill" not in r.text
+    assert "insert into" not in r.text
+    reports: Any = platform.errors
+    assert reports.reports == []
+
+
+@pytest.mark.item("M07")
+def test_stale_data_error_gives_409(app: FastAPI) -> None:
+    with _raising(app, StaleDataError("UPDATE statement on table 'bill' expected 1 row")) as c:
+        r = c.get("/clash", headers={"accept": "text/html"})
+    assert r.status_code == 409
+    assert "Someone else changed this record" in r.text
+    assert "UPDATE statement" not in r.text
 
 
 @pytest.mark.item("W04")

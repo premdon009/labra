@@ -1,6 +1,6 @@
 ---
 title: Settings
-features: [W04, M02, M07.1, EC-C01]
+features: [W04, M02, M07, M07.1, EC-C01]
 ---
 
 # Settings
@@ -33,6 +33,9 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 | GST state code of the main lab | Whole lab | The two-digit code from the GSTIN, such as `29` |
 | Default turnaround time (hours) | Each branch | 1 to 720; starts at 24 |
 | Footer printed on receipts | Each branch | Any text, up to 500 characters |
+| Legal name printed on bills | Whole lab | Up to 120 characters. Leave empty to print the lab name |
+| SAC code printed on bill lines | Whole lab | 4 to 8 digits; starts as `999316` |
+| Exemption note printed on bills | Whole lab | Up to 200 characters |
 
 - A branch value overrides the whole-lab value at that branch. Branches without their own
   value use the whole-lab one.
@@ -41,6 +44,10 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 - To change a branch's setting, first [switch](../getting-started/screen-layout.md) to that
   branch.
 - Every change is recorded in the audit log with the old and new value.
+- The legal name, SAC code and exemption note are printed on new bills only. A bill that
+  is already issued keeps what it was printed with.
+- The SAC code and the exemption note start with common values for diagnostic labs. Ask
+  your accountant to confirm them for your lab.
 
 ## Number formats
 

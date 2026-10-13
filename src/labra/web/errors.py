@@ -7,9 +7,11 @@ from urllib.parse import quote
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import StaleDataError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from labra.core.errors import AuthenticationError, LabraError
+from labra.core.errors import AuthenticationError, ConflictError, LabraError
 from labra.core.logging import request_id_var
 from labra.core.metrics import count_error, route_template
 from labra.core.registry import get_platform
@@ -67,6 +69,15 @@ async def validation_error(request: Request, exc: Exception) -> Response:
     return _error_response(request, 422, "Some of the submitted values are not valid.", None)
 
 
+async def conflict_error(request: Request, exc: Exception) -> Response:
+    """Two people saved the same thing at once and the database kept the first. Nothing
+    of the second was saved, so reloading and trying again is safe."""
+    message = ConflictError.public_message
+    if isinstance(exc, IntegrityError):
+        message = "This clashes with something saved a moment ago. Reload and try again."
+    return _error_response(request, ConflictError.status_code, message, None)
+
+
 async def unexpected_error(request: Request, exc: Exception) -> Response:
     ref = new_reference()
     count_error()
@@ -90,3 +101,5 @@ def install(app: FastAPI) -> None:
     app.add_exception_handler(LabraError, labra_error)
     app.add_exception_handler(StarletteHTTPException, http_error)
     app.add_exception_handler(RequestValidationError, validation_error)
+    app.add_exception_handler(IntegrityError, conflict_error)
+    app.add_exception_handler(StaleDataError, conflict_error)
