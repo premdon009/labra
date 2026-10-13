@@ -30,6 +30,7 @@ To print a bill again:
 1. On the visit, select **Print bill and receipt**, or press **Alt+R**. From the list,
    select **Print** on the bill's row.
 2. The bill opens ready to print, with a receipt for each payment under it.
+   Straight after a new visit, the [sample labels](labels.md) open to print next.
 3. To print one receipt on its own, select **Print receipt** on its row under
    **Payments**.
 

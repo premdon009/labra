@@ -28,6 +28,9 @@
       <a href="/frontdesk/bills" {% if request.url.path.startswith('/frontdesk/bills') %}aria-current="page"{% endif %}>Bills</a>
       <a href="/frontdesk/dues" {{ keys('alt+d') }} {% if request.url.path.startswith('/frontdesk/dues') %}aria-current="page"{% endif %}>Dues</a>
       {% endif %}
+      {% if principal.can('sample.collect', principal.branch_id) %}
+      <a href="/frontdesk/collect" {% if request.url.path.startswith('/frontdesk/collect') %}aria-current="page"{% endif %}>Collect samples</a>
+      {% endif %}
       {% if principal.can('referrer.view') %}
       <a href="/frontdesk/referrers" {% if request.url.path.startswith('/frontdesk/referrers') %}aria-current="page"{% endif %}>Referrers</a>
       {% endif %}

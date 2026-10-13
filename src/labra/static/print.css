@@ -20,3 +20,16 @@
   .no-print { display: none !important; }
   .sheet { max-width: none; padding: 0; }
 }
+
+/* Sample labels: on screen a row of cards, on paper one label a page. */
+.label-sheet { display: flex; flex-wrap: wrap; gap: 4mm; padding: 1rem; }
+.label { page: labels; box-sizing: border-box; width: 50mm; height: 25mm; padding: 1.5mm 2mm; overflow: hidden; font-family: Arial, Helvetica, sans-serif; font-size: 6.5pt; line-height: 1.2; color: #000; background: #fff; border: 1px dashed #999; break-inside: avoid; }
+.label svg { display: block; margin: 0 auto 0.5mm; }
+.label div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label .label-no { display: flex; justify-content: space-between; font-size: 7.5pt; font-weight: 700; }
+.label-note { flex-basis: 100%; }
+
+@media print {
+  .label-sheet { display: block; padding: 0; }
+  .label { border: 0; break-after: page; }
+}

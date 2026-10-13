@@ -41,7 +41,8 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
    patient will pay later.
 8. Tick the consent box after the patient has read the notice. **Read the notice** shows
    its words.
-9. Select **Save and print**, or press **Alt+S**. The bill and receipt open ready to print.
+9. Select **Save and print**, or press **Alt+S**. The bill and receipt open ready to print,
+   and after them the [sample labels](labels.md).
 
 ## Screenshot
 

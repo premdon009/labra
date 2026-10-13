@@ -25,6 +25,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
 | EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
+| EC-J01 | Keyboard-first front desk | [Sample labels and collection](frontdesk/labels.md) |
 | EC-J01 | Keyboard-first front desk | [New visit](frontdesk/new-visit.md) |
 | EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | EC-J02 | Works in Chrome/Edge on a 1366×768 screen | [New visit](frontdesk/new-visit.md) |
@@ -51,6 +52,7 @@ Every feature Labra has, and the manual page that explains it.
 | M07 | Visit and billing: bill of supply, payments, dues | [New visit](frontdesk/new-visit.md) |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Settings](admin/settings.md) |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |

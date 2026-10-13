@@ -88,6 +88,7 @@ def bill_print(
     db: DB,
     principal: Annotated[Principal, Depends(require("bill.view"))],
     auto: bool = False,
+    then: str = "",
 ) -> Response:
     bill = service.get_bill(db, principal, as_uuid(bill_id))
     context = _printed(db, bill) | {
@@ -96,7 +97,9 @@ def bill_print(
         "refund": service.bill_refund(db, bill.id),
         "auto": auto,
     }
-    return render(request, "frontdesk/bill_print.html", context | {"after": context["back"]})
+    # After a new visit's bill, the sample labels print next.
+    after = f"{context['back']}/labels?print=1" if then == "labels" else context["back"]
+    return render(request, "frontdesk/bill_print.html", context | {"after": after})
 
 
 @router.get("/payments/{payment_id}/print", response_class=HTMLResponse)

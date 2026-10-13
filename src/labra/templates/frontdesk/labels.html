@@ -1,0 +1,21 @@
+{% extends "print_base.html" %}
+{% block title %}Labels {{ s.visit.visit_no }}{% endblock %}
+{% block main_class %}label-sheet{% endblock %}
+{% block sheet %}
+{% for label in labels %}
+<section class="label" aria-label="Label {{ label.sample.sample_no }}">
+  <svg viewBox="0 0 {{ label.bars.modules }} 10" width="{{ label.bars.width_mm }}mm" height="8mm" preserveAspectRatio="none" role="img" aria-label="Barcode {{ label.sample.sample_no }}">
+    {% for x, width in label.bars.runs %}<rect x="{{ x }}" y="0" width="{{ width }}" height="10" fill="#000"></rect>{% endfor %}
+  </svg>
+  <div class="label-no"><span>{{ label.sample.sample_no }}</span><span>Coll {{ label.sample.collected_at|local_time('%d %b %H:%M') if label.sample.collected_at else '__:__' }}</span></div>
+  <div>{{ s.patient.full_name }} · {{ age }} / {{ s.patient.sex }}</div>
+  <div>{{ label.sample.container or 'Container not set' }}</div>
+  <div>{{ label.tests|join(', ') }}</div>
+</section>
+{% else %}
+<p class="label-note">This visit has no labels to print: it has no samples, or they were cancelled.</p>
+{% endfor %}
+{% for label in labels if not label.sample.container %}
+<p class="label-note no-print">Sample {{ label.sample.sample_no }} has no container, because its tests have no specimen type. Ask an administrator to set one in the catalog.</p>
+{% endfor %}
+{% endblock %}

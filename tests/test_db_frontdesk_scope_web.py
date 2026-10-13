@@ -66,9 +66,11 @@ def test_frontdesk_screens_need_a_frontdesk_role(
         "/frontdesk/referrers/pick",
         "/frontdesk/bills",
         "/frontdesk/dues",
+        "/frontdesk/collect",
     ):
         assert db_client.get(url).status_code == 403
         assert f'href="{url}"' not in home
+    assert post(db_client, "/frontdesk/collect", {"sample_no": "X"}).status_code == 403
     assert post(db_client, "/frontdesk/visits", {"full_name": "X"}).status_code == 403
     assert post(db_client, "/frontdesk/visits/new/preview", {"op": "code"}).status_code == 403
     assert post(db_client, "/frontdesk/referrers/quick", {"name": "X"}).status_code == 403
@@ -95,6 +97,7 @@ def test_visits_and_bills_of_another_branch_are_not_found(
         f"/frontdesk/bills/{bill.id}/print",
         f"/frontdesk/payments/{payment.id}/print",
         f"/frontdesk/bills/{bill.id}/pay",
+        f"/frontdesk/visits/{bill.visit_id}/labels",
         f"/frontdesk/bills/{bill.id}/cancel",
     )
 
@@ -111,9 +114,9 @@ def test_visits_and_bills_of_another_branch_are_not_found(
 
     # At her own branch priya reaches all of it except cancelling.
     sign_in(db_client, "priya")
-    for url in urls[:4]:
+    for url in urls[:5]:
         assert db_client.get(url).status_code == 200
-    assert db_client.get(urls[4]).status_code == 403
+    assert db_client.get(urls[5]).status_code == 403
     assert post(db_client, f"/frontdesk/bills/{bill.id}/cancel", cancel).status_code == 403
     assert "Cancel bill" not in db_client.get(urls[0]).text
     seeded.refresh(bill)

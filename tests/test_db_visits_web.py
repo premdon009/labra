@@ -16,7 +16,7 @@ from labra.core.registry import Platform
 from labra.patients.models import Referrer
 from labra.visits.models import Sample, Visit
 from labra.web.shortcuts import SHORTCUTS
-from tests.frontdesk import as_user, billed, menu, post, sign_in
+from tests.frontdesk import as_user, billed, menu, post, sample, sign_in
 
 UTR = "426112345678"
 MANUAL = Path(__file__).parent.parent / "docs" / "manual"
@@ -72,9 +72,16 @@ def test_visit_saved_from_one_screen_only_once(
 
     # Saving goes straight to the bill, which prints itself and comes back to the visit.
     to_print = db_client.get(first.headers["location"], follow_redirects=False)
-    assert to_print.headers["location"] == f"/frontdesk/bills/{bill.id}/print?auto=1"
+    assert to_print.headers["location"] == f"/frontdesk/bills/{bill.id}/print?auto=1&then=labels"
     printing = db_client.get(to_print.headers["location"]).text
-    assert f'data-autoprint data-after-print="/frontdesk/visits/{visit.id}"' in printing
+    labels = f"/frontdesk/visits/{visit.id}/labels?print=1"
+    assert f'data-autoprint data-after-print="{labels}"' in printing
+    assert (
+        f'data-autoprint data-after-print="/frontdesk/visits/{visit.id}"'
+        in db_client.get(labels).text
+    )
+    alone = db_client.get(f"/frontdesk/bills/{bill.id}/print?auto=1").text
+    assert f'data-after-print="/frontdesk/visits/{visit.id}"' in alone
     assert "data-autoprint" not in db_client.get(f"/frontdesk/bills/{bill.id}/print").text
 
     summary = db_client.get(f"/frontdesk/visits/{visit.id}").text
@@ -291,8 +298,8 @@ def test_bill_print_full_content(
     assert f"Place of supply: state code {bill.place_of_supply_state}" in page
     assert "Referred by: Self" in page
     assert len(samples) == 3
-    for sample in samples:
-        assert sample.sample_no in page
+    for tube in samples:
+        assert tube.sample_no in page
     assert "Discount: Senior citizen" in page and "-₹193.00" in page
     assert f"Amount in words: {snap['amount_in_words']}" in page
     assert "Rupees" in snap["amount_in_words"]
@@ -391,6 +398,7 @@ def test_shortcuts_rendered_from_registry(
     seeded: Session, platform: Platform, db_client: TestClient
 ) -> None:
     bill = billed(seeded, as_user(seeded, platform, "priya"))
+    sample(seeded, seeded.get_one(Visit, bill.visit_id))
     sign_in(db_client, "priya")
     pages = {
         url: db_client.get(url).text
@@ -415,7 +423,7 @@ def test_shortcuts_rendered_from_registry(
             assert f'aria-keyshortcuts="{SHORTCUTS[key].label}"' in html
     assert seen == set(SHORTCUTS)
     assert {"alt+s", "f2"} <= set(_SHORTCUT.findall(pages["/frontdesk/visits/new"]))
-    assert "alt+r" in _SHORTCUT.findall(pages[f"/frontdesk/visits/{bill.visit_id}"])
+    assert {"alt+r", "alt+l"} <= set(_SHORTCUT.findall(pages[f"/frontdesk/visits/{bill.visit_id}"]))
 
     # Keys the browser or the operating system owns are never taken.
     assert not {"alt+p", "alt+h", "ctrl+n", "ctrl+p", "ctrl+w"} & set(SHORTCUTS)

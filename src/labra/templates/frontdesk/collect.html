@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Collect samples{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Collect samples</h1></div>
+{% if done and done.sample.status == 'collected' %}
+<div class="alert" role="status">
+  <h2>Collected: {{ done.sample.sample_no }}</h2>
+  <p>{{ done.patient.full_name }} · {{ done.sample.container or 'Container not set' }} · {% for test in done.tests %}{{ test.short_name or test.code }}{% if not loop.last %}, {% endif %}{% endfor %}<br>
+    {{ done.sample.collected_at|local_time }}{% if done.collector %} by {{ done.collector.full_name }}{% endif %}</p>
+</div>
+{% endif %}
+{% if errors %}
+<div class="alert-destructive" role="alert"><h2>{{ errors.values()|join(' ') }}</h2></div>
+{% endif %}
+<form method="post" action="/frontdesk/collect" class="stack">
+  {{ csrf(csrf_token) }}
+  <div class="form-grid">
+    <div class="field-row">
+      <label class="label" for="f-collected_by">Collected by</label>
+      <select class="select" id="f-collected_by" name="collected_by" {% if errors.get('collected_by') %}aria-invalid="true"{% endif %}>
+        {% for user in staff %}<option value="{{ user.id }}" {% if chosen == user.id|string %}selected{% endif %}>{{ user.full_name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field-row">
+      <label class="label" for="f-sample_no">Sample number</label>
+      <input class="input" type="text" id="f-sample_no" name="sample_no" value="{{ sample_no }}" autofocus autocomplete="off" autocapitalize="characters" maxlength="20" required {% if errors.get('sample_no') %}aria-invalid="true"{% endif %}>
+      <p class="muted">Scan the label, or type the number and press Enter.</p>
+    </div>
+  </div>
+  <div class="form-actions"><button type="submit" class="btn">Mark as collected <kbd>Enter</kbd></button></div>
+</form>
+{% endblock %}

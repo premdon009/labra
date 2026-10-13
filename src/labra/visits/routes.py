@@ -17,6 +17,8 @@ from labra.core.ids import lab_today
 from labra.patients import service as patients
 from labra.patients.age import age_text
 from labra.visits import service
+from labra.visits.models import Sample
+from labra.web.barcode import code128
 from labra.web.forms import as_uuid, day, local_minute, whole
 from labra.web.labels import (
     BILL_STATUS_LABELS,
@@ -327,6 +329,11 @@ def visit_save(
     return RedirectResponse(f"/frontdesk/visits/{visit.id}?print=1", status_code=303)
 
 
+def _live(samples: list[Sample]) -> list[Sample]:
+    """The samples that still need a label: all but the cancelled ones."""
+    return [sample for sample in samples if sample.status != "cancelled"]
+
+
 @router.get("/visits/{visit_id}", response_class=HTMLResponse)
 @page("frontdesk/bills-and-receipts", "frontdesk/visit_summary.html")
 def visit_summary(
@@ -339,12 +346,15 @@ def visit_summary(
     summary = service.visit_summary(db, principal, as_uuid(visit_id))
     bill = summary.bill
     if auto_print and bill is not None:
-        return RedirectResponse(f"/frontdesk/bills/{bill.id}/print?auto=1", status_code=303)
+        # The bill goes to the A4 printer first, then the labels to the label printer.
+        then = "&then=labels" if _live(summary.samples) else ""
+        return RedirectResponse(f"/frontdesk/bills/{bill.id}/print?auto=1{then}", status_code=303)
     return render(
         request,
         "frontdesk/visit_summary.html",
         {
             "s": summary,
+            "has_labels": bool(_live(summary.samples)),
             "age": age_text(summary.patient.dob, lab_today()),
             "fmt": load_format(db, summary.visit.branch_id),
             "sexes": SEX_LABELS,
@@ -355,4 +365,108 @@ def visit_summary(
             "can_pay": principal.can("payment.take", summary.visit.branch_id),
             "can_cancel": principal.can("bill.cancel", summary.visit.branch_id),
         },
+    )
+
+
+# Sample labels and collection
+
+
+@router.get("/visits/{visit_id}/labels", response_class=HTMLResponse)
+@page("frontdesk/labels", "frontdesk/labels.html")
+def visit_labels(
+    request: Request,
+    visit_id: str,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("visit.view"))],
+    auto_print: Annotated[bool, Query(alias="print")] = False,
+) -> Response:
+    summary = service.visit_summary(db, principal, as_uuid(visit_id))
+    back = f"/frontdesk/visits/{summary.visit.id}"
+    labels = [
+        {
+            "sample": sample,
+            "bars": code128(sample.sample_no),
+            "tests": [
+                test.short_name or test.code
+                for ordered, test in summary.tests
+                if ordered.sample_id == sample.id
+            ],
+        }
+        for sample in _live(summary.samples)
+    ]
+    return render(
+        request,
+        "frontdesk/labels.html",
+        {
+            "s": summary,
+            "labels": labels,
+            "age": age_text(summary.patient.dob, lab_today()),
+            "auto": auto_print and bool(labels),
+            "after": back,
+            "back": back,
+        },
+    )
+
+
+def _collect_page(
+    request: Request,
+    db: Session,
+    principal: Principal,
+    chosen: str,
+    sample_no: str = "",
+    errors: dict[str, str] | None = None,
+    done: str = "",
+    status: int = 200,
+) -> Response:
+    staff = service.collectors(db, principal)
+    if chosen not in {str(user.id) for user in staff}:
+        chosen = str(principal.user_id)
+    return render(
+        request,
+        "frontdesk/collect.html",
+        {
+            "staff": staff,
+            "chosen": chosen,
+            "sample_no": sample_no,
+            "errors": errors or {},
+            "done": service.find_sample(db, principal, done) if done else None,
+        },
+        status_code=status,
+    )
+
+
+@router.get("/collect", response_class=HTMLResponse)
+@page("frontdesk/labels", "frontdesk/collect.html")
+def collect(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("sample.collect"))],
+    by: str = "",
+    done: str = "",
+) -> Response:
+    return _collect_page(request, db, principal, by, done=done)
+
+
+@router.post("/collect")
+def collect_save(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("sample.collect"))],
+    sample_no: Annotated[str, Form()] = "",
+    collected_by: Annotated[str, Form()] = "",
+) -> Response:
+    try:
+        who = uuid.UUID(collected_by)
+    except ValueError:
+        who = None
+    try:
+        sample = service.collect_sample(db, principal, sample_no, who)
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _collect_page(
+            request, db, principal, collected_by, sample_no, exc.errors, status=422
+        )
+    db.commit()
+    return RedirectResponse(
+        f"/frontdesk/collect?by={collected_by}&done={sample.sample_no}", status_code=303
     )

@@ -39,6 +39,7 @@ PERMISSIONS: dict[str, Permission] = {
         Permission("bill.view", "See bills and receipts", "branch"),
         Permission("payment.take", "Take payments", "branch"),
         Permission("bill.cancel", "Cancel bills", "branch"),
+        Permission("sample.collect", "Mark samples as collected", "branch"),
     ]
 }
 
@@ -61,6 +62,7 @@ _FRONT_DESK = frozenset(
         "visit.view",
         "bill.view",
         "payment.take",
+        "sample.collect",
     }
 )
 # Approving a range is a clinical sign-off (ISO 15189), so it belongs to the signatory alone.
@@ -78,7 +80,7 @@ SYSTEM_ROLES: dict[str, SystemRole] = {
             | {"setting.view", "setting.edit_branch", "bill.cancel"},
         ),
         SystemRole("front_desk", "Front desk", _EVERY_BRANCH_ROLE | _FRONT_DESK),
-        SystemRole("phlebotomist", "Phlebotomist", _EVERY_BRANCH_ROLE),
+        SystemRole("phlebotomist", "Phlebotomist", _EVERY_BRANCH_ROLE | {"sample.collect"}),
         SystemRole("technician", "Technician", _EVERY_BRANCH_ROLE),
         SystemRole("signatory", "Signatory", _EVERY_BRANCH_ROLE | _CLINICAL),
     ]

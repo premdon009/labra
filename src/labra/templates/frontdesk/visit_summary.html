@@ -21,9 +21,12 @@
     {% if s.visit.internal_note %}<p>Staff note: {{ s.visit.internal_note }}</p>{% endif %}
   </section>
   <section class="stack" aria-labelledby="h-samples">
-    <h2 id="h-samples">Samples</h2>
+    <div class="page-head">
+      <h2 id="h-samples">Samples</h2>
+      {% if has_labels %}<a class="btn-outline" href="/frontdesk/visits/{{ s.visit.id }}/labels?print=1" {{ keys('alt+l') }}>Print labels <kbd>Alt+L</kbd></a>{% endif %}
+    </div>
     <table class="table">
-      <thead><tr><th>Sample number</th><th>Container</th><th>Tests</th><th>Status</th></tr></thead>
+      <thead><tr><th>Sample number</th><th>Container</th><th>Tests</th><th>Status</th><th>Collected</th></tr></thead>
       <tbody>
         {% for sample in s.samples %}
         <tr>
@@ -31,9 +34,10 @@
           <td>{{ sample.container or 'Not set' }}</td>
           <td>{% for ordered, test in s.tests if ordered.sample_id == sample.id %}{{ test.short_name or test.code }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
           <td>{{ sample_statuses[sample.status] }}</td>
+          <td>{{ sample.collected_at|local_time if sample.collected_at else '' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="4">No samples: this visit has no tests, only charges.</td></tr>
+        <tr><td colspan="5">No samples: this visit has no tests, only charges.</td></tr>
         {% endfor %}
       </tbody>
     </table>

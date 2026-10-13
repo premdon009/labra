@@ -27,7 +27,7 @@ from labra.core.ids import lab_today, utcnow
 from labra.core.models import Consent, ConsentNotice
 from labra.core.money import ZERO, BillTotals, Discount, Line, bill_totals
 from labra.core.numbering import next_number
-from labra.org.models import Branch
+from labra.org.models import AppUser, Branch, UserBranchRole
 from labra.patients import service as patients
 from labra.patients.models import Patient, Referrer
 from labra.visits.labels import group_by_specimen
@@ -497,3 +497,120 @@ def visit_summary(db: Session, principal: Principal, visit_id: uuid.UUID) -> Vis
             )
         ],
     )
+
+
+# Collecting samples
+
+
+@dataclass(frozen=True)
+class SampleDetail:
+    """A sample with whose it is and what it is for."""
+
+    sample: Sample
+    patient: Patient
+    tests: list[Test]
+    collector: AppUser | None
+
+
+def collectors(db: Session, principal: Principal) -> list[AppUser]:
+    """Who may be named as having collected a sample: active staff with a role at the
+    user's branch, whether or not they sign in themselves."""
+    _check(principal, "sample.collect", principal.branch_id)
+    return list(
+        db.scalars(
+            select(AppUser)
+            .where(
+                AppUser.is_active,
+                AppUser.id.in_(
+                    select(UserBranchRole.user_id).where(
+                        UserBranchRole.branch_id == principal.branch_id
+                    )
+                ),
+            )
+            .order_by(AppUser.full_name)
+        )
+    )
+
+
+def _sample_here(db: Session, principal: Principal, sample_no: str, lock: bool = False):
+    query = (
+        select(Sample)
+        .join(Visit, Visit.id == Sample.visit_id)
+        .where(Sample.sample_no == sample_no, Visit.branch_id == principal.branch_id)
+    )
+    return db.scalar(query.with_for_update(of=Sample) if lock else query)
+
+
+def find_sample(db: Session, principal: Principal, sample_no: str) -> SampleDetail | None:
+    """A sample of the user's branch by its number; another branch's is not found."""
+    _check(principal, "sample.collect", principal.branch_id)
+    sample = _sample_here(db, principal, sample_no.strip().upper())
+    if sample is None:
+        return None
+    visit = db.get_one(Visit, sample.visit_id)
+    return SampleDetail(
+        sample=sample,
+        patient=db.get_one(Patient, visit.patient_id),
+        tests=list(
+            db.scalars(
+                select(Test)
+                .join(OrderTest, OrderTest.test_id == Test.id)
+                .where(OrderTest.sample_id == sample.id)
+                .order_by(Test.code)
+            )
+        ),
+        collector=db.get(AppUser, sample.collected_by) if sample.collected_by else None,
+    )
+
+
+def collect_sample(
+    db: Session,
+    principal: Principal,
+    sample_no: str,
+    collected_by: uuid.UUID | None,
+    now: datetime | None = None,
+) -> Sample:
+    """Mark a scanned sample, and the tests waiting on it, as collected."""
+    _check(principal, "sample.collect", principal.branch_id)
+    number = sample_no.strip().upper()
+    if not number:
+        raise ValidationFailedError({"sample_no": "Scan or type the sample number."})
+    if collected_by not in {user.id for user in collectors(db, principal)}:
+        raise ValidationFailedError({"collected_by": "Choose who collected the sample."})
+    sample = _sample_here(db, principal, number, lock=True)
+    if sample is None:
+        raise ValidationFailedError(
+            {"sample_no": f"No sample at this branch has the number {number}."}
+        )
+    if sample.status == "cancelled":
+        raise ValidationFailedError(
+            {"sample_no": f"Sample {number} was cancelled with its bill. Don't collect it."}
+        )
+    if sample.status != "pending":
+        raise ValidationFailedError(
+            {"sample_no": f"Sample {number} is already marked as collected."}
+        )
+    sample.status = "collected"
+    sample.collected_at = now or utcnow()
+    sample.collected_by = collected_by
+    sample.updated_by = principal.user_id
+    for ordered in db.scalars(
+        select(OrderTest).where(OrderTest.sample_id == sample.id, OrderTest.status == "ordered")
+    ):
+        ordered.status = "collected"
+        ordered.updated_by = principal.user_id
+    db.flush()
+    audit.record(
+        db,
+        "sample.collect",
+        "sample",
+        sample.id,
+        {
+            "sample_no": sample.sample_no,
+            "visit_id": str(sample.visit_id),
+            "collected_by": str(collected_by),
+        },
+        user_id=principal.user_id,
+        branch_id=principal.branch_id,
+    )
+    return sample

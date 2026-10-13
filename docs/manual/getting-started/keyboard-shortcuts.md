@@ -23,8 +23,10 @@ its name, such as **Save and print** `Alt+S`.
 | **Alt+D** | Open the dues list | Every screen |
 | **Alt+S** | Save | Front-desk forms |
 | **Alt+R** | Print the bill and receipt | Visit summary |
+| **Alt+L** | Print the sample labels | Visit summary |
 | **F2** | Open the referrer list | New visit |
 | **Enter** | Add the test you typed; look up the phone number | New visit |
+| **Enter** | Mark the scanned sample as collected (a barcode scanner sends it for you) | Collect samples |
 | **Esc** | Close a list that is open | New visit |
 | **Tab**, **Shift+Tab** | Move to the next or the previous field | Every screen |
 
@@ -50,4 +52,5 @@ its name, such as **Save and print** `Alt+S`.
 ## Related pages
 
 - [New visit](../frontdesk/new-visit.md)
+- [Sample labels and collection](../frontdesk/labels.md)
 - [Screen layout](screen-layout.md)

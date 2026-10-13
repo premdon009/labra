@@ -41,14 +41,14 @@ works here**. Their name stays on the records they made.
 |---|---|
 | Administrator | Everything, at every branch: branches, staff, settings, audit log |
 | Branch manager | Everything front desk can do, plus cancel bills, see the branch and its settings, and change the per-branch settings |
-| Front desk | Find and register patients, keep the referrer list, book visits, see bills and take payments |
-| Phlebotomist | Work at the branch |
+| Front desk | Find and register patients, keep the referrer list, book visits, print labels, mark samples as collected, see bills and take payments |
+| Phlebotomist | Mark samples as collected |
 | Technician | Work at the branch |
 | Signatory | Work at the branch |
 
 - Roles count only at the branch they are ticked for. A front-desk user at Branch 2 can't
   see Branch 3 at all.
-- Phlebotomist, technician and signatory gain their own screens as Labra grows.
+- Technician and signatory gain their own screens as Labra grows.
 - You can't switch off your own sign-in, so a lab is never left without an administrator.
 - Every change is recorded in the audit log.
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
