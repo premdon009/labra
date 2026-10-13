@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Receive samples{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Receive samples</h1></div>
+{% if done and done.received_at %}
+<div class="alert" role="status">
+  <h2>In the lab: {{ done.sample_no }}</h2>
+  <p>{{ done.patient_name }} · {{ done.age }} · {{ sexes.get(done.sex, done.sex) }} · {{ done.container or 'Container not set' }} · {{ done.tests|join(', ')|upper }}<br>
+    From {{ done.from_branch }}, received {{ done.received_at|local_time }}</p>
+</div>
+{% endif %}
+{% if errors %}
+<div class="alert-destructive" role="alert"><h2>{{ errors.values()|join(' ') }}</h2></div>
+{% endif %}
+<form method="post" action="/lab/receive" class="stack">
+  {{ csrf(csrf_token) }}
+  <div class="form-grid">
+    <div class="field-row">
+      <label class="label" for="f-sample_no">Sample number</label>
+      <input class="input" type="text" id="f-sample_no" name="sample_no" value="{{ sample_no }}" autofocus autocomplete="off" autocapitalize="characters" maxlength="20" required {% if errors.get('sample_no') %}aria-invalid="true"{% endif %}>
+      <p class="muted">Scan the label, or type the number and press Enter.</p>
+    </div>
+  </div>
+  <div class="form-actions"><button type="submit" class="btn">Receive in the lab <kbd>Enter</kbd></button></div>
+</form>
+{% endblock %}

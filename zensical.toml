@@ -41,6 +41,9 @@ nav = [
       "manual/frontdesk/bills-and-receipts.md",
       "manual/frontdesk/dues-and-payments.md",
     ] },
+    { "Lab" = [
+      "manual/lab/receiving-samples.md",
+    ] },
   ] },
   { "Developers" = [
     "dev/setup.md",

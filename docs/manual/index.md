@@ -57,8 +57,10 @@ Every feature Labra has, and the manual page that explains it.
 | M07.2 | UPI reference must have a digit in it; the audit log records a new visit before its bill | [New visit](frontdesk/new-visit.md) |
 | M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | [Dues and payments](frontdesk/dues-and-payments.md) |
 | M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | [New visit](frontdesk/new-visit.md) |
+| M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M10 | External labs and result PDF upload | [External labs](admin/external-labs.md) |
+| M11.3 | Samples from another branch are scanned in at the lab before they appear on the worklist | [Receiving samples](lab/receiving-samples.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |

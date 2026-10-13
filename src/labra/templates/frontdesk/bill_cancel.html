@@ -5,6 +5,12 @@
 <div class="page-head"><h1>Cancel bill {{ bill.bill_no }}</h1></div>
 {% if bill.status == 'cancelled' %}
 <p>This bill is already cancelled. <a href="/frontdesk/visits/{{ bill.visit_id }}">Back to the visit</a></p>
+{% elif blocked %}
+<div class="alert-destructive" role="alert">
+  <h2>This bill can't be cancelled</h2>
+  <p>One of its tests was already sent to an outside lab or has a result.</p>
+</div>
+<p><a href="/frontdesk/visits/{{ bill.visit_id }}">Back to the visit</a></p>
 {% else %}
 {% if errors %}<div class="alert-destructive" role="alert"><h2>Not cancelled. Please correct the highlighted fields.</h2></div>{% endif %}
 <div class="alert" role="note">

@@ -84,6 +84,19 @@ define(
         max_length=200,
     )
 )
+define(
+    SettingDef(
+        "lab.receive_step",
+        str,
+        "other_branches",
+        "Scan samples in when they reach the lab",
+        choices=(
+            ("other_branches", "Only samples that come from another branch"),
+            ("always", "Every sample"),
+            ("never", "Never: a collected sample is in the lab at once"),
+        ),
+    )
+)
 
 
 def _currency(key: str, default: str, label: str, **kw: Any) -> None:

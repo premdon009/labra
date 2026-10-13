@@ -59,6 +59,8 @@ To record a collection:
 - If a label says **Container not set**, the test has no specimen type. Ask an
   administrator to set it in the catalog.
 - Set the scanner to send **Enter** after each scan. Most scanners do this out of the box.
+- A sample that is tested at another branch is scanned again when it arrives there. See
+  [Receiving samples](../lab/receiving-samples.md).
 - Each collection is recorded in the audit log.
 
 ## Related pages

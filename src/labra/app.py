@@ -17,6 +17,7 @@ from labra.core.registry import get_platform
 from labra.extlabs.routes import router as extlabs_router
 from labra.org.routes import router as org_router
 from labra.patients.routes import router as patients_router
+from labra.results.routes import router as results_router
 from labra.visits.routes import router as visits_router
 from labra.web import errors
 from labra.web.middleware import RequestContextMiddleware
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(patients_router)
     app.include_router(visits_router)
     app.include_router(billing_router)
+    app.include_router(results_router)
     app.mount("/static", StaticFiles(directory=PACKAGE / "static"), name="static")
     # Added last, so it runs first: everything inside sees the request ID.
     app.add_middleware(RequestContextMiddleware, on_error=errors.unexpected_error)

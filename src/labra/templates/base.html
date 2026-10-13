@@ -31,6 +31,9 @@
       {% if principal.can('sample.collect', principal.branch_id) %}
       <a href="/frontdesk/collect" {% if request.url.path.startswith('/frontdesk/collect') %}aria-current="page"{% endif %}>Collect samples</a>
       {% endif %}
+      {% if principal.can('sample.receive', principal.branch_id) %}
+      <a href="/lab/receive" {% if request.url.path.startswith('/lab/receive') %}aria-current="page"{% endif %}>Receive samples</a>
+      {% endif %}
       {% if principal.can('referrer.view') %}
       <a href="/frontdesk/referrers" {% if request.url.path.startswith('/frontdesk/referrers') %}aria-current="page"{% endif %}>Referrers</a>
       {% endif %}

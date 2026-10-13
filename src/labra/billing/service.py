@@ -453,8 +453,31 @@ def take_payment(
     return row
 
 
+# A test this far along has cost the lab money or produced a result someone may have seen.
+PAST_CANCELLING = ("sent_out", "resulted", "verified", "released")
+CANCEL_BLOCKED = (
+    "This bill can't be cancelled: one of its tests was already sent to an outside lab or"
+    " has a result."
+)
+
+
+def cancel_blocked(db: Session, visit_id: uuid.UUID) -> bool:
+    """True once a test of the visit was sent out or has a result."""
+    return (
+        db.scalar(
+            select(OrderTest.id)
+            .where(OrderTest.visit_id == visit_id, OrderTest.status.in_(PAST_CANCELLING))
+            .limit(1)
+        )
+        is not None
+    )
+
+
 def _cancel_order(db: Session, principal: Principal, visit: Visit, reason: str) -> None:
-    """Cancel the visit, its order lines and tests, and the samples not yet in the lab."""
+    """Cancel the visit, its order lines and tests, and the samples not yet in the lab.
+    Refused once the lab's work on any test can't be taken back."""
+    if cancel_blocked(db, visit.id):
+        raise ConflictError(CANCEL_BLOCKED)
     for item in db.scalars(
         select(OrderItem).where(OrderItem.visit_id == visit.id, OrderItem.status == "active")
     ):
@@ -516,6 +539,7 @@ def cancel_bill(
     visit = db.get(Visit, bill.visit_id)
     if branch is None or visit is None:
         raise NotFoundError()
+    _cancel_order(db, principal, visit, reason)
 
     refund = None
     if bill.paid > 0:
@@ -538,7 +562,6 @@ def cancel_bill(
     bill.cancelled_by = principal.user_id
     bill.updated_by = principal.user_id
 
-    _cancel_order(db, principal, visit, reason)
     db.flush()
 
     refunded = str(refund.amount) if refund is not None else str(ZERO)

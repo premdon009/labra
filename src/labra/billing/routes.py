@@ -216,6 +216,7 @@ def _cancel_form(
             "errors": errors,
             "modes": MODE_LABELS,
             "fmt": load_format(db, bill.branch_id),
+            "blocked": service.cancel_blocked(db, bill.visit_id),
         },
         status_code=status,
     )

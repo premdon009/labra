@@ -166,6 +166,7 @@ containers = [
     "labra.visits",
     "labra.billing",
     "labra.extlabs",
+    "labra.results",
 ]
 layers = ["routes", "service", "models"]
 

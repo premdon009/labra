@@ -354,6 +354,18 @@ def _order(
     return items, samples
 
 
+def status_once_collected(
+    db: Session, collected_at_branch: uuid.UUID, perform_branch_id: uuid.UUID
+) -> str:
+    """Where a test stands once its sample is taken: `in_lab` when the lab doing it needs no
+    scan to have the sample, `collected` while the sample still has to be scanned in there."""
+    step = lab_settings.get_value(db, "lab.receive_step")
+    waits = step == "always" or (
+        step == "other_branches" and perform_branch_id != collected_at_branch
+    )
+    return "collected" if waits else "in_lab"
+
+
 def main_lab_id(db: Session) -> uuid.UUID | None:
     """The main lab, where a test is done unless a collection centre keeps it."""
     return db.scalar(
@@ -610,10 +622,11 @@ def collect_sample(
     sample.collected_at = now or utcnow()
     sample.collected_by = collected_by
     sample.updated_by = principal.user_id
+    visit = db.get_one(Visit, sample.visit_id)
     for ordered in db.scalars(
         select(OrderTest).where(OrderTest.sample_id == sample.id, OrderTest.status == "ordered")
     ):
-        ordered.status = "collected"
+        ordered.status = status_once_collected(db, visit.branch_id, ordered.perform_branch_id)
         ordered.updated_by = principal.user_id
     db.flush()
     audit.record(

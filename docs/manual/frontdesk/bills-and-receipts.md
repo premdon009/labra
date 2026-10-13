@@ -1,6 +1,6 @@
 ---
 title: Bills and receipts
-features: [M07, M07.1, M23, M26, EC-B05, EC-J03]
+features: [M07, M07.1, M07.4, M23, M26, EC-B05, EC-J03]
 ---
 
 # Bills and receipts
@@ -58,6 +58,8 @@ To cancel a bill:
   visit.
 - Cancelling can't be undone. It cancels the visit, its tests and the samples not yet in
   the lab. A cancelled bill keeps its number and prints with **CANCELLED** across it.
+- A bill can't be cancelled once one of its tests was sent to an outside lab or has a
+  result. Labra shows **This bill can't be cancelled** instead of the form.
 - Cancelling a bill that was paid gives **all** the money back, and the refund is recorded
   with its own number. Giving back only a part is not possible yet.
 - A printed bill always shows what was true on the day it was made: the lab's name, the

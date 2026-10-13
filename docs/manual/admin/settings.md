@@ -36,6 +36,7 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 | Legal name printed on bills | Whole lab | Up to 120 characters. Leave empty to print the lab name |
 | SAC code printed on bill lines | Whole lab | 4 to 8 digits; starts as `999316` |
 | Exemption note printed on bills | Whole lab | Up to 200 characters |
+| Scan samples in when they reach the lab | Whole lab | Only samples from another branch (the start value), every sample, or never. See [Receiving samples](../lab/receiving-samples.md) |
 
 - A branch value overrides the whole-lab value at that branch. Branches without their own
   value use the whole-lab one.
