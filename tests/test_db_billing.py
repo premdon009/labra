@@ -482,6 +482,7 @@ def test_cancel_marks_samples_cancelled(seeded: Session, platform: Platform) -> 
         order_item_id=item.id,
         test_id=test.id,
         sample_id=pending.id,
+        perform_branch_id=visit.branch_id,
         due_at=utcnow(),
     )
     seeded.add(ordered)

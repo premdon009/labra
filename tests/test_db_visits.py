@@ -156,6 +156,7 @@ def test_duplicate_test_in_visit_refused(seeded: Session, platform: Platform) ->
         visit_id=visit.id,
         order_item_id=first.order_item_id,
         test_id=first.test_id,
+        perform_branch_id=first.perform_branch_id,
         due_at=first.due_at,
     )
     with pytest.raises(IntegrityError, match="uq_order_test_visit_test"), seeded.begin_nested():

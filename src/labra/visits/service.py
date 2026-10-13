@@ -336,12 +336,14 @@ def _order(
     db.add_all(samples)
     db.flush()
     fallback = lab_settings.get_value(db, "visit.default_tat_hours", branch.id)
+    perform_branch_id = main_lab_id(db) or branch.id
     db.add_all(
         OrderTest(
             visit_id=visit.id,
             order_item_id=item.id,
             test_id=test.id,
             sample_id=sample_of[test.id].id,
+            perform_branch_id=perform_branch_id,
             due_at=visit.visited_at + timedelta(hours=test.default_tat_hours or fallback),
             created_by=principal.user_id,
         )
@@ -350,6 +352,16 @@ def _order(
     )
     db.flush()
     return items, samples
+
+
+def main_lab_id(db: Session) -> uuid.UUID | None:
+    """The main lab, where a test is done unless a collection centre keeps it."""
+    return db.scalar(
+        select(Branch.id)
+        .where(Branch.kind == "main_lab", Branch.is_active)
+        .order_by(Branch.created_at, Branch.id)
+        .limit(1)
+    )
 
 
 def save_visit(

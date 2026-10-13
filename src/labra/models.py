@@ -26,8 +26,18 @@ from labra.core.models import (
     Setting,
     StoredFile,
 )
+from labra.extlabs.models import ExternalLab, ExternalLabRate
 from labra.org.models import AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.patients.models import Patient, Referrer
+from labra.results.models import (
+    CriticalNotification,
+    ExternalDocument,
+    ExternalDocumentTest,
+    OrderTestEvent,
+    Result,
+    ResultRevision,
+    Verification,
+)
 from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 
 __all__ = [
@@ -40,13 +50,19 @@ __all__ = [
     "CommentPreset",
     "Consent",
     "ConsentNotice",
+    "CriticalNotification",
     "Department",
     "EventOutbox",
+    "ExternalDocument",
+    "ExternalDocumentTest",
+    "ExternalLab",
+    "ExternalLabRate",
     "LocalCredential",
     "LoginAttempt",
     "NumberSeries",
     "OrderItem",
     "OrderTest",
+    "OrderTestEvent",
     "Package",
     "PackageItem",
     "Patient",
@@ -56,6 +72,8 @@ __all__ = [
     "ReferenceRange",
     "Referrer",
     "Refund",
+    "Result",
+    "ResultRevision",
     "Role",
     "RolePermission",
     "Sample",
@@ -67,5 +85,6 @@ __all__ = [
     "TestParameter",
     "UserBranchRole",
     "UserSession",
+    "Verification",
     "Visit",
 ]

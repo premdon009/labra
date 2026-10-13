@@ -25,6 +25,7 @@ ORDER_TEST_STATUSES = (
     "released",
     "cancelled",
 )
+ROUTES = ("in_house", "external")
 SAMPLE_STATUSES = ("pending", "collected", "received", "rejected", "redraw", "cancelled")
 
 
@@ -94,7 +95,9 @@ class OrderItem(TrackedMixin, Base):
 
 
 class OrderTest(TrackedMixin, Base):
-    """One test to run, from a test line or one of a package's tests."""
+    """One test to run, from a test line or one of a package's tests. `perform_branch_id`
+    is the branch whose lab does it, the main lab unless a collection centre keeps it; a
+    test routed `external` goes to `external_lab_id` and keeps the cost agreed that day."""
 
     __tablename__ = "order_test"
     __table_args__ = (
@@ -103,6 +106,11 @@ class OrderTest(TrackedMixin, Base):
             " 'released', 'cancelled')",
             name="status",
         ),
+        CheckConstraint("route in ('in_house', 'external')", name="route"),
+        CheckConstraint(
+            "(route = 'external') = (external_lab_id is not null)", name="route_external"
+        ),
+        Index("ix_order_test_perform_branch", "perform_branch_id", "status", "due_at"),
         Index(
             "uq_order_test_visit_test",
             "visit_id",
@@ -118,6 +126,14 @@ class OrderTest(TrackedMixin, Base):
     sample_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sample.id"), index=True)
     status: Mapped[str] = mapped_column(String(10), default="ordered")
     due_at: Mapped[datetime]
+    route: Mapped[str] = mapped_column(String(10), default="in_house", server_default="in_house")
+    perform_branch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("branch.id"))
+    external_lab_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("external_lab.id"))
+    external_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    external_accession_no: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    route_reason: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    routed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
+    routed_at: Mapped[datetime | None]
 
 
 class Sample(TrackedMixin, Base):
@@ -142,3 +158,6 @@ class Sample(TrackedMixin, Base):
     status: Mapped[str] = mapped_column(String(10), default="pending")
     collected_at: Mapped[datetime | None]
     collected_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
+    # Scanned in at the lab that performs the tests, when that is a different branch.
+    received_at: Mapped[datetime | None]
+    received_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))

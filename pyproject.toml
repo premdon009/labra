@@ -130,6 +130,8 @@ source_modules = [
     "labra.patients",
     "labra.visits",
     "labra.billing",
+    "labra.extlabs",
+    "labra.results",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
@@ -148,6 +150,8 @@ forbidden_modules = [
     "labra.patients",
     "labra.visits",
     "labra.billing",
+    "labra.extlabs",
+    "labra.results",
     "labra.web",
 ]
 
@@ -163,6 +167,18 @@ containers = [
     "labra.billing",
 ]
 layers = ["routes", "service", "models"]
+
+[[tool.importlinter.contracts]]
+name = "The front desk and external labs don't depend on the lab bench"
+type = "forbidden"
+source_modules = ["labra.patients", "labra.visits", "labra.billing", "labra.extlabs"]
+forbidden_modules = ["labra.results"]
+
+[[tool.importlinter.contracts]]
+name = "The front desk doesn't depend on external labs"
+type = "forbidden"
+source_modules = ["labra.patients", "labra.visits", "labra.billing"]
+forbidden_modules = ["labra.extlabs"]
 
 [[tool.importlinter.contracts]]
 name = "Front-desk domain code leaves formatting to the web layer"
