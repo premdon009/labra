@@ -49,7 +49,8 @@
   {% endif %}
   {% if block.awaiting_pdf and block.status != 'sent_out' %}<p class="muted">This test goes to an outside lab. Send it from <a href="/lab/outsourcing">Outsourcing</a>, or move it in-house to type its values here.</p>{% endif %}
   {% if block.status == 'sent_out' %}<p class="muted">With the outside lab. Attach its PDF under <a href="#outside">Results from outside labs</a>; then the value can be typed.</p>{% endif %}
-  {{ block_foot(block, csrf_token, statuses) }}
+  {{ block_foot(block, statuses) }}
+  <form method="post" id="act-{{ block.order_test_id }}">{{ csrf(csrf_token) }}</form>
   {{ timeline(timelines.get(block.order_test_id, []), events) }}
 </section>
 {% endfor %}

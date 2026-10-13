@@ -1,30 +1,33 @@
 {# What stands under one test's grid: what is still to look at, and what can be done next.
-   `oob` swaps it into place when a cell of the test is saved. #}
-{% macro block_foot(block, token, statuses, oob=False) %}
+   `oob` swaps it into place when a cell of the test is saved. The buttons belong to the
+   form `act-<test>` that the page keeps outside this block: a form inside it would be
+   emptied when the block arrives next to table rows. #}
+{% macro block_foot(block, statuses, oob=False) %}
+{% set act = 'act-' ~ block.order_test_id %}
 <div class="result-foot" id="f-{{ block.order_test_id }}"{% if oob %} hx-swap-oob="true"{% endif %}>
   <p class="muted"><strong>{{ statuses.get(block.status, block.status) }}</strong>{% if block.verified_by %} by {{ block.verified_by }}{% endif %} · {{ block.count('critical') }} critical · {{ block.count('high') }} high · {{ block.count('low') }} low · {{ block.count('abnormal') }} abnormal · {{ block.missing }} missing</p>
   {% if block.error %}<p class="field-error" role="alert">{{ block.error }}</p>{% endif %}
+  {% if block.can_submit or block.can_verify or block.can_reopen %}
+  <input type="hidden" name="row_version" value="{{ block.row_version }}" form="{{ act }}">
+  {% endif %}
   {% if block.can_submit %}
-  <form method="post" action="/lab/tests/{{ block.order_test_id }}/submit">
-    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
-    <button type="submit" class="btn-sm">Submit for verification</button>
+  <div>
+    <button type="submit" class="btn-sm" form="{{ act }}" formaction="/lab/tests/{{ block.order_test_id }}/submit" formnovalidate>Submit for verification</button>
     {% if block.to_inform %}<span class="muted">First record who was informed of the critical value.</span>{% endif %}
-  </form>
+  </div>
   {% endif %}
   {% if block.can_verify %}
-  <form method="post" action="/lab/tests/{{ block.order_test_id }}/verify">
-    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
-    <button type="submit" class="btn-sm">Verify</button>
+  <div>
+    <button type="submit" class="btn-sm" form="{{ act }}" formaction="/lab/tests/{{ block.order_test_id }}/verify" formnovalidate>Verify</button>
     {% if block.to_inform %}<span class="muted">First record who was informed of the critical value.</span>{% endif %}
-  </form>
+  </div>
   {% endif %}
   {% if block.can_reopen %}
-  <form method="post" action="/lab/tests/{{ block.order_test_id }}/reopen" class="result-reopen">
-    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
+  <div class="result-reopen">
     <label for="reopen-{{ block.order_test_id }}">Reason for reopening</label>
-    <input class="input" type="text" id="reopen-{{ block.order_test_id }}" name="reason" maxlength="300" required autocomplete="off">
-    <button type="submit" class="btn-sm-outline">Reopen</button>
-  </form>
+    <input class="input" type="text" id="reopen-{{ block.order_test_id }}" name="reason" maxlength="300" required autocomplete="off" form="{{ act }}">
+    <button type="submit" class="btn-sm-outline" form="{{ act }}" formaction="/lab/tests/{{ block.order_test_id }}/reopen">Reopen</button>
+  </div>
   {% endif %}
 </div>
 {% endmacro %}

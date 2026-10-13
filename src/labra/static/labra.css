@@ -89,7 +89,7 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 .range-unapproved { font-style: italic; }
 .result-foot { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; margin-top: 0.4rem; }
 .result-foot p { margin: 0; }
-.result-foot form, .route-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.result-foot div, .route-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .route-row { margin-bottom: 0.4rem; }
 .result-informed { margin: 0.15rem 0 0; font-weight: 400; }
 .inform { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.5rem; align-items: center;
