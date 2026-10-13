@@ -2,11 +2,12 @@
 patient."""
 
 import re
+import time
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import event, func, select
 from sqlalchemy.orm import Session
 
 from labra.catalog.models import Department, Test
@@ -270,3 +271,47 @@ def test_the_lab_screens(lab: Session, platform: Platform, db_client: TestClient
         assert "/lab/worklist" not in db_client.get("/").text
         assert db_client.get("/lab/worklist").status_code == 403
         assert db_client.get(f"/lab/visits/{visit.id}").status_code == 403
+
+
+@pytest.mark.item("EC-F01")
+def test_a_full_worklist_costs_no_more_queries_than_a_short_one_and_loads_in_time(
+    lab: Session, platform: Platform, db_client: TestClient
+) -> None:
+    statements: list[str] = []
+
+    def count(conn, cursor, statement, parameters, context, executemany) -> None:
+        statements.append(statement)
+
+    def load() -> tuple[int, float, str]:
+        statements.clear()
+        started = time.perf_counter()
+        got = db_client.get("/lab/worklist")
+        took = time.perf_counter() - started
+        assert got.status_code == 200
+        return len(statements), took, got.text
+
+    _receive(lab, platform, _visit(lab, platform, "fbs", "lipid", "urine"))
+    lab.commit()
+    sign_in(db_client, "suresh")
+    event.listen(lab.get_bind(), "before_cursor_execute", count)
+    try:
+        few, _, _ = load()
+        for number in range(49):
+            visit = _visit(
+                lab, platform, "fbs", "lipid", "urine", name=f"Patient {number:02d} Test"
+            )
+            _receive(lab, platform, visit)
+        lab.commit()
+        waiting = lab.scalar(
+            select(func.count()).select_from(OrderTest).where(OrderTest.status == "in_lab")
+        )
+        assert waiting == 150
+        many, took, text = load()
+    finally:
+        event.remove(lab.get_bind(), "before_cursor_execute", count)
+
+    # The list is one page of rows however long the queue is: no query per row.
+    assert many <= few
+    assert many <= 15
+    assert took < 1.0
+    assert "Next" in text
