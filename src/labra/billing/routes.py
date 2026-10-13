@@ -13,7 +13,7 @@ from labra.billing.models import Bill
 from labra.core.currency import format_from_snapshot, load_format
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
-from labra.web.forms import as_uuid, day
+from labra.web.forms import as_uuid, day, page_no
 from labra.web.labels import BILL_STATUS_LABELS, MODE_LABELS
 from labra.web.templating import page, render
 
@@ -31,13 +31,15 @@ def bills(
     day_from: Annotated[str, Query(alias="from")] = "",
     day_to: Annotated[str, Query(alias="to")] = "",
     status: str = "",
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     return render(
         request,
         "frontdesk/bills.html",
         {
-            "bills": service.bill_page(db, principal, page, day(day_from), day(day_to), status),
+            "bills": service.bill_page(
+                db, principal, page_no(page), day(day_from), day(day_to), status
+            ),
             "day_from": day_from,
             "day_to": day_to,
             "status": status,
@@ -53,13 +55,13 @@ def dues(
     request: Request,
     db: DB,
     principal: Annotated[Principal, Depends(require("bill.view"))],
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     return render(
         request,
         "frontdesk/dues.html",
         {
-            "bills": service.dues_page(db, principal, page),
+            "bills": service.dues_page(db, principal, page_no(page)),
             "fmt": load_format(db, principal.branch_id),
             "can_pay": principal.can("payment.take", principal.branch_id),
         },

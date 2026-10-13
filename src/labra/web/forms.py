@@ -37,3 +37,10 @@ def local_minute(value: str) -> datetime | None:
         return datetime.fromisoformat(value).replace(tzinfo=IST) if value else None
     except ValueError:
         return None
+
+
+def page_no(value: str) -> int:
+    """The page of a list asked for in the URL; the first page when it isn't a number."""
+    value = value.strip()
+    # Nine digits are more pages than any list has, and never too long to read as a number.
+    return max(int(value[:9]), 1) if value.isascii() and value.isdigit() else 1

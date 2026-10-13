@@ -1,6 +1,6 @@
 ---
 title: Test catalog
-features: [M05, M05.1, M14, EC-F03]
+features: [M05, M05.1, M14, M14.1, M23.1, EC-F03]
 ---
 
 # Test catalog
@@ -55,7 +55,9 @@ the bottom of the table and select **Add department** or **Add specimen type**. 
 edit its row and select **Save** on that row.
 
 To add a package (tests billed together, such as `fbs+ppbs`), open **Packages**, select
-**Add package**, fill in **Code** and **Name**, tick the tests in it and select **Save**.
+**Add package**, fill in **Code** and **Name**, type the codes of its tests in **Add tests by
+code** (for example `fbs ppbs`) and select **Save**. To take a test out of a package later,
+open the package, untick the test and select **Save**.
 
 ## Screenshot
 
@@ -64,7 +66,11 @@ To add a package (tests billed together, such as `fbs+ppbs`), open **Packages**,
 ## Good to know
 
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
-  through them; a search or filter you chose stays in place.
+  through them; a search or filter you chose stays in place. After you save a row on a later
+  page, Labra shows that same page again.
+- If a code you typed for a package isn't a test in use, Labra doesn't save, says which code
+  it didn't find and keeps the rest of what you typed.
+- Price headings show the lab's currency symbol, set under **Settings ▸ Currency**.
 - A test or package that is no longer offered is switched off, not deleted: untick **Test is
   in use**. Old visits and reports keep showing it.
 - Another code can't be used by two tests or by a test and a package.

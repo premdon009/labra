@@ -147,3 +147,6 @@ def test_frontdesk_lists_paginate(
         second = db_client.get(f"{url}?q=e&page=2").text
         assert second.count(">Edit</a>") == 1
         assert 'rel="prev"' in second and 'rel="next"' not in second
+        junk = db_client.get(f"{url}?q=e&page=two")
+        assert junk.status_code == 200
+        assert 'rel="next"' in junk.text and 'rel="prev"' not in junk.text

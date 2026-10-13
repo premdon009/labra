@@ -1,6 +1,6 @@
 ---
 title: Methods and comment presets
-features: [M05, EC-F03]
+features: [M05, M14.1, EC-F03]
 ---
 
 # Methods and comment presets
@@ -32,8 +32,8 @@ To add a comment preset:
 
 1. Fill in **New preset label**, a short name the technician picks from, and **Comment**, the
    text that is added to the result.
-2. On **Comment presets**, choose **For**: one test, or **Any test**. On a test's own page the
-   preset is for that test.
+2. On **Comment presets**, type the code of one test in **For the test with code**, or
+   leave it empty for any test. On a test's own page the preset is for that test.
 3. Select **Add preset**.
 
 ## Screenshot

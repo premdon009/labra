@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from labra.catalog import routes, starter
 from labra.catalog.models import (
+    CommentPreset,
     Department,
     Package,
     Price,
@@ -19,6 +20,7 @@ from labra.catalog.models import (
     TestMethod,
     TestParameter,
 )
+from labra.core import lab_settings
 from labra.core.models import AuditLog
 from labra.org.models import Branch
 from labra.seed import DEMO_PASSWORD
@@ -177,6 +179,51 @@ def test_catalog_lists_paginate(seeded: Session, db_client: TestClient) -> None:
     assert 'href="/admin/prices?page=2" rel="next"' in prices
     for url in ("/admin/catalog/ranges", "/admin/catalog/ranges?page=2", "/admin/prices?page=9"):
         assert db_client.get(url).status_code == 200, url
+
+
+@pytest.mark.item("M14.1")
+def test_a_page_number_that_is_not_a_number_shows_the_first_page(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    assert _post(db_client, "/admin/catalog/starter", {}).status_code == 200
+    for url in (
+        "/admin/catalog",
+        "/admin/catalog/packages",
+        "/admin/catalog/ranges",
+        "/admin/catalog/presets",
+        "/admin/prices",
+        "/admin/branches",
+        "/admin/users",
+    ):
+        for page in ("abc", "-3", "0", "9" * 5000, "٣"):
+            assert db_client.get(url, params={"page": page}).status_code == 200, (url, page)
+    assert 'rel="prev"' not in db_client.get("/admin/catalog?page=abc").text
+
+
+@pytest.mark.item("M14.1")
+def test_a_list_edited_on_its_second_page_stays_there(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    for n in range(26):
+        saved = _post(
+            db_client, "/admin/catalog/presets", {"label": f"Note {n:02d}", "text": "Repeat."}
+        )
+        assert saved.status_code == 303
+    second = db_client.get("/admin/catalog/presets?page=2").text
+    assert second.count('action="/admin/catalog/presets?page=2"') == 2
+    refused = _post(db_client, "/admin/catalog/presets?page=2", {"label": "", "text": ""})
+    assert refused.status_code == 422
+    assert "Page 2" in refused.text and 'rel="prev"' in refused.text
+    saved = _post(
+        db_client, "/admin/catalog/presets?page=2", {"label": "Note 26", "text": "Repeat."}
+    )
+    assert saved.headers["location"] == "/admin/catalog/presets?page=2"
+    # The two lists on the setup screen keep their own page numbers.
+    saved = _post(db_client, "/admin/catalog/specimens?dpage=2&spage=3", {"code": "", "name": ""})
+    assert saved.status_code == 422
+    assert 'action="/admin/catalog/departments?dpage=2&amp;spage=3"' in saved.text
 
 
 # Saving
@@ -486,6 +533,53 @@ def test_a_package_through_the_screen(seeded: Session, db_client: TestClient) ->
     assert "lft, lipid" in db_client.get("/admin/catalog/packages").text
 
 
+@pytest.mark.item("M14.1")
+def test_tests_are_picked_by_code_not_from_a_list_of_every_test(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    assert _post(db_client, "/admin/catalog/starter", {}).status_code == 200
+    # Neither form lists the catalog: it is longer than any list may be.
+    blank = db_client.get("/admin/catalog/packages/new").text
+    assert 'name="test_codes"' in blank and 'name="test_ids"' not in blank
+    presets = db_client.get("/admin/catalog/presets").text
+    assert 'name="test_code"' in presets and 'name="test_id">' not in presets
+
+    form = {"code": "sugar+fat", "name": "Sugar and lipids"}
+    r = _post(db_client, "/admin/catalog/packages", form | {"test_codes": "FBS, nosuch  lipid"})
+    assert r.status_code == 422
+    assert "No test in use has the code nosuch." in r.text
+    # What was found is ticked, and only the wrong code is left to correct.
+    assert r.text.count('name="test_ids"') == 2 and 'name="test_codes" value="nosuch"' in r.text
+    fbs, lipid = _one(seeded, Test, code="fbs"), _one(seeded, Test, code="lipid")
+    r = _post(db_client, "/admin/catalog/packages", form | {"test_codes": "fbs lipid"})
+    assert r.status_code == 303, r.text
+    package = _one(seeded, Package, code="sugar+fat")
+    edit = db_client.get(f"/admin/catalog/packages/{package.id}").text
+    assert edit.count('name="test_ids"') == 2
+    # Unticking one and typing another swaps them.
+    changed = {
+        "package_id": str(package.id),
+        "row_version": package.row_version,
+        "is_active": "true",
+        "test_ids": [str(fbs.id)],
+        "test_codes": "urm",
+    }
+    r = _post(db_client, "/admin/catalog/packages", form | changed)
+    assert r.status_code == 303, r.text
+    # "urm" is an alias of the urine test, and finds it as it does at the front desk.
+    assert "fbs, urine" in db_client.get("/admin/catalog/packages").text
+
+    note = {"label": "Lipaemic", "text": "Sample lipaemic; repeat fasting."}
+    r = _post(db_client, "/admin/catalog/presets", note | {"test_code": "nosuch"})
+    assert r.status_code == 422 and "Type the code of one test in use" in r.text
+    r = _post(db_client, "/admin/catalog/presets", note | {"test_code": "LIPID"})
+    assert r.status_code == 303
+    assert _one(seeded, CommentPreset, label="Lipaemic").test_id == lipid.id
+    listing = db_client.get("/admin/catalog/presets").text
+    assert f'href="/admin/catalog/tests/{lipid.id}/methods">lipid<' in listing
+
+
 # Prices
 
 
@@ -507,6 +601,21 @@ def test_prices_through_the_screen(seeded: Session, db_client: TestClient) -> No
     assert "Use the lab price again" not in db_client.get(url).text
     open_prices = seeded.scalars(select(Price).where(Price.valid_to.is_(None))).all()
     assert [(p.branch_id, str(p.amount)) for p in open_prices] == [(None, "600.00")]
+
+
+@pytest.mark.item("M23.1")
+def test_price_headings_use_the_currency_symbol_from_settings(
+    seeded: Session, db_client: TestClient
+) -> None:
+    _sign_in(db_client, "anil")
+    test = _lipid(db_client, seeded)
+    urls = ("/admin/catalog", "/admin/prices", f"/admin/prices/test/{test.id}")
+    for symbol, heading in (("₹", "rice (₹)<"), ("Rs", "rice (Rs)<"), ("", "rice<")):
+        lab_settings.set_value(seeded, "currency.symbol", symbol, None)
+        for url in urls:
+            page = db_client.get(url).text
+            assert heading in page, (symbol, url)
+            assert symbol == "₹" or "₹" not in page, (symbol, url)
 
 
 # Starter catalog

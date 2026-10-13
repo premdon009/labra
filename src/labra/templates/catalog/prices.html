@@ -23,7 +23,7 @@
 </form>
 
 <table class="table">
-  <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Lab price (₹)</th>{% if branch %}<th>Branch price (₹)</th>{% endif %}<th></th></tr></thead>
+  <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Lab price{{ unit }}</th>{% if branch %}<th>Branch price{{ unit }}</th>{% endif %}<th></th></tr></thead>
   <tbody>
 
     {% for r in rows.items %}

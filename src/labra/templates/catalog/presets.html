@@ -38,7 +38,7 @@
 
         {% if can_edit %}
 
-        <form id="{{ row }}" method="post" action="/admin/catalog/presets">
+        <form id="{{ row }}" method="post" action="/admin/catalog/presets{{ same_query(request) }}">
 
           {{ csrf(csrf_token) }}
 
@@ -65,7 +65,7 @@
 
 {% if can_edit %}
 
-<form method="post" action="/admin/catalog/presets" class="form-grid">
+<form method="post" action="/admin/catalog/presets{{ same_query(request) }}" class="form-grid">
 
   {{ csrf(csrf_token) }}
 
@@ -80,17 +80,10 @@
     {{ error('text', 'preset-new') }}
   </div>
   <div class="field-row">
-    <label class="label" for="f-new-test">For</label>
-    <select class="select" id="f-new-test" name="test_id">
-      <option value="">Any test</option>
-
-      {% for t in tests.values() if t.is_active %}
-
-      <option value="{{ t.id }}">{{ t.code }} · {{ t.name }}</option>
-
-      {% endfor %}
-
-    </select>
+    <label class="label" for="f-new-test">For the test with code</label>
+    <input class="input" id="f-new-test" name="test_code" maxlength="20" autocomplete="off" placeholder="lipid">
+    <p class="muted">Leave it empty for a comment that fits any test.</p>
+    {{ error('test_id', 'preset-new') }}
   </div>
   <div class="form-actions"><button type="submit" class="btn-outline">Add preset</button></div>
 </form>

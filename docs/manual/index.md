@@ -56,11 +56,15 @@ Every feature Labra has, and the manual page that explains it.
 | M07.2 | UPI reference must have a digit in it; the audit log records a new visit before its bill | [New visit](frontdesk/new-visit.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
+| M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
+| M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
 | M23 | Currency display settings (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M23.1 | Admin price headings use the currency symbol from settings | [Test catalog](admin/catalog.md) |
+| M23.1 | Admin price headings use the currency symbol from settings | [Prices](admin/prices.md) |
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |

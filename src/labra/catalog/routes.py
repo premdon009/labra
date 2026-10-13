@@ -12,10 +12,12 @@ from labra.auth.principal import Principal
 from labra.catalog import service, starter
 from labra.catalog.models import BAND_SEVERITIES, RANGE_CONDITIONS, RESULT_TYPES, SEXES
 from labra.catalog.units import UNITS
+from labra.core.currency import load_format
 from labra.core.db import get_session
 from labra.core.errors import NotFoundError, ValidationFailedError
 from labra.org import service as org
-from labra.web.templating import page, render
+from labra.web.forms import page_no
+from labra.web.templating import page, render, same_query
 
 router = APIRouter(prefix="/admin")
 
@@ -37,8 +39,13 @@ def _uuid(value: str) -> uuid.UUID:
 
 def _page_no(request: Request, param: str) -> int:
     """The page asked for in the query string; page 1 when missing or not a number."""
-    value = request.query_params.get(param, "1")
-    return int(value) if value.isdecimal() else 1
+    return page_no(request.query_params.get(param, "1"))
+
+
+def _price_unit(db: Session) -> str:
+    """What follows "Price" in a column heading: the lab's currency symbol, if it has one."""
+    symbol = load_format(db, None).symbol
+    return f" ({symbol})" if symbol else ""
 
 
 def _optional_uuid(value: str) -> uuid.UUID | None:
@@ -91,11 +98,11 @@ def tests(
     principal: Viewer,
     q: str = "",
     department: str = "",
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     departments = service.list_departments(db, principal)
     dept_id = _optional_uuid(department)
-    rows = service.test_page(db, principal, page, dept_id, q)
+    rows = service.test_page(db, principal, page_no(page), dept_id, q)
     prices = service.lab_prices(db, [t.id for t in rows.items])
     return render(
         request,
@@ -106,6 +113,7 @@ def tests(
             "department": dept_id,
             "q": q,
             "prices": prices,
+            "unit": _price_unit(db),
             "waiting": service.count_unapproved_ranges(db, principal),
             "can_edit": principal.can("catalog.edit"),
         },
@@ -378,7 +386,7 @@ def department_save(
         target = f"department-{department_id or 'new'}"
         return _setup_page(request, db, principal, errors | exc.errors, target, status=422)
     db.commit()
-    return RedirectResponse("/admin/catalog/departments", status_code=303)
+    return RedirectResponse("/admin/catalog/departments" + same_query(request), status_code=303)
 
 
 @router.post("/catalog/specimens")
@@ -409,7 +417,7 @@ def specimen_save(
         target = f"specimen-{specimen_type_id or 'new'}"
         return _setup_page(request, db, principal, exc.errors, target, status=422)
     db.commit()
-    return RedirectResponse("/admin/catalog/departments", status_code=303)
+    return RedirectResponse("/admin/catalog/departments" + same_query(request), status_code=303)
 
 
 # Packages
@@ -417,8 +425,8 @@ def specimen_save(
 
 @router.get("/catalog/packages", response_class=HTMLResponse)
 @page("admin/catalog", "catalog/packages.html")
-def packages(request: Request, db: DB, principal: Viewer, page: int = 1) -> Response:
-    rows = service.package_page(db, principal, page)
+def packages(request: Request, db: DB, principal: Viewer, page: str = "1") -> Response:
+    rows = service.package_page(db, principal, page_no(page))
     return render(
         request,
         "catalog/packages.html",
@@ -438,16 +446,16 @@ def _package_form(
     chosen: set[uuid.UUID],
     errors: dict[str, str],
     status: int = 200,
+    typed: str = "",
 ) -> Response:
+    tests = service.tests_by_id(db, principal, chosen).values()
     return render(
         request,
         "catalog/package_form.html",
         {
             "package": package,
-            "chosen": chosen,
-            "tests": [
-                t for t in service.list_tests(db, principal) if t.is_active or t.id in chosen
-            ],
+            "tests": sorted(tests, key=lambda t: t.code),
+            "typed": typed,
             "errors": errors,
             "can_edit": principal.can("catalog.edit"),
         },
@@ -478,12 +486,19 @@ def package_save(
     name: Annotated[str, Form()] = "",
     description: Annotated[str, Form()] = "",
     test_ids: Annotated[list[str], Form()] = [],  # noqa: B006
+    test_codes: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     package_id: Annotated[str, Form()] = "",
     row_version: Annotated[int, Form()] = 0,
 ) -> Response:
-    chosen = {_uuid(t) for t in test_ids}
+    added, unknown = service.tests_by_code(db, principal, test_codes)
+    chosen = {_uuid(t) for t in test_ids} | {t.id for t in added}
     try:
+        if unknown:
+            # The codes that were found are kept ticked; the others stay in the box.
+            raise ValidationFailedError(
+                {"test_codes": f"No test in use has the code {', '.join(unknown)}."}
+            )
         service.save_package(
             db,
             principal,
@@ -505,7 +520,9 @@ def package_save(
             id=_optional_uuid(package_id),
             row_version=row_version,
         )
-        return _package_form(request, db, principal, values, chosen, exc.errors, status=422)
+        return _package_form(
+            request, db, principal, values, chosen, exc.errors, 422, " ".join(unknown)
+        )
     db.commit()
     return RedirectResponse("/admin/catalog/packages", status_code=303)
 
@@ -553,12 +570,12 @@ def _range_form(
 
 @router.get("/catalog/ranges", response_class=HTMLResponse)
 @page("admin/reference-ranges", "catalog/ranges.html")
-def ranges_waiting(request: Request, db: DB, principal: Viewer, page: int = 1) -> Response:
+def ranges_waiting(request: Request, db: DB, principal: Viewer, page: str = "1") -> Response:
     return render(
         request,
         "catalog/ranges.html",
         {
-            "rows": service.unapproved_ranges(db, principal, page),
+            "rows": service.unapproved_ranges(db, principal, page_no(page)),
             "can_approve": principal.can("range.approve"),
         },
     )
@@ -753,13 +770,13 @@ def _presets_page(
     error_for: str = "",
     status: int = 200,
 ) -> Response:
-    tests = {t.id: t for t in service.list_tests(db, principal)}
+    presets = service.preset_page(db, principal, _page_no(request, "page"))
     return render(
         request,
         "catalog/presets.html",
         {
-            "presets": service.preset_page(db, principal, _page_no(request, "page")),
-            "tests": tests,
+            "presets": presets,
+            "tests": service.tests_by_id(db, principal, (p.test_id for p in presets.items)),
             "errors": errors,
             "error_for": error_for,
             "can_edit": principal.can("catalog.edit"),
@@ -782,6 +799,7 @@ def preset_save(
     label: Annotated[str, Form()] = "",
     text: Annotated[str, Form()] = "",
     test_id: Annotated[str, Form()] = "",
+    test_code: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     preset_id: Annotated[str, Form()] = "",
     row_version: Annotated[int, Form()] = 0,
@@ -789,6 +807,13 @@ def preset_save(
 ) -> Response:
     test = _optional_uuid(test_id)
     try:
+        if test is None and test_code.strip():
+            named, _ = service.tests_by_code(db, principal, test_code)
+            if len(named) != 1:
+                raise ValidationFailedError(
+                    {"test_id": "Type the code of one test in use, or leave it empty for any test."}
+                )
+            test = named[0].id
         service.save_preset(
             db,
             principal,
@@ -807,7 +832,9 @@ def preset_save(
             return _methods_page(request, db, principal, parent, exc.errors, target, status=422)
         return _presets_page(request, db, principal, exc.errors, target, status=422)
     db.commit()
-    return RedirectResponse(_back(back, "/admin/catalog/presets"), status_code=303)
+    return RedirectResponse(
+        _back(back, "/admin/catalog/presets" + same_query(request)), status_code=303
+    )
 
 
 # Prices
@@ -816,16 +843,17 @@ def preset_save(
 @router.get("/prices", response_class=HTMLResponse)
 @page("admin/prices", "catalog/prices.html")
 def prices(
-    request: Request, db: DB, principal: Viewer, branch: str = "", page: int = 1
+    request: Request, db: DB, principal: Viewer, branch: str = "", page: str = "1"
 ) -> Response:
     branch_id = _optional_uuid(branch)
     return render(
         request,
         "catalog/prices.html",
         {
-            "rows": service.price_page(db, principal, page, branch_id),
+            "rows": service.price_page(db, principal, page_no(page), branch_id),
             "branches": org.list_branches(db, principal),
             "branch": branch_id,
+            "unit": _price_unit(db),
         },
     )
 
@@ -853,6 +881,7 @@ def _price_form(
             "branches": {b.id: b for b in branches},
             "values": values or {},
             "errors": errors,
+            "unit": _price_unit(db),
             "can_edit": principal.can("price.edit"),
         },
         status_code=status,

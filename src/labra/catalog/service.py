@@ -4,6 +4,7 @@ prices. Every function takes the acting Principal and checks it, so a route can'
 
 import re
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -295,6 +296,36 @@ def list_tests(
     if department_id:
         q = q.where(Test.department_id == department_id)
     return list(db.scalars(q))
+
+
+def tests_by_id(
+    db: Session, principal: Principal, ids: Iterable[uuid.UUID | None]
+) -> dict[uuid.UUID, Test]:
+    _check(principal, "catalog.view")
+    wanted = {i for i in ids if i is not None}
+    if not wanted:
+        return {}
+    return {t.id: t for t in db.scalars(select(Test).where(Test.id.in_(wanted)))}
+
+
+def tests_by_code(db: Session, principal: Principal, typed: str) -> tuple[list[Test], list[str]]:
+    """The tests in use that a line of codes or aliases names, split at spaces and commas,
+    and the codes that name none."""
+    _check(principal, "catalog.view")
+    codes = list(dict.fromkeys(c for c in re.split(r"[\s,;]+", typed.lower()) if c))[:50]
+    found: list[Test] = []
+    unknown: list[str] = []
+    for code in codes:
+        test = db.scalar(
+            select(Test)
+            .where(Test.is_active, or_(Test.code == code, Test.aliases.contains([code])))
+            .limit(1)
+        )
+        if test is None:
+            unknown.append(code)
+        else:
+            found.append(test)
+    return found, unknown
 
 
 def get_test(db: Session, principal: Principal, test_id: uuid.UUID) -> Test:

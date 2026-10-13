@@ -1,6 +1,6 @@
 ---
 title: Prices
-features: [M06, EC-F03]
+features: [M06, M23.1, EC-F03]
 ---
 
 # Prices
@@ -24,7 +24,8 @@ the prices of** and select **Show**.
 To change a price:
 
 1. Select **Open** on the test or package.
-2. Fill in **New price (₹)**, in rupees with up to two decimals, for example `180.50`.
+2. Fill in **New price**, with up to two decimals, for example `180.50`. The heading shows
+   the lab's currency symbol, set under **Settings ▸ Currency**, such as **New price (₹)**.
 3. In **For**, keep **Every branch (lab price)**, or choose **Only** one branch to give that
    branch its own price.
 4. Optionally fill in **Reason**, for example "New kit cost".

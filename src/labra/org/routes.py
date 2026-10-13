@@ -16,6 +16,7 @@ from labra.core.errors import NotFoundError, ValidationFailedError
 from labra.core.registry import get_platform
 from labra.org import service
 from labra.org.models import BRANCH_KINDS
+from labra.web.forms import page_no
 from labra.web.money_format import format_money, money_filter
 from labra.web.templating import page, render
 
@@ -40,13 +41,13 @@ def branches(
     request: Request,
     db: DB,
     principal: Annotated[Principal, Depends(require("branch.view"))],
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     return render(
         request,
         "org/branches.html",
         {
-            "branches": service.branch_page(db, principal, page),
+            "branches": service.branch_page(db, principal, page_no(page)),
             "can_edit": principal.can("branch.edit"),
         },
     )
@@ -133,12 +134,15 @@ def users(
     request: Request,
     db: DB,
     principal: Annotated[Principal, Depends(require("user.view"))],
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     return render(
         request,
         "org/users.html",
-        {"users": service.user_page(db, principal, page), "can_edit": principal.can("user.edit")},
+        {
+            "users": service.user_page(db, principal, page_no(page)),
+            "can_edit": principal.can("user.edit"),
+        },
     )
 
 

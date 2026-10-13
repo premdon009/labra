@@ -13,7 +13,7 @@ from labra.core.ids import lab_today
 from labra.patients import service
 from labra.patients.age import age_text
 from labra.patients.models import REFERRER_KINDS
-from labra.web.forms import as_uuid, day, whole
+from labra.web.forms import as_uuid, day, page_no, whole
 from labra.web.labels import KIND_LABELS, SEX_LABELS
 from labra.web.templating import page, render
 
@@ -31,10 +31,10 @@ def patients(
     db: DB,
     principal: Annotated[Principal, Depends(require("patient.view"))],
     q: str = "",
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     today = lab_today()
-    found = service.find_patients(db, principal, q, page)
+    found = service.find_patients(db, principal, q, page_no(page))
     return render(
         request,
         "frontdesk/patients.html",
@@ -146,13 +146,13 @@ def referrers(
     db: DB,
     principal: Annotated[Principal, Depends(require("referrer.view"))],
     q: str = "",
-    page: int = 1,
+    page: str = "1",
 ) -> Response:
     return render(
         request,
         "frontdesk/referrers.html",
         {
-            "referrers": service.referrer_page(db, principal, page, q),
+            "referrers": service.referrer_page(db, principal, page_no(page), q),
             "q": q,
             "kinds": KIND_LABELS,
             "can_edit": principal.can("referrer.edit"),

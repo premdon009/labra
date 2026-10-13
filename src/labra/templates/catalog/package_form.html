@@ -38,9 +38,11 @@
 
     {% for t in tests %}
 
-    <label class="label"><input class="input" type="checkbox" name="test_ids" value="{{ t.id }}" {% if t.id in chosen %}checked{% endif %}> {{ t.code }} · {{ t.name }}</label>
+    <label class="label"><input class="input" type="checkbox" name="test_ids" value="{{ t.id }}" checked> {{ t.code }} · {{ t.name }}</label>
 
     {% endfor %}
+
+    {{ field('test_codes', 'Add tests by code', typed, errors, hint='Type the codes with spaces between them, for example fbs lipid, then save. Untick a test above to take it out.') }}
 
   </fieldset>
 

@@ -52,12 +52,20 @@ def page_url(request: Request, number: int, param: str = "page") -> str:
     return f"{request.url.path}?{urlencode(query)}"
 
 
+def same_query(request: Request) -> str:
+    """This page's query string, to put after a form's address: a list posted to from its
+    third page comes back on its third page."""
+    query = urlencode(request.query_params.multi_items())
+    return f"?{query}" if query else ""
+
+
 templates.env.filters["local_time"] = local_time
 templates.env.filters["money"] = money_filter
 templates.env.globals.update(
     app_version=__version__,
     vendor_url=vendor_url,
     page_url=page_url,
+    same_query=same_query,
     shortcuts=SHORTCUTS,
 )
 

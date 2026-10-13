@@ -20,7 +20,7 @@
 
   <div class="form-grid">
 
-    {{ field('amount', 'New price (₹)', values.get('amount'), errors, required=True, hint='Starts now. Bills already made keep the price they were made with.') }}
+    {{ field('amount', 'New price' ~ unit, values.get('amount'), errors, required=True, hint='Starts now. Bills already made keep the price they were made with.') }}
 
     <div class="field-row">
       <label class="label" for="f-branch_id">For</label>
@@ -51,7 +51,7 @@
 
 <h2>Branch prices in force</h2>
 <table class="table">
-  <thead><tr><th>Branch</th><th>Price (₹)</th><th>Since</th><th></th></tr></thead>
+  <thead><tr><th>Branch</th><th>Price{{ unit }}</th><th>Since</th><th></th></tr></thead>
   <tbody>
 
     {% for p in overrides %}
@@ -86,7 +86,7 @@
 
 <h2>History</h2>
 <table class="table">
-  <thead><tr><th>For</th><th>Price (₹)</th><th>From</th><th>Until</th><th>Reason</th></tr></thead>
+  <thead><tr><th>For</th><th>Price{{ unit }}</th><th>From</th><th>Until</th><th>Reason</th></tr></thead>
   <tbody>
 
     {% for p in history %}
