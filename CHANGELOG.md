@@ -22,11 +22,19 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Barcode sample labels, one per container, and a scan screen that marks samples as collected.
 - Keyboard shortcuts for the front desk, paging on every list, and currency display settings.
 - A browser test of a front-desk day; the gate reports it as unchecked when no browser is installed.
+- External labs with their rates and turnaround times, and routing of each test in-house, to a branch or to an outside lab, with the cost and the margin shown.
+- A receive scan at the lab for samples from another branch.
+- Lab worklist and result grid: values saved as they are typed, flags by sign and colour, calculated rows, the previous value, and a guard against absurd values.
+- Critical-value log that holds a test back until someone is on record as informed.
+- Submit for verification, verification by the signatory only, and reopening with a reason that keeps the old values.
+- Outsourcing screen: send-out sheet, mark sent with the outside lab's number, result PDF upload and download, and a timeline for each test.
+- `test.sent_out` and `test.performed` events in the outbox.
 
 ### Changed
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.
 - Admin price headings use the currency symbol from settings.
+- A bill can't be cancelled once one of its tests is sent out or has a result.
 - A UPI reference that is already on another receipt is refused until the desk confirms that one payment covers both bills.
 
 ### Fixed

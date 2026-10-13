@@ -38,7 +38,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 
 ## C. Privacy and compliance (India)
 - [x] **P** `EC-C01` Consent recorded before testing and before referral-lab sharing; consent text versioned
-- [ ] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
+- [x] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
 - [ ] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
 - [x] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
 - [ ] **P** `EC-C05` Retention: reports and audit kept ≥ 2 years (NABL); nothing hard-deleted
