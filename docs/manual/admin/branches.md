@@ -1,6 +1,6 @@
 ---
 title: Branches
-features: [M02, EC-F03]
+features: [M02, M02.1, EC-F03]
 ---
 
 # Branches
@@ -42,6 +42,9 @@ close a branch, untick **Active**: its records stay, but no new work can be adde
 - Two branches can't share a code.
 - Bill and invoice numbers can be at most 16 characters (GST rules). A four-letter code
   leaves less room for the rest of the number than a two-letter one.
+- If you change a branch's code and one of its numbers would no longer fit, Labra doesn't
+  save and says which number. Use a shorter code, or change that number's format under
+  **Numbering** first.
 - If someone else saved the same branch while you were editing it, Labra refuses your save
   and asks you to reload, so neither change is lost silently.
 - Every change is recorded in the audit log with who made it and when.

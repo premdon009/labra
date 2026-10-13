@@ -38,6 +38,7 @@ Every feature Labra has, and the manual page that explains it.
 | M01.2 | Staff without login (collected/delivered by) | [Signing in](getting-started/login.md) |
 | M02 | Branches | [Branches](admin/branches.md) |
 | M02 | Branches | [Settings](admin/settings.md) |
+| M02.1 | A changed branch code is checked against the branch's number formats; an upgrade adds the number series older branches lack | [Branches](admin/branches.md) |
 | M03 | Patients | [Find or register a patient](frontdesk/find-patient.md) |
 | M04 | Referrers | [New visit](frontdesk/new-visit.md) |
 | M04 | Referrers | [Referrers](frontdesk/referrers.md) |

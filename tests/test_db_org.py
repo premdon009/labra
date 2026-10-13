@@ -3,10 +3,11 @@
 import re
 import uuid
 from datetime import date
+from importlib import import_module
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from labra.auth import service as auth
@@ -195,6 +196,65 @@ def test_series_format_change(seeded: Session, platform: Platform) -> None:
         org.set_series_format(
             seeded, _as(seeded, platform, "b3desk"), bos.id, "{BR}/{SEQ:5}", bos.format
         )
+
+
+@pytest.mark.item("M02.1")
+def test_a_longer_branch_code_is_refused_when_a_number_would_no_longer_fit(
+    seeded: Session, platform: Platform
+) -> None:
+    admin = _as(seeded, platform, "anil")
+    branch = org.create_branch(
+        seeded, admin, org.BranchInput(code="B4", name="Branch 4", kind="collection_centre")
+    )
+    admin = _as(seeded, platform, "anil")
+    bos = _series(seeded, "B4", "bos")
+    # Sixteen characters with a two-letter code: B4/BS/2627/00001.
+    assert org.set_series_format(seeded, admin, bos.id, "{BR}/BS/{FY2}/{SEQ:5}", bos.format)
+
+    def renamed(code: str) -> org.BranchInput:
+        return org.BranchInput(code=code, name="Branch 4", kind="collection_centre")
+
+    with pytest.raises(ValidationFailedError) as refused:
+        org.update_branch(seeded, admin, branch.id, renamed("B44"), branch.row_version)
+    assert "bill number no longer fits" in refused.value.errors["code"]
+    assert "reaches 17" in refused.value.errors["code"]
+    seeded.refresh(branch)
+    assert branch.code == "B4"
+    # A code of the same length still fits, and so does a longer one once the format is short.
+    org.update_branch(seeded, admin, branch.id, renamed("C4"), branch.row_version)
+    assert org.set_series_format(seeded, admin, bos.id, "{BR}/{FY2}/{SEQ:5}", bos.format)
+    org.update_branch(seeded, admin, branch.id, renamed("C444"), branch.row_version)
+    assert next_number(seeded, "bos", branch.id, branch.code, date(2026, 10, 9)) == (
+        "C444/2627/00001"
+    )
+
+
+@pytest.mark.item("M02.1")
+def test_upgrade_gives_older_branches_the_series_they_lack(seeded: Session) -> None:
+    migration = import_module("labra.migrations.versions.0005_default_number_series")
+    b2, b3 = (seeded.scalars(select(Branch).where(Branch.code == c)).one() for c in ("B2", "B3"))
+    kept = _series(seeded, "B2", "bos")
+    kept.format, kept.next_value = "{BR}-{SEQ:6}", 41
+    seeded.flush()
+    seeded.execute(delete(NumberSeries).where(NumberSeries.branch_id == b3.id))
+    seeded.execute(
+        delete(NumberSeries).where(
+            NumberSeries.branch_id == b2.id, NumberSeries.doc_type.in_(("sample", "refund"))
+        )
+    )
+
+    for _ in range(2):  # running it again adds nothing
+        seeded.execute(text(migration.ADD_MISSING_SERIES))
+    seeded.expire_all()
+    for branch in (b2, b3):
+        rows = seeded.scalars(select(NumberSeries).where(NumberSeries.branch_id == branch.id)).all()
+        formats = {r.doc_type: r.format for r in rows}
+        assert len(rows) == len(DEFAULT_SERIES)
+        assert formats == DEFAULT_SERIES | ({"bos": "{BR}-{SEQ:6}"} if branch is b2 else {})
+    assert _series(seeded, "B2", "bos").next_value == 41
+    day = date(2026, 10, 13)
+    assert next_number(seeded, "sample", b3.id, "B3", day) == "B32627000001"
+    assert next_number(seeded, "refund", b2.id, "B2", day) == "B2/RF/2627/00001"
 
 
 def _token(html: str) -> str:

@@ -151,6 +151,19 @@ def update_branch(
     if branch.row_version != row_version:
         raise stale(db, branch)
     _validate_branch(db, data, branch.id)
+    if data.code != branch.code:
+        # The code is part of every number the branch issues, so a longer one can push a
+        # format that fitted past what a bill number may be.
+        for series in db.scalars(select(NumberSeries).where(NumberSeries.branch_id == branch.id)):
+            problems = format_problems(series.doc_type, series.format, data.code)
+            if problems:
+                label = DOC_LABELS.get(series.doc_type, series.doc_type).lower()
+                raise ValidationFailedError(
+                    {
+                        "code": f"With this code the {label} no longer fits. {problems[0]} "
+                        "Use a shorter code, or change the format under Numbering first."
+                    }
+                )
     changed = [k for k, v in vars(data).items() if getattr(branch, k) != v]
     for k in changed:
         setattr(branch, k, getattr(data, k))
