@@ -236,3 +236,44 @@ def test_seed_refuses_a_real_database(db: Session, platform: Platform) -> None:
     db.flush()
     with pytest.raises(ConfigError):
         seed(db, platform.identity, date(2026, 10, 9))
+
+
+@pytest.mark.item("M18")
+@pytest.mark.item("M04")
+def test_seed_demo_day_is_synthetic_and_idempotent(seeded: Session, platform: Platform) -> None:
+    from labra.catalog import service as catalog
+    from labra.catalog.models import SpecimenType, Test
+    from labra.patients.models import Patient, Referrer
+
+    # The plain seed leaves the catalog and the front desk empty for the other tests.
+    assert seeded.scalars(select(Patient)).first() is None
+    assert seeded.scalars(select(Test)).first() is None
+
+    def counts() -> tuple[int, ...]:
+        return tuple(
+            len(seeded.scalars(select(model)).all()) for model in (Referrer, Patient, Test)
+        )
+
+    seed(seeded, platform.identity, date(2026, 10, 9), with_catalog=True, with_people=True)
+    first = counts()
+    seed(seeded, platform.identity, date(2026, 10, 9), with_catalog=True, with_people=True)
+
+    assert counts() == first and first[:2] == (3, 6)
+    referrers = seeded.scalars(select(Referrer).order_by(Referrer.council_reg_no)).all()
+    assert [r.council_reg_no for r in referrers] == ["DEMO-0001", "DEMO-0002", "DEMO-0003"]
+    assert all(r.name.startswith("Dr ") and r.kind == "doctor" for r in referrers)
+    people = seeded.scalars(select(Patient).order_by(Patient.phone)).all()
+    assert [p.phone for p in people] == [f"90000000{i:02d}" for i in range(1, 7)]
+    assert all(p.dob_is_estimated and not p.email and not p.address for p in people)
+    homes = {b.id: b.code for b in seeded.scalars(select(Branch))}
+    assert sorted(homes[p.registered_branch_id] for p in people) == ["B2"] * 4 + ["B3"] * 2
+
+    tests = {t.code: t for t in seeded.scalars(select(Test))}
+    vitd = tests["vitd"]
+    assert not vitd.in_house_available and tests["fbs"].in_house_available
+    assert seeded.get_one(SpecimenType, vitd.specimen_type_id).code == "SERUM"
+    assert vitd.specimen_type_id == tests["lipid"].specimen_type_id
+    prices = catalog.lab_prices(seeded, [tests[c].id for c in ("fbs", "lipid", "urine", "vitd")])
+    assert sorted(prices.values()) == [80, 150, 500, 1200]
+    # The demo order: 1,930 before the 10% discount of the worked example.
+    assert sum(prices.values()) == 1930

@@ -1,19 +1,31 @@
 """Synthetic demo data: the cast of the design's worked example (§1e), plus a few extra staff
-from Faker. Every name and number here is made up. Tests reuse the factory functions.
+from Faker, and on request a priced catalog, referrers and patients for a demo day. Every
+name and number here is made up. Tests reuse the factory functions.
 """
 
 import uuid
 from collections.abc import Sequence
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from labra.auth.principal import Principal
+from labra.auth.service import grants_for
+from labra.catalog import service as catalog
+from labra.catalog.models import Test
+from labra.catalog.starter import import_starter
 from labra.core.errors import ConfigError
 from labra.core.numbering import ensure_series
 from labra.core.ports import IdentityProvider
 from labra.org.models import AppUser, Branch, Role, UserBranchRole
 from labra.org.service import sync_system_roles
+from labra.patients import service as patients
+from labra.patients.models import Patient, Referrer
+
+if TYPE_CHECKING:
+    from faker import Faker
 
 DEMO_PASSWORD = "demo-password-1"  # noqa: S105  synthetic demo data only
 FAKER_SEED = 2026
@@ -25,6 +37,19 @@ CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
     ("suresh", "Suresh Iyer", True, [("MAIN", "technician")]),
     ("meera", "Dr Meera Nair, MD", True, [("MAIN", "signatory")]),
     ("b3desk", "Kavya Rao", True, [("B3", "front_desk"), ("B3", "branch_manager")]),
+]
+
+# Lab-wide demo prices by test code. The starter catalog ships without prices.
+DEMO_PRICES = {"fbs": "80", "lipid": "500", "urine": "150", "vitd": "1200"}
+
+# (branch code, sex, age in years) of the demo patients; their phones are 9000000001 onwards.
+DEMO_PATIENTS = [
+    ("B2", "F", 34),
+    ("B2", "M", 61),
+    ("B2", "F", 8),
+    ("B2", "M", 45),
+    ("B3", "F", 27),
+    ("B3", "M", 72),
 ]
 
 
@@ -64,7 +89,69 @@ def make_user(
     return user
 
 
-def seed(db: Session, identity: IdentityProvider, today: date) -> None:
+def _acting(db: Session, username: str, branch: Branch | None = None) -> Principal:
+    user = db.scalars(select(AppUser).where(AppUser.username == username)).one()
+    return Principal(
+        user.id, user.username, user.full_name, branch and branch.id, grants_for(db, user.id)
+    )
+
+
+def _demo_catalog(db: Session, admin: Principal) -> None:
+    """The starter catalog, an outsourced test it lacks, and prices for a demo order."""
+    import_starter(db, admin)
+    tests = {code: test_id for test_id, code in db.execute(select(Test.id, Test.code))}
+    if "vitd" not in tests:
+        lipid = db.get_one(Test, tests["lipid"])
+        vitd = catalog.save_test(
+            db,
+            admin,
+            catalog.TestInput(
+                code="vitd",
+                name="Vitamin D (25-OH)",
+                department_id=lipid.department_id,
+                short_name="VIT D",
+                specimen_type_id=lipid.specimen_type_id,
+                default_tat_hours=72,
+                in_house_available=False,
+            ),
+        )
+        tests["vitd"] = vitd.id
+    priced = catalog.lab_prices(db, [tests[code] for code in DEMO_PRICES])
+    for code, amount in DEMO_PRICES.items():
+        if tests[code] not in priced:
+            catalog.set_price(db, admin, "test", tests[code], amount)
+
+
+def _demo_people(db: Session, fake: "Faker", branches: dict[str, Branch], today: date) -> None:
+    """Three referrers and six patients. Names come from Faker; registration numbers and
+    phones are written here so that none can be a real one."""
+    admin = _acting(db, "anil", branches["MAIN"])
+    for i in range(1, 4):
+        reg_no = f"DEMO-{i:04d}"
+        name = f"Dr {fake.name()}"
+        if db.scalar(select(Referrer.id).where(Referrer.council_reg_no == reg_no)) is None:
+            patients.create_referrer(
+                db, admin, patients.ReferrerInput("doctor", name, "MBBS", reg_no)
+            )
+    desks = {
+        "B2": _acting(db, "priya", branches["B2"]),
+        "B3": _acting(db, "b3desk", branches["B3"]),
+    }
+    for i, (code, sex, years) in enumerate(DEMO_PATIENTS, start=1):
+        phone = f"90000000{i:02d}"
+        name = fake.name_female() if sex == "F" else fake.name_male()
+        if db.scalar(select(Patient.id).where(Patient.phone == phone)) is None:
+            data = patients.PatientInput(name, sex, age_years=years, phone=phone)
+            patients.register_patient(db, desks[code], data, today)
+
+
+def seed(
+    db: Session,
+    identity: IdentityProvider,
+    today: date,
+    with_catalog: bool = False,
+    with_people: bool = False,
+) -> None:
     known = {c[0] for c in CAST} | {f"staff{i}" for i in range(1, 4)}
     others = db.scalars(select(AppUser.username).where(AppUser.username.not_in(known))).first()
     if others is not None:
@@ -73,7 +160,6 @@ def seed(db: Session, identity: IdentityProvider, today: date) -> None:
         from faker import Faker
     except ImportError:
         raise ConfigError("Install the seed extra first: uv sync --extra seed.") from None
-
     sync_system_roles(db)
     branches = {
         "MAIN": make_branch(db, "MAIN", "Main Lab", "main_lab"),
@@ -104,6 +190,10 @@ def seed(db: Session, identity: IdentityProvider, today: date) -> None:
             can_login=False,
         )
     db.flush()
+    if with_catalog:
+        _demo_catalog(db, _acting(db, "anil"))
+    if with_people:
+        _demo_people(db, fake, branches, today)
 
 
 def run() -> None:
@@ -112,5 +202,5 @@ def run() -> None:
     from labra.core.registry import get_platform
 
     with Session(get_engine()) as db:
-        seed(db, get_platform().identity, lab_today())
+        seed(db, get_platform().identity, lab_today(), with_catalog=True, with_people=True)
         db.commit()
