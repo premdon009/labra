@@ -1,0 +1,37 @@
+{# One row of the result grid. `oob` swaps it into place from another row's response. #}
+{% macro grid_row(row, oob=False) %}
+{% set url = '/lab/tests/%s/cells/%s'|format(row.order_test_id, row.parameter.id) %}
+{% set box = 'v-%s-%s'|format(row.order_test_id, row.parameter.id) %}
+<tr id="r-{{ row.order_test_id }}-{{ row.parameter.id }}" class="result-row flag-{{ row.state }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <th scope="row"><label for="{{ box }}">{{ row.parameter.name }}</label></th>
+  <td class="result-value">
+    {% if row.calculated or not row.editable %}
+    <output id="{{ box }}">{{ row.value }}</output>
+    {% elif row.parameter.result_type == 'option' %}
+    <select class="select" id="{{ box }}" name="value" hx-post="{{ url }}" hx-trigger="change" hx-target="closest tr" hx-swap="outerHTML" hx-sync="closest tr:queue last" hx-vals='{{ {"row_version": row.row_version}|tojson }}'{% if row.error %} aria-invalid="true" aria-describedby="{{ box }}-error"{% endif %}>
+      <option value=""></option>
+      {% for option in row.parameter.options %}
+      <option value="{{ option.value }}"{% if option.value == row.value %} selected{% endif %}>{{ option.value }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <input class="input" type="text" id="{{ box }}" name="value" value="{{ row.value }}" autocomplete="off" maxlength="200"{% if row.parameter.result_type == 'numeric' %} inputmode="decimal"{% endif %} hx-post="{{ url }}" hx-trigger="change" hx-target="closest tr" hx-swap="outerHTML" hx-sync="closest tr:queue last" hx-vals='{{ {"row_version": row.row_version}|tojson }}'{% if row.error %} aria-invalid="true" aria-describedby="{{ box }}-error"{% endif %}>
+    {% endif %}
+    {% if row.error %}
+    <p class="field-error" id="{{ box }}-error" role="alert">{{ row.error }}</p>
+    {% if row.needs_confirm %}
+    <button type="button" class="btn-sm-outline" hx-post="{{ url }}" hx-include="closest tr" hx-target="closest tr" hx-swap="outerHTML" hx-vals='{{ {"row_version": row.row_version, "confirm": "1"}|tojson }}'>Save {{ row.value }} anyway</button>
+    {% endif %}
+    {% endif %}
+  </td>
+  <td class="muted">{{ row.unit }}</td>
+  <td class="result-flag">
+    {% if row.state == 'not-calculable' %}Not calculable, measure directly
+    {% else %}{% if row.badge %}<span class="flag-badge">{{ row.badge }}</span>{% endif %}{% if row.band %} {{ row.band }}{% endif %}{% endif %}
+  </td>
+  <td class="muted">{{ row.range }}{% if row.range_unapproved %}Range not approved yet{% endif %}</td>
+  <td class="muted">
+    {% if row.previous %}{{ row.previous.value }} <span class="result-when">({{ row.previous.on.strftime('%d %b %Y') }})</span>{% if row.previous.change_pct is not none %} {{ '%+d'|format(row.previous.change_pct) }}%{% endif %}{% endif %}
+  </td>
+</tr>
+{% endmacro %}

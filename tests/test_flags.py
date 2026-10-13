@@ -225,6 +225,9 @@ def test_pick_range_uses_only_approved_active_ranges() -> None:
     general = rng(12, 17)
     assert pick_range([waiting, retired], "M", ADULT) is None
     assert pick_range([waiting, retired, general], "M", ADULT) is general
+    # The typo guard may read a range that still waits for approval, never a retired one.
+    assert pick_range([waiting, retired], "M", ADULT, approved_only=False) is waiting
+    assert pick_range([retired], "M", ADULT, approved_only=False) is None
 
 
 @pytest.mark.item("M11.1")

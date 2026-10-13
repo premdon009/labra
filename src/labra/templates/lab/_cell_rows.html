@@ -1,0 +1,3 @@
+{% from "lab/_row.html" import grid_row %}
+{% if row %}{{ grid_row(row) }}{% endif %}
+{% for other in calculated %}{{ grid_row(other, oob=True) }}{% endfor %}

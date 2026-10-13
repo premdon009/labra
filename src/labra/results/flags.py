@@ -40,8 +40,10 @@ def pick_range(
     sex: str | None,
     age_days: int,
     condition: str | None = None,
+    approved_only: bool = True,
 ) -> ReferenceRange | None:
-    """The approved range for this sex and age in days at collection, or None.
+    """The approved range for this sex and age in days at collection, or None. Only the
+    typo guard asks for unapproved ranges too: a slip of the finger is one either way.
 
     A range for the patient's own sex wins over one for any sex, and a range for the stated
     condition (pregnancy and the like) over the plain one. A range that names a condition is
@@ -50,7 +52,7 @@ def pick_range(
     best: ReferenceRange | None = None
     best_rank: tuple[int, int, int] | None = None
     for r in ranges:
-        if not r.is_active or r.approved_at is None:
+        if not r.is_active or (approved_only and r.approved_at is None):
             continue
         if not r.age_min_days <= age_days < r.age_max_days:
             continue
