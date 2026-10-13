@@ -60,7 +60,10 @@ Every feature Labra has, and the manual page that explains it.
 | M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M09 | Manual routing, in-house or external, showing cost and margin | [Entering results](lab/entering-results.md) |
+| M09 | Manual routing, in-house or external, showing cost and margin | [Outsourcing](lab/outsourcing.md) |
 | M10 | External labs and result PDF upload | [External labs](admin/external-labs.md) |
+| M10 | External labs and result PDF upload | [Entering results](lab/entering-results.md) |
+| M10 | External labs and result PDF upload | [Outsourcing](lab/outsourcing.md) |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | [Critical values](lab/critical-values.md) |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | [Entering results](lab/entering-results.md) |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | [Lab worklist](lab/worklist.md) |
@@ -74,6 +77,8 @@ Every feature Labra has, and the manual page that explains it.
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
+| M21 | Delivery tracking and outsourcing timeline | [Entering results](lab/entering-results.md) |
+| M21 | Delivery tracking and outsourcing timeline | [Outsourcing](lab/outsourcing.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
 | M23 | Currency display settings (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M23.1 | Admin price headings use the currency symbol from settings | [Test catalog](admin/catalog.md) |

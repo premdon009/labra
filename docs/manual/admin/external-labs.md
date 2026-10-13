@@ -65,5 +65,6 @@ select **Save**.
 
 ## Related pages
 
+- [Outsourcing](../lab/outsourcing.md)
 - [Test catalog](catalog.md)
 - [Prices](prices.md)

@@ -12,7 +12,7 @@
 <body{% if auto %} data-autoprint data-after-print="{{ after }}"{% endif %}>
 <div class="print-bar no-print">
   <button type="button" class="btn" data-print>Print</button>
-  <a class="btn-outline" href="{{ back }}">Back to the visit</a>
+  <a class="btn-outline" href="{{ back }}">{{ back_label or 'Back to the visit' }}</a>
 </div>
 <main class="{% block main_class %}sheet{% endblock %}">
   {% block sheet %}{% endblock %}

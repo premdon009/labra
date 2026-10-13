@@ -25,6 +25,7 @@ from labra.results.worklist import (
     CRITICAL,
     EDITABLE,
     Sheet,
+    has_document,
     load_sheet,
     reported,
     told_about,
@@ -176,7 +177,11 @@ def submit(
         raise PermissionDeniedError()
     if ordered.status != "in_lab":
         raise ConflictError("This test isn't waiting for results. Reload the page.")
-    if not _has_values(sheet):
+    if ordered.route == "external":
+        # An outside lab's PDF is the result; typing its values in is optional.
+        if not has_document(db, ordered.id):
+            raise ValidationFailedError({"test": "Attach the outside lab's PDF first."})
+    elif not _has_values(sheet):
         raise ValidationFailedError({"test": "Enter at least one value first."})
     if not_informed(db, sheet):
         raise ValidationFailedError({"test": NOT_INFORMED})

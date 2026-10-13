@@ -46,6 +46,7 @@ nav = [
       "manual/lab/worklist.md",
       "manual/lab/entering-results.md",
       "manual/lab/critical-values.md",
+      "manual/lab/outsourcing.md",
       "manual/lab/calculated-values.md",
     ] },
   ] },

@@ -3,20 +3,28 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
-from labra.auth.deps import require
+from labra.auth.deps import current_principal, require
 from labra.auth.principal import Principal
 from labra.core.currency import load_format
 from labra.core.db import get_session
-from labra.core.errors import NotFoundError, ValidationFailedError
+from labra.core.errors import NotFoundError, PermissionDeniedError, ValidationFailedError
+from labra.core.files import MAX_BYTES
 from labra.core.ids import IST
-from labra.results import entry, service, signoff, worklist
+from labra.core.registry import get_platform
+from labra.core.uploads import PDF
+from labra.results import entry, outsourcing, service, signoff, worklist
 from labra.results.models import Result
 from labra.web.forms import RowVersion, as_uuid, page_no
-from labra.web.labels import CRITICAL_MODE_LABELS, SEX_LABELS, TEST_STATUS_LABELS
+from labra.web.labels import (
+    CRITICAL_MODE_LABELS,
+    SEX_LABELS,
+    TEST_EVENT_LABELS,
+    TEST_STATUS_LABELS,
+)
 from labra.web.templating import page, render
 
 router = APIRouter(prefix="/lab")
@@ -127,9 +135,18 @@ def _visit_page(
     principal: Principal,
     visit_id: uuid.UUID,
     refused: tuple[uuid.UUID, ValidationFailedError] | None = None,
+    upload_refused: tuple[uuid.UUID, ValidationFailedError] | None = None,
 ) -> Response:
-    """The visit's grid. A step that was refused shows its reason under its test."""
+    """The visit's grid. A step that was refused shows its reason under its test, a PDF
+    that was refused under its lab."""
     sheet = worklist.visit_sheet(db, principal, visit_id)
+    outside = outsourcing.outside_results(db, principal, visit_id)
+    if upload_refused is not None:
+        lab_id, why = upload_refused
+        outside = [
+            replace(g, error=" ".join(why.errors.values())) if g.lab_id == lab_id else g
+            for g in outside
+        ]
     if refused is not None:
         at, problem = refused
         sheet = replace(
@@ -148,8 +165,11 @@ def _visit_page(
             "statuses": TEST_STATUS_LABELS,
             "modes": CRITICAL_MODE_LABELS,
             "fmt": load_format(db, principal.branch_id),
+            "outside": outside,
+            "timelines": outsourcing.timelines(db, [b.order_test_id for b in sheet.blocks]),
+            "events": TEST_EVENT_LABELS,
         },
-        status_code=422 if refused else 200,
+        status_code=422 if refused or upload_refused else 200,
     )
 
 
@@ -353,8 +373,10 @@ def route(
     row_version: RowVersion = 0,
     to: Annotated[str, Form()] = "",
     reason: Annotated[str, Form()] = "",
+    back: Annotated[str, Form()] = "",
 ) -> Response:
-    """`to` is `branch:<id>` for in-house or `lab:<id>` for an outside lab."""
+    """`to` is `branch:<id>` for in-house or `lab:<id>` for an outside lab. `back` says
+    which screen the form was on."""
     ordered = as_uuid(order_test_id)
     kind, _, target = to.partition(":")
     try:
@@ -370,8 +392,12 @@ def route(
             reason=reason,
         )
     except ValidationFailedError as exc:
+        if back == "outsourcing":
+            return _board_refused(request, db, principal, exc)
         return _refused(request, db, principal, ordered, exc)
     db.commit()
+    if back == "outsourcing":
+        return RedirectResponse("/lab/outsourcing", status_code=303)
     return _back(db, ordered)
 
 
@@ -381,3 +407,146 @@ def sharing_consent(db: DB, principal: Router, visit_id: str) -> Response:
     service.record_sharing_consent(db, principal, visit)
     db.commit()
     return RedirectResponse(f"/lab/visits/{visit}", status_code=303)
+
+
+# Tests done by an outside lab
+
+
+def _outsourcer(principal: Annotated[Principal, Depends(current_principal)]) -> Principal:
+    """Someone who decides where tests go, or enters their results."""
+    if not (principal.can("test.route") or principal.can("result.enter")):
+        raise PermissionDeniedError()
+    return principal
+
+
+_outsourcer.__guard__ = "test.route"  # type: ignore[attr-defined]
+Outsourcer = Annotated[Principal, Depends(_outsourcer)]
+
+
+def _board(
+    request: Request, db: Session, principal: Principal, page_number: int = 1, error: str = ""
+) -> Response:
+    return render(
+        request,
+        "lab/outsourcing.html",
+        {
+            "board": outsourcing.board(db, principal, page_number),
+            "sexes": SEX_LABELS,
+            "statuses": TEST_STATUS_LABELS,
+            "events": TEST_EVENT_LABELS,
+            "fmt": load_format(db, principal.branch_id),
+            "error": error,
+        },
+        status_code=422 if error else 200,
+    )
+
+
+def _board_refused(
+    request: Request, db: Session, principal: Principal, problem: ValidationFailedError
+) -> Response:
+    db.rollback()
+    return _board(request, db, principal, error=" ".join(problem.errors.values()))
+
+
+@router.get("/outsourcing", response_class=HTMLResponse)
+@page("lab/outsourcing", "lab/outsourcing.html")
+def outsourcing_page(
+    request: Request, db: DB, principal: Outsourcer, page: Annotated[str, Query()] = "1"
+) -> Response:
+    return _board(request, db, principal, page_no(page))
+
+
+@router.get("/outsourcing/sheet/{lab_id}", response_class=HTMLResponse)
+@page("lab/outsourcing", "lab/sendout.html")
+def send_sheet(request: Request, db: DB, principal: Outsourcer, lab_id: str) -> Response:
+    return render(
+        request,
+        "lab/sendout.html",
+        {
+            "sheet": outsourcing.send_sheet(db, principal, as_uuid(lab_id)),
+            "sexes": SEX_LABELS,
+            "printed_at": datetime.now(IST),
+            "back": "/lab/outsourcing",
+            "back_label": "Back to outsourcing",
+        },
+    )
+
+
+@router.post("/tests/{order_test_id}/send")
+def send(
+    request: Request,
+    db: DB,
+    principal: Router,
+    order_test_id: str,
+    row_version: RowVersion = 0,
+    accession_no: Annotated[str, Form()] = "",
+) -> Response:
+    try:
+        outsourcing.mark_sent(db, principal, as_uuid(order_test_id), row_version, accession_no)
+    except ValidationFailedError as exc:
+        return _board_refused(request, db, principal, exc)
+    db.commit()
+    return RedirectResponse("/lab/outsourcing", status_code=303)
+
+
+@router.post("/tests/{order_test_id}/accession")
+def accession(
+    request: Request,
+    db: DB,
+    principal: Router,
+    order_test_id: str,
+    row_version: RowVersion = 0,
+    accession_no: Annotated[str, Form()] = "",
+) -> Response:
+    try:
+        outsourcing.set_accession(db, principal, as_uuid(order_test_id), row_version, accession_no)
+    except ValidationFailedError as exc:
+        return _board_refused(request, db, principal, exc)
+    db.commit()
+    return RedirectResponse("/lab/outsourcing", status_code=303)
+
+
+@router.post("/visits/{visit_id}/documents")
+def document_upload(
+    request: Request,
+    db: DB,
+    principal: Enterer,
+    visit_id: str,
+    lab: Annotated[str, Form()] = "",
+    tests: Annotated[list[str] | None, Form()] = None,
+    file: UploadFile | None = None,
+) -> Response:
+    """The PDF an outside lab sent, attached to the ticked tests."""
+    visit, lab_id = as_uuid(visit_id), as_uuid(lab)
+    # One byte past the cap is enough to know the file is too large.
+    data = file.file.read(MAX_BYTES + 1) if file is not None else b""
+    try:
+        outsourcing.attach_result(
+            db,
+            get_platform().filestore,
+            principal,
+            visit,
+            lab_id,
+            data,
+            [as_uuid(t) for t in tests or []],
+        )
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _visit_page(request, db, principal, visit, upload_refused=(lab_id, exc))
+    db.commit()
+    return RedirectResponse(f"/lab/visits/{visit}#outside", status_code=303)
+
+
+@router.get("/documents/{document_id}")
+@page("lab/outsourcing", "lab/outsourcing.html")
+def document_download(db: DB, principal: Outsourcer, document_id: str) -> Response:
+    """Always a download with a name and type Labra sets: nothing a lab sent is shown or
+    run inside the application."""
+    name, data = outsourcing.read_document(
+        db, get_platform().filestore, principal, as_uuid(document_id)
+    )
+    return Response(
+        data,
+        media_type=PDF,
+        headers={"content-disposition": f'attachment; filename="{name}"'},
+    )

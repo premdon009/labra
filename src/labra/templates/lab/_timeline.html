@@ -1,0 +1,11 @@
+{# What happened to one test, in order: what, when, who. #}
+{% macro timeline(steps, events) %}
+<details class="timeline">
+  <summary>Timeline</summary>
+  <ol>
+    {% for step in steps %}
+    <li><strong>{{ events.get(step.event, step.event) }}</strong> · {{ step.at|local_time }}{% if step.by %} · {{ step.by }}{% endif %}{% if step.note %} <span class="muted">· {{ step.note }}</span>{% endif %}</li>
+    {% endfor %}
+  </ol>
+</details>
+{% endmacro %}

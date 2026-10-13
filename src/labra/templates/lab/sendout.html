@@ -1,0 +1,30 @@
+{% extends "print_base.html" %}
+{% block title %}Samples for {{ sheet.lab_name }}{% endblock %}
+{% block sheet %}
+<div class="sheet-head">
+  <h1>Samples for {{ sheet.lab_name }}</h1>
+  <p>{{ printed_at.strftime('%d %b %Y %H:%M') }}</p>
+</div>
+<table>
+  <thead><tr><th>Sample</th><th>Container</th><th>Patient</th><th>Age</th><th>Sex</th>{% if sheet.share_phone %}<th>Phone</th>{% endif %}{% if sheet.share_address %}<th>Address</th>{% endif %}<th>Test</th><th>Their code</th><th>Our visit</th></tr></thead>
+  <tbody>
+    {% for row in sheet.rows %}
+    <tr>
+      <td>{{ row.sample_no }}</td>
+      <td>{{ row.container }}</td>
+      <td>{{ row.patient_name }}</td>
+      <td>{{ row.age }}</td>
+      <td>{{ sexes.get(row.sex, row.sex) }}</td>
+      {% if sheet.share_phone %}<td>{{ row.phone }}</td>{% endif %}
+      {% if sheet.share_address %}<td>{{ row.address }}</td>{% endif %}
+      <td>{{ row.test_name }}</td>
+      <td>{{ row.their_code }}</td>
+      <td>{{ row.visit_no }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10">No sample is ready to go to this lab.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>{{ sheet.rows|length }} test{{ '' if sheet.rows|length == 1 else 's' }}. Handed over by: ____________ Received by: ____________</p>
+{% endblock %}

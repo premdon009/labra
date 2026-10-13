@@ -25,7 +25,16 @@ from labra.core.ids import utcnow
 from labra.org.service import stale
 from labra.results.flags import compute_flag, is_absurd
 from labra.results.models import OrderTestEvent, Result, ResultRevision
-from labra.results.worklist import EDITABLE, Sheet, bands_of, load_sheet, plain, range_text
+from labra.results.worklist import (
+    EDITABLE,
+    ROUTABLE,
+    Sheet,
+    bands_of,
+    has_document,
+    load_sheet,
+    plain,
+    range_text,
+)
 
 NOT_YET = {
     "ordered": "The sample for this test hasn't been collected yet.",
@@ -269,6 +278,13 @@ def save_value(
     ordered = sheet.ordered
     if not principal.can("result.enter", ordered.perform_branch_id):
         raise PermissionDeniedError()
+    outside = ordered.route == "external"
+    waits_for_pdf = outside and ordered.status in (*ROUTABLE, *EDITABLE)
+    if waits_for_pdf and not has_document(db, ordered.id):
+        raise ConflictError(
+            "This test goes to an outside lab. Attach the lab's PDF first, or move the test"
+            " in-house."
+        )
     if ordered.status not in EDITABLE:
         raise ConflictError(NOT_YET.get(ordered.status, "This test can't take results now."))
     parameter = next((p for p in sheet.parameters if p.id == parameter_id), None)
@@ -300,7 +316,15 @@ def save_value(
     at = now or utcnow()
     sheet.reopen_reason = reopen_reason(db, ordered.id)
     result = _write(
-        db, sheet, parameter, principal, at, number=number, text=text, absurd_confirmed=confirmed
+        db,
+        sheet,
+        parameter,
+        principal,
+        at,
+        number=number,
+        text=text,
+        source="external_pdf" if outside else "manual",
+        absurd_confirmed=confirmed,
     )
     calculated = recalculate(db, sheet, principal, at)
     if sheet.changed and ordered.status == "resulted":

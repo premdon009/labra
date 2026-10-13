@@ -32,7 +32,7 @@
       {% if principal.can('sample.collect', principal.branch_id) %}
       <a href="/frontdesk/collect" {% if request.url.path.startswith('/frontdesk/collect') %}aria-current="page"{% endif %}>Collect samples</a>
       {% endif %}
-      {% if principal.can('result.enter', principal.branch_id) or principal.can('sample.receive', principal.branch_id) %}
+      {% if principal.can('result.enter', principal.branch_id) or principal.can('sample.receive', principal.branch_id) or principal.can('test.route', principal.branch_id) %}
       <span class="nav-group">Lab</span>
       {% endif %}
       {% if principal.can('result.enter', principal.branch_id) %}
@@ -40,6 +40,9 @@
       {% endif %}
       {% if principal.can('result.enter', principal.branch_id) %}
       <a href="/lab/critical" {% if request.url.path.startswith('/lab/critical') %}aria-current="page"{% endif %}>Critical values</a>
+      {% endif %}
+      {% if principal.can('result.enter', principal.branch_id) or principal.can('test.route', principal.branch_id) %}
+      <a href="/lab/outsourcing" {% if request.url.path.startswith('/lab/outsourcing') %}aria-current="page"{% endif %}>Outsourcing</a>
       {% endif %}
       {% if principal.can('sample.receive', principal.branch_id) %}
       <a href="/lab/receive" {% if request.url.path.startswith('/lab/receive') %}aria-current="page"{% endif %}>Receive samples</a>

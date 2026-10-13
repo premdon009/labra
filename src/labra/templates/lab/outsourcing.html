@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, pager %}
+{% from "lab/_timeline.html" import timeline %}
+{% block title %}Outsourcing{% endblock %}
+{% macro who(item) %}{% if item.can_open %}<a href="/lab/visits/{{ item.visit_id }}#t-{{ item.order_test_id }}">{{ item.patient_name }}</a>{% else %}{{ item.patient_name }}{% endif %} <span class="muted">{{ item.age }} · {{ sexes.get(item.sex, item.sex) }} · {{ item.visit_no }}</span>{% endmacro %}
+{% block content %}
+<div class="page-head"><h1>Outsourcing</h1></div>
+{% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+
+<h2>To send</h2>
+{% if board.sheets %}
+<p>Sheet to go with the samples: {% for id, name in board.sheets.items() %}<a class="btn-sm-outline" href="/lab/outsourcing/sheet/{{ id }}">{{ name }}</a> {% endfor %}</p>
+{% endif %}
+<table class="table">
+  <thead><tr><th>Outside lab</th><th>Sample</th><th>Patient</th><th>Test</th><th>Cost</th><th>Due</th><th></th></tr></thead>
+  <tbody>
+    {% for item in board.to_send %}
+    <tr id="o-{{ item.order_test_id }}">
+      <td>{{ item.lab_name }}</td>
+      <td>{{ item.sample_no }}</td>
+      <td>{{ who(item) }}</td>
+      <td>{{ item.test_name }}{{ timeline(item.timeline, events) }}</td>
+      <td>{% if item.cost is not none %}{{ item.cost|money(fmt) }}{% endif %}</td>
+      <td>{{ item.due_at|local_time }}</td>
+      <td>
+        {% if item.status == 'ordered' %}
+        <span class="muted">Sample not collected yet</span>
+        {% elif item.can_route %}
+        <form method="post" action="/lab/tests/{{ item.order_test_id }}/send" class="route-row">
+          {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ item.row_version }}">
+          <label for="acc-{{ item.order_test_id }}">Their number (optional)</label>
+          <input class="input" type="text" id="acc-{{ item.order_test_id }}" name="accession_no" maxlength="40" autocomplete="off">
+          <button type="submit" class="btn-sm">Mark sent</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">No test is waiting to go to an outside lab.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>With an outside lab</h2>
+<table class="table">
+  <thead><tr><th>Due back</th><th>Outside lab</th><th>Sample</th><th>Patient</th><th>Test</th><th>Their number</th></tr></thead>
+  <tbody>
+    {% for item in board.sent.items %}
+    <tr id="o-{{ item.order_test_id }}">
+      <td>{{ item.due_at|local_time }}{% if item.overdue %} <strong class="flag-high">Late</strong>{% endif %}</td>
+      <td>{{ item.lab_name }}</td>
+      <td>{{ item.sample_no }}</td>
+      <td>{{ who(item) }}{% if item.can_open %} <a class="btn-sm-outline" href="/lab/visits/{{ item.visit_id }}#outside">Attach the result</a>{% endif %}</td>
+      <td>{{ item.test_name }}{{ timeline(item.timeline, events) }}</td>
+      <td>
+        {% if item.can_route %}
+        <form method="post" action="/lab/tests/{{ item.order_test_id }}/accession" class="route-row">
+          {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ item.row_version }}">
+          <label class="sr-only" for="acc-{{ item.order_test_id }}">Their number</label>
+          <input class="input" type="text" id="acc-{{ item.order_test_id }}" name="accession_no" value="{{ item.accession_no }}" maxlength="40" autocomplete="off">
+          <button type="submit" class="btn-sm-outline">Save</button>
+        </form>
+        {% else %}{{ item.accession_no }}{% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No test is with an outside lab now.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(board.sent, request) }}
+
+{% if board.could_go %}
+<h2>Could go to an outside lab</h2>
+<p class="muted">Tests still in-house that an outside lab has a rate for.{% if board.more_could_go %} The first 25 are shown.{% endif %}</p>
+<table class="table">
+  <thead><tr><th>Due</th><th>Sample</th><th>Patient</th><th>Test</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for item in board.could_go %}
+    <tr id="o-{{ item.order_test_id }}">
+      <td>{{ item.due_at|local_time }}</td>
+      <td>{{ item.sample_no }}</td>
+      <td>{{ who(item) }}</td>
+      <td>{{ item.test_name }}</td>
+      <td>{{ statuses.get(item.status, item.status) }}</td>
+      <td>
+        <form method="post" action="/lab/tests/{{ item.order_test_id }}/route" class="route-row">
+          {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ item.row_version }}"><input type="hidden" name="back" value="outsourcing">
+          <label class="sr-only" for="to-{{ item.order_test_id }}">Done at</label>
+          <select class="select" id="to-{{ item.order_test_id }}" name="to">
+            {% for choice in item.choices %}
+            <option value="{{ choice.value }}"{% if choice.current %} selected{% endif %}>{{ choice.name }}{% if choice.cost is not none %}: cost {{ choice.cost|money(fmt) }}, margin {{ choice.margin|money(fmt) }}, {{ choice.tat_hours }} h{% endif %}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-sm-outline">Move the test</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

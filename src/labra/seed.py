@@ -126,6 +126,21 @@ def _demo_catalog(db: Session, admin: Principal, today: date) -> None:
             ),
         )
         tests["vitd"] = vitd.id
+    if not catalog.list_parameters(db, admin, tests["vitd"]):
+        # One row, so the value on the outside lab's PDF can be typed next to it.
+        catalog.save_parameter(
+            db,
+            admin,
+            tests["vitd"],
+            catalog.ParameterInput(
+                code="VITD",
+                name="Vitamin D (25-OH)",
+                result_type="numeric",
+                unit_ucum="ng/mL",
+                decimals=1,
+                display_order=10,
+            ),
+        )
     priced = catalog.lab_prices(db, [tests[code] for code in DEMO_PRICES])
     for code, amount in DEMO_PRICES.items():
         if tests[code] not in priced:

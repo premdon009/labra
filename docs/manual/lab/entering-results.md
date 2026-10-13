@@ -1,6 +1,6 @@
 ---
 title: Entering results
-features: [M11, M11.1, M09]
+features: [M11, M11.1, M09, M10, M21]
 ---
 
 # Entering results
@@ -85,6 +85,9 @@ Only a signatory sees these buttons.
   patient paid for the test, and its turnaround time in hours. The cheapest lab is first.
   For a test inside a package, the margin uses the test's share of the package price.
 - A test can be moved until it has a result. After that the list is gone.
+- A test that goes to an outside lab takes no value until the lab's PDF is attached under
+  **Results from outside labs**. See [Outsourcing](outsourcing.md).
+- **Timeline**, under each test, lists what happened to it, when and who did it.
 - If the patient hasn't agreed to their details going to an outside lab, Labra shows
   **No consent to share with an outside lab**. Ask the patient, then press **Record
   consent**. The warning doesn't stop you moving the test.
@@ -98,6 +101,7 @@ Only a signatory sees these buttons.
 
 - [Lab worklist](worklist.md)
 - [Critical values](critical-values.md)
+- [Outsourcing](outsourcing.md)
 - [Calculated values](calculated-values.md)
 - [External labs](../admin/external-labs.md)
 - [Reference ranges](../admin/reference-ranges.md)

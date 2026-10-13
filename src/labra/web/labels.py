@@ -29,6 +29,17 @@ TEST_STATUS_LABELS = {
     "released": "Released",
     "cancelled": "Cancelled",
 }
+TEST_EVENT_LABELS = {
+    "registered": "Registered",
+    "collected": "Sample collected",
+    "routed": "Routed",
+    "received": "Received in the lab",
+    "sent": "Sent to the outside lab",
+    "received_back": "Result received",
+    "resulted": "Submitted for verification",
+    "verified": "Verified",
+    "reopened": "Reopened",
+}
 CRITICAL_MODE_LABELS = {
     "phone": "By phone",
     "in_person": "In person",

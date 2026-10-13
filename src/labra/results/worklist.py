@@ -31,7 +31,12 @@ from labra.org.models import AppUser, Branch
 from labra.patients.age import age_text
 from labra.patients.models import Patient
 from labra.results.flags import pick_range, state_of
-from labra.results.models import CriticalNotification, Result, Verification
+from labra.results.models import (
+    CriticalNotification,
+    ExternalDocumentTest,
+    Result,
+    Verification,
+)
 from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 from labra.visits.service import main_lab_id
 
@@ -624,10 +629,15 @@ def can_route(principal: Principal, ordered: OrderTest, visit: Visit) -> bool:
 
 
 def route_choices(db: Session, principal: Principal, sheet: Sheet) -> list[RouteChoice]:
+    return choices_for(db, principal, sheet.ordered, sheet.visit)
+
+
+def choices_for(
+    db: Session, principal: Principal, ordered: OrderTest, visit: Visit
+) -> list[RouteChoice]:
     """Where the test can go from here: the main lab, the branch that took the sample, and
     each outside lab that has a rate for it, cheapest first. Empty when the test can't be
     moved any more or the user may not move it."""
-    ordered, visit = sheet.ordered, sheet.visit
     if ordered.status not in ROUTABLE or not can_route(principal, ordered, visit):
         return []
     in_house = ordered.route == "in_house"
@@ -661,6 +671,13 @@ def route_choices(db: Session, principal: Principal, sheet: Sheet) -> list[Route
     return choices
 
 
+def has_document(db: Session, order_test_id: uuid.UUID) -> bool:
+    """Whether an outside lab's result PDF is attached to the test."""
+    return bool(
+        db.scalar(select(exists().where(ExternalDocumentTest.order_test_id == order_test_id)))
+    )
+
+
 # A visit on the grid
 
 
@@ -688,6 +705,9 @@ class TestBlock:
     margin: Decimal | None = None
     verified_by: str = ""
     error: str = ""
+    accession_no: str = ""
+    # Routed to an outside lab and its PDF isn't here yet, so nothing can be typed.
+    awaiting_pdf: bool = False
 
     def count(self, *states: str) -> int:
         return sum(1 for r in self.rows if r.state in states)
@@ -705,7 +725,9 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
     ordered = sheet.ordered
     enters = principal.can("result.enter", ordered.perform_branch_id)
     verifies = principal.can("result.verify", ordered.perform_branch_id)
-    can_type = ordered.status in EDITABLE and enters
+    # Routed out but still here: its values come from the outside lab, once it has been.
+    waiting_to_go = ordered.route == "external" and not has_document(db, ordered.id)
+    can_type = ordered.status in EDITABLE and enters and not waiting_to_go
     lab_name, margin, verified_by = "", None, ""
     if ordered.external_lab_id is not None:
         lab_name = db.get_one(ExternalLab, ordered.external_lab_id).name
@@ -731,7 +753,7 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
         row_version=ordered.row_version,
         editable=can_type,
         rows=rows(db, sheet, can_type),
-        can_submit=ordered.status == "in_lab" and enters,
+        can_submit=ordered.status == "in_lab" and enters and not waiting_to_go,
         can_verify=ordered.status == "resulted" and verifies,
         can_reopen=ordered.status == "verified" and verifies,
         choices=route_choices(db, principal, sheet),
@@ -739,6 +761,8 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
         external_cost=ordered.external_cost if margin is not None else None,
         margin=margin,
         verified_by=verified_by,
+        accession_no=ordered.external_accession_no,
+        awaiting_pdf=waiting_to_go,
     )
 
 

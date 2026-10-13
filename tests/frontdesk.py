@@ -52,6 +52,18 @@ def post(client: TestClient, url: str, data: Mapping[str, object]):
     return client.post(url, data={**data, "csrf_token": token.group(1)}, follow_redirects=False)
 
 
+def upload(client: TestClient, url: str, data: Mapping[str, object], name: str, content: bytes):
+    """Post a form with one file in its `file` field."""
+    token = _TOKEN.search(client.get("/").text)
+    assert token is not None
+    return client.post(
+        url,
+        data={**data, "csrf_token": token.group(1)},
+        files={"file": (name, content, "application/pdf")},
+        follow_redirects=False,
+    )
+
+
 def patient_input(**changes: object) -> patients.PatientInput:
     values: dict[str, object] = {
         "full_name": "Sunita Testcase",

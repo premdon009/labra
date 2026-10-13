@@ -2,6 +2,7 @@
 {% from "lab/_row.html" import grid_row with context %}
 {% from "lab/_block.html" import block_foot %}
 {% from "_macros.html" import csrf %}
+{% from "lab/_timeline.html" import timeline %}
 {% block title %}Results · {{ sheet.visit_no }}{% endblock %}
 {% block scripts %}<script src="/static/lab.js" defer></script>{% endblock %}
 {% block content %}
@@ -21,7 +22,7 @@
 {% endif %}
 {% for block in sheet.blocks %}
 <section class="result-block" id="t-{{ block.order_test_id }}" aria-labelledby="h-{{ block.order_test_id }}">
-  <h2 id="h-{{ block.order_test_id }}">{{ block.name }}{% if block.route == 'external' %} <span class="muted">· outside lab: {{ block.lab_name }}{% if block.margin is not none %} · cost {{ block.external_cost|money(fmt) }} · margin {{ block.margin|money(fmt) }}{% endif %}</span>{% endif %}</h2>
+  <h2 id="h-{{ block.order_test_id }}">{{ block.name }}{% if block.route == 'external' %} <span class="muted">· outside lab: {{ block.lab_name }}{% if block.accession_no %} · their number {{ block.accession_no }}{% endif %}{% if block.margin is not none %} · cost {{ block.external_cost|money(fmt) }} · margin {{ block.margin|money(fmt) }}{% endif %}</span>{% endif %}</h2>
   {% if block.choices %}
   <form method="post" action="/lab/tests/{{ block.order_test_id }}/route" class="route-row">
     {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ block.row_version }}">
@@ -46,9 +47,40 @@
   {% else %}
   <p class="muted">This test has no parameters yet. Ask an administrator to add them in the test catalog.</p>
   {% endif %}
+  {% if block.awaiting_pdf and block.status != 'sent_out' %}<p class="muted">This test goes to an outside lab. Send it from <a href="/lab/outsourcing">Outsourcing</a>, or move it in-house to type its values here.</p>{% endif %}
+  {% if block.status == 'sent_out' %}<p class="muted">With the outside lab. Attach its PDF under <a href="#outside">Results from outside labs</a>; then the value can be typed.</p>{% endif %}
   {{ block_foot(block, csrf_token, statuses) }}
+  {{ timeline(timelines.get(block.order_test_id, []), events) }}
 </section>
 {% endfor %}
+{% if outside %}
+<section class="result-block" id="outside" aria-labelledby="h-outside">
+  <h2 id="h-outside">Results from outside labs</h2>
+  {% for group in outside %}
+  <h3>{{ group.lab_name }}</h3>
+  {% if group.documents %}
+  <ul>
+    {% for doc in group.documents %}
+    <li><a href="/lab/documents/{{ doc.id }}" download>Result PDF</a> for {{ doc.tests|join(', ') }} <span class="muted">· {{ doc.received_at|local_time }} · {{ doc.received_by }} · {{ ((doc.size + 1023) // 1024) }} KB</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if group.error %}<p class="field-error" role="alert">{{ group.error }}</p>{% endif %}
+  {% if group.tests %}
+  <form method="post" action="/lab/visits/{{ sheet.visit_id }}/documents" enctype="multipart/form-data" class="upload-row">
+    {{ csrf(csrf_token) }}<input type="hidden" name="lab" value="{{ group.lab_id }}">
+    <fieldset>
+      <legend>This PDF is the result of</legend>
+      {% for id, name in group.tests %}<label class="label"><input class="input" type="checkbox" name="tests" value="{{ id }}" checked> {{ name }}</label>{% endfor %}
+    </fieldset>
+    <label for="pdf-{{ group.lab_id }}">Result PDF</label>
+    <input class="input" type="file" id="pdf-{{ group.lab_id }}" name="file" accept="application/pdf,.pdf" required>
+    <button type="submit" class="btn-sm">Attach the PDF</button>
+  </form>
+  {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
 {% if sheet.elsewhere %}
 <p class="muted">Done at another branch: {{ sheet.elsewhere|join(', ') }}.</p>
 {% endif %}
