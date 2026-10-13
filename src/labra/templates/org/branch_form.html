@@ -9,7 +9,7 @@
   <input type="hidden" name="branch_id" value="{{ branch.id if branch and branch.id else '' }}">
   <input type="hidden" name="row_version" value="{{ branch.row_version if branch and branch.id else 0 }}">
   <div class="form-grid">
-    {{ field('code', 'Code', branch.code if branch, errors, required=True, hint='1 to 4 capital letters or digits, printed on numbers: B2/BS/2627/00123.') }}
+    {{ field('code', 'Code', branch.code if branch, errors, required=True, hint='1 to 4 capital letters or digits, printed on numbers: B2/2627/00123.') }}
     {{ field('name', 'Name', branch.name if branch, errors, required=True) }}
     <div class="field-row">
       <label class="label" for="f-kind">Type *</label>

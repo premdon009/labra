@@ -27,17 +27,17 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **L** `EC-A16` SSO (OIDC) for multi-lab installs
 
 ## B. Data integrity and money
-- [ ] **P** `EC-B01` Money as `Decimal`, one calculation module; hypothesis property tests *(CI)*
+- [x] **P** `EC-B01` Money as `Decimal`, one calculation module; hypothesis property tests *(CI)*
 - [x] **P** `EC-B02` Gapless, unique document numbers under concurrency (row lock on `number_series`); test with 20 parallel bills *(CI)*
 - [x] **P** `EC-B03` Optimistic locking (`row_version`) on edits; a stale edit shows "changed by X, reload"
-- [ ] **P** `EC-B04` Database constraints, not just app checks: foreign keys, `CHECK` (amount ≥ 0, paid ≤ net), unique keys, `NOT NULL`
+- [x] **P** `EC-B04` Database constraints, not just app checks: foreign keys, `CHECK` (amount ≥ 0, paid ≤ net), unique keys, `NOT NULL`
 - [ ] **P** `EC-B05` Released reports and issued bills are immutable; corrections only as amendment / credit note / cancellation with reason *(CI test)*
 - [ ] **P** `EC-B06` Append-only audit log with a hash chain; a nightly job verifies the chain and alerts on a break
-- [ ] **P** `EC-B07` Idempotent form submits (a double click doesn't create 2 bills: `client_ref` unique)
+- [x] **P** `EC-B07` Idempotent form submits (a double click doesn't create 2 bills: `client_ref` unique)
 - [ ] **1** `EC-B08` Daily reconciliation report: payments vs bills vs day close; mismatches flagged
 
 ## C. Privacy and compliance (India)
-- [ ] **P** `EC-C01` Consent recorded before testing and before referral-lab sharing; consent text versioned
+- [x] **P** `EC-C01` Consent recorded before testing and before referral-lab sharing; consent text versioned
 - [ ] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
 - [ ] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
 - [x] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
@@ -69,7 +69,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## F. Performance and capacity
 - [ ] **P** `EC-F01` Budgets on the 4 GB laptop: page load < 1 s on LAN, search < 300 ms, report PDF < 3 s, memory < 2 GB with 3 users
 - [ ] **P** `EC-F02` Indexes for every list/search screen (patient phone/name trigram, visit date, order status); `EXPLAIN` checked in a test for the 5 main queries
-- [ ] **P** `EC-F03` Pagination everywhere; no unbounded lists
+- [x] **P** `EC-F03` Pagination everywhere; no unbounded lists
 - [ ] **1** `EC-F04` Load test (Locust) with 10 concurrent users and 5 years of synthetic data (about 160k visits)
 
 ## G. Upgrades, migrations, versioning
@@ -99,8 +99,8 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-I07` Every dependency (Python, image, vendored asset, CLI tool) has a row in `docs/DEPENDENCIES.md`; the register is reviewed each quarter and before each release *(CI: `audit_deps.py --check`)*
 
 ## J. Usability and accessibility
-- [ ] **P** `EC-J01` Keyboard-first front desk (barcode scanner + Enter flows, shortcuts for new patient / bill / print)
-- [ ] **P** `EC-J02` Works in Chrome/Edge on a 1366×768 screen (common on branch PCs)
+- [x] **P** `EC-J01` Keyboard-first front desk (barcode scanner + Enter flows, shortcuts for new patient / bill / print)
+- [x] **P** `EC-J02` Works in Chrome/Edge on a 1366×768 screen (common on branch PCs)
 - [ ] **P** `EC-J03` Clear empty, loading and error states (Basecoat components); confirmation for cancel/refund/release
 - [ ] **1** `EC-J04` WCAG 2.2 AA on main screens (contrast, focus, labels)
 - [ ] **1** `EC-J05` UI translations (Babel) with at least one regional language

@@ -77,7 +77,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | P | todo | |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | todo | |
 | M13 | Reports for the owner | P | todo | |
-| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | P | todo | |
+| M07.1 | Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27 | P | todo | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | M14 | Admin screens (own HTMX, ADR-0010) | P | todo | |
 | M15 | Compliance floor: hash-chained audit log, consent, no fetal-sex fields | P | todo | |
@@ -548,7 +548,7 @@ Priya types the phone number. A patient is found by phone + name [M19], so there
 └──────────────────────────────────────────────────────────────────────┘
 ```
 On Save, Labra:
-- issues the bill of supply `B2/BS/2627/00123`, the receipt and **3 barcode labels**, one per container: grey fluoride, gold SST, urine
+- issues the bill of supply `B2/2627/00123`, the receipt and **3 barcode labels**, one per container: grey fluoride, gold SST, urine
 - writes the audit log
 - creates 4 `order_test` rows
 
@@ -732,7 +732,7 @@ Rule: every piece is MIT/BSD/Apache/PSF-licensed, Python-first and light enough 
 | `user_branch_role` | user_id, branch_id, role_id |
 | `signatory` | user_id, qualification, council_reg_no, signature_file_id, department_ids[] |
 | `setting` | key, scope (`instance`/`branch`), scope_id, value JSONB; precedence branch > instance (per-case values live on the record itself) |
-| `number_series` | branch_id, doc_type (`patient`,`visit`,`sample`,`bos`,`tax_inv`,`receipt`,`refund`,`credit_note`,`report`,`manifest`), format (`{BR}/BS/{FY2}/{SEQ:5}` → `B2/BS/2627/00123`; bill/invoice/credit-note formats are refused if they can render longer than **16 characters**, GST Rule 46/49), fin_year, next_value |
+| `number_series` | branch_id, doc_type (`patient`,`visit`,`sample`,`bos`,`tax_inv`,`receipt`,`refund`,`credit_note`,`report`,`manifest`), format (`{BR}/{FY2}/{SEQ:5}` → `B2/2627/00123`; bill/invoice/credit-note formats are refused if they can render longer than **16 characters**, GST Rule 46/49), fin_year, next_value |
 | `device` | branch_id, name, offline_enabled, last_sync_at, revoked_at |
 | `number_block` | device_id, series_id, range_start, range_end, used_upto (numbers handed out in advance for offline use, §9) |
 
@@ -1125,7 +1125,7 @@ Both A4/A5 and 80 mm thermal versions come from the same template data. When a v
 ```
 <Logo> <LEGAL NAME> · Branch 2, <address> · GSTIN 29XXXXX1Z5
                         BILL OF SUPPLY
-Bill No: B2/BS/2627/00123             Date: 05-Oct-2026 10:42
+Bill No: B2/2627/00123             Date: 05-Oct-2026 10:42
 Patient: <Name> · 34/F · P-000456     Ref: Dr <name>   Visit: B2-V-..
 Place of supply: Karnataka (29)       Counter: <user>
  #  Description               SAC     Rate     Disc    Amount
@@ -1145,7 +1145,7 @@ Sample IDs: B2-2026-000123, -000124          Authorised signatory
 | Rule 49 item | On Labra's bill |
 |---|---|
 | (a) Supplier name, address, GSTIN | Branch block (GSTIN printed only if the lab is registered) |
-| (b) Serial number **≤ 16 characters**, unique per financial year, one or more series, only letters, digits, `-` and `/` | `B2/BS/2627/00123`; the settings form refuses a format that can exceed 16 characters (offline series too) |
+| (b) Serial number **≤ 16 characters**, unique per financial year, one or more series, only letters, digits, `-` and `/` | `B2/2627/00123`; the settings form refuses a format that can exceed 16 characters (offline series too) |
 | (c) Date of issue | Bill date |
 | (d) Recipient name/address/GSTIN if registered | Patient name; GSTIN and address for B2B / corporate bills |
 | (e) HSN / SAC code | SAC per line (from `gst_category`) |
@@ -1188,7 +1188,7 @@ Rules:
 - Stored amounts never change with these settings; a changed setting only changes how new and reprinted documents *look*. A released bill's stored PDF stays as issued.
 - The UPI QR always uses INR amounts regardless of display settings (UPI is INR-only).
 - The letterhead calibration dummy bill uses the current currency settings, so a long symbol like `INR` is checked for column overflow.
-- **Tests:** `format_money()` table tests for each option (Indian grouping `1,23,45,678.50`, symbol positions, 0 decimals); amount-in-words for 0, 0.50, 99,999.99, 1,00,00,000; a bill rendered with `₹` contains the glyph in the embedded font (pdfplumber text extraction returns `₹`).
+- **Tests:** `format_money()` table tests for each option (Indian grouping `1,23,45,678.50`, symbol positions, 0 decimals); amount-in-words for 0, 0.50, 99,999.99, 1,00,00,000; a bill rendered with `₹` contains the glyph in the embedded font (pdfplumber text extraction returns `₹`); this PDF test belongs to M17, where bills first become PDFs, since the front desk prints bills from HTML.
 
 **Numbering:** gapless per series, branch and Indian financial year (April reset). Offline devices use their own series (§9). The legal wording, SAC defaults and exemption note are **configurable and must be checked by a CA**; Labra ships editable defaults, not legal advice.
 
@@ -1472,8 +1472,8 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 |---|---|---|---|---|
 | **1** | Repo, agent setup, docs site, foundation | W01, W02, W08, W08.1, W13, W14, W15, W16, W03, W04, W05 (seed framework + §1e cast), M02, M01, M01.1, M01.2, M15, **M25.1**, **M25.2** | A01–A05, A08–A10, B02, B04, B06, B07, D04, D05, E01, E03, G01, G02, G04, H01, H02, H04, I01–I03, K01, C03, C04 | `getting-started/login`, `getting-started/screen-layout`, `admin/branches`, `admin/users-and-roles`, `admin/settings`; dev docs `dev/setup.md`, `dev/workflow.md`; ADR-0001 to 0006; `docs/research/` |
 | **2** | Catalog, prices, admin screens | M05, M05.1, M05.2, M06, M14, M24 (cross-checked against Appendix A; disputed ranges left unapproved for the pathologist) | B03, K02, F02 | `admin/catalog`, `admin/reference-ranges`, `admin/methods`, `admin/prices`, `admin/starter-catalog` |
-| **3** | Front desk | M03, M04, M18, M18.1, M07, M07.1, M23, M08 | B01, B05, C01, C02, F03, J01–J03 | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
-| **4** | Lab | M09, M10, M11, M11.1, M11.2, M21, M22 | A07, F01 (results part) | `lab/worklist`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `lab/status-board` |
+| **3** | Front desk | M03, M04, M18, M07, M07.1, M23, M08 (M18.1 is gate P2 and waits) | B01, B04, B07, C01, F03, J01, J02; the bill and front-desk parts of B05 and J03, which close in Run 5 with released reports | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
+| **4** | Lab | M09, M10, M11, M11.1, M11.2, M21, M22 | A07, C02, F01 (results part) | `lab/worklist`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `lab/status-board` |
 | **5** | Reports + owner | M17, M17.1, M12, M12.1, M20, M20.1, M19, M13 | A06, K03, H03 (full-day Playwright + PDF snapshots) | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins` |
 | **6** | Install, backups, pilot prep | M16, W06, W07, **M25.3**, then W09 (the pilot week itself, after the run) | A11, A12, D01–D03, D06, D07, E02, E04, F01 (laptop budgets), G03, H05, L01–L03 | `admin/backups-and-restore`, `troubleshooting/*`, runbooks (`docs/runbooks/`), `install/laptop.md`, manual PDF, "A day at the lab" (§1e) |
 

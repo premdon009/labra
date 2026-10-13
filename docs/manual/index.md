@@ -50,8 +50,8 @@ Every feature Labra has, and the manual page that explains it.
 | M07 | Visit and billing: bill of supply, payments, dues | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M07 | Visit and billing: bill of supply, payments, dues | [Dues and payments](frontdesk/dues-and-payments.md) |
 | M07 | Visit and billing: bill of supply, payments, dues | [New visit](frontdesk/new-visit.md) |
-| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Settings](admin/settings.md) |
-| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M07.1 | Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27 | [Settings](admin/settings.md) |
+| M07.1 | Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27 | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
