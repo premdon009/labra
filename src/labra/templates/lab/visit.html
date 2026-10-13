@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-{% from "lab/_row.html" import grid_row %}
+{% from "lab/_row.html" import grid_row with context %}
+{% from "lab/_block.html" import block_foot %}
+{% from "_macros.html" import csrf %}
 {% block title %}Results · {{ sheet.visit_no }}{% endblock %}
 {% block scripts %}<script src="/static/lab.js" defer></script>{% endblock %}
 {% block content %}
@@ -7,9 +9,33 @@
   <h1>{{ sheet.patient_name }} <span class="muted">{{ sheet.age }} · {{ sexes.get(sheet.sex, sheet.sex) }} · {{ sheet.visit_no }}</span></h1>
   <a class="btn-outline" href="/lab/worklist">Back to the worklist</a>
 </div>
+{% if sheet.sharing_consent_missing and sheet.blocks|selectattr('choices')|list %}
+<div class="alert" role="status">
+  <h2>No consent to share with an outside lab</h2>
+  <p>This patient hasn't agreed to their details going to an outside lab. Ask them before a test is sent out, then record it here. You can still move a test.</p>
+  <form method="post" action="/lab/visits/{{ sheet.visit_id }}/sharing-consent">
+    {{ csrf(csrf_token) }}
+    <button type="submit" class="btn-sm-outline">Record consent</button>
+  </form>
+</div>
+{% endif %}
 {% for block in sheet.blocks %}
 <section class="result-block" id="t-{{ block.order_test_id }}" aria-labelledby="h-{{ block.order_test_id }}">
-  <h2 id="h-{{ block.order_test_id }}">{{ block.name }} <span class="muted">{{ statuses.get(block.status, block.status) }}{% if block.route == 'external' %} · outside lab{% endif %}</span></h2>
+  <h2 id="h-{{ block.order_test_id }}">{{ block.name }}{% if block.route == 'external' %} <span class="muted">· outside lab: {{ block.lab_name }}{% if block.margin is not none %} · cost {{ block.external_cost|money(fmt) }} · margin {{ block.margin|money(fmt) }}{% endif %}</span>{% endif %}</h2>
+  {% if block.choices %}
+  <form method="post" action="/lab/tests/{{ block.order_test_id }}/route" class="route-row">
+    {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ block.row_version }}">
+    <label for="to-{{ block.order_test_id }}">Done at</label>
+    <select class="select" id="to-{{ block.order_test_id }}" name="to">
+      {% for choice in block.choices %}
+      <option value="{{ choice.value }}"{% if choice.current %} selected{% endif %}>{{ choice.name }}{% if choice.cost is not none %}: cost {{ choice.cost|money(fmt) }}, margin {{ choice.margin|money(fmt) }}, {{ choice.tat_hours }} h{% endif %}</option>
+      {% endfor %}
+    </select>
+    <label for="why-{{ block.order_test_id }}">Reason (optional)</label>
+    <input class="input" type="text" id="why-{{ block.order_test_id }}" name="reason" maxlength="200" autocomplete="off">
+    <button type="submit" class="btn-sm-outline">Move the test</button>
+  </form>
+  {% endif %}
   {% if block.rows %}
   <table class="table result-grid" data-result-grid>
     <thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Flag</th><th>Reference interval</th><th>Previous</th></tr></thead>
@@ -20,6 +46,7 @@
   {% else %}
   <p class="muted">This test has no parameters yet. Ask an administrator to add them in the test catalog.</p>
   {% endif %}
+  {{ block_foot(block, csrf_token, statuses) }}
 </section>
 {% endfor %}
 {% if sheet.elsewhere %}

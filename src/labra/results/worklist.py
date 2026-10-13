@@ -9,23 +9,31 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import Select, exists, select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session, aliased
 
 from labra.auth.principal import Principal
+from labra.catalog import service as catalog
 from labra.catalog import units
 from labra.catalog.models import Department, ReferenceBand, ReferenceRange, Test, TestParameter
+from labra.core.consent import current_notice
 from labra.core.errors import NotFoundError, PermissionDeniedError
 from labra.core.ids import IST, lab_today
+from labra.core.models import Consent
+from labra.core.money import ZERO, allocate
 from labra.core.paging import Page, page_of
-from labra.org.models import Branch
+from labra.extlabs import service as extlabs
+from labra.extlabs.models import ExternalLab
+from labra.org.models import AppUser, Branch
 from labra.patients.age import age_text
 from labra.patients.models import Patient
 from labra.results.flags import pick_range, state_of
-from labra.results.models import Result
-from labra.visits.models import OrderTest, Sample, Visit
+from labra.results.models import CriticalNotification, Result, Verification
+from labra.visits.models import OrderItem, OrderTest, Sample, Visit
+from labra.visits.service import main_lab_id
 
 # Values can be typed and changed until a signatory verifies the test.
 EDITABLE = ("in_lab", "resulted")
@@ -34,6 +42,9 @@ OPEN = ("collected", "in_lab", "resulted")
 STATUSES = ("collected", "in_lab", "resulted", "sent_out", "verified", "released")
 # A result counts as a patient's previous value once a signatory has stood behind it.
 SIGNED_OFF = ("verified", "released")
+# A test can change hands until it leaves the building or has a result.
+ROUTABLE = ("ordered", "collected", "in_lab")
+CRITICAL = ("LL", "HH")
 BADGES = {
     "normal": "✓",
     "low": "↓ L",
@@ -78,6 +89,10 @@ class Sheet:
     parameters: list[TestParameter]
     ranges: dict[uuid.UUID, list[ReferenceRange]] = field(default_factory=dict)
     results: dict[uuid.UUID, Result] = field(default_factory=dict)
+    # Set while values are being saved: why the test was reopened after verification, if
+    # it was, and whether any value has changed.
+    reopen_reason: str = ""
+    changed: bool = False
 
     def range_for(self, parameter_id: uuid.UUID, approved_only: bool = True):
         return pick_range(
@@ -205,6 +220,12 @@ class GridRow:
     error: str = ""
     # The typed value is outside the typo guard; it is saved only if confirmed.
     needs_confirm: bool = False
+    result_id: uuid.UUID | None = None
+    # A critical value nobody has been told about yet, and whether this user may log it.
+    must_inform: bool = False
+    can_inform: bool = False
+    informed: CriticalNotification | None = None
+    inform_error: str = ""
 
     @property
     def calculated(self) -> bool:
@@ -216,6 +237,7 @@ def _row(
     parameter: TestParameter,
     editable: bool,
     previous: dict[uuid.UUID, tuple[Result, datetime]],
+    told: dict[uuid.UUID, CriticalNotification],
 ) -> GridRow:
     result = sheet.results.get(parameter.id)
     value, state, badge, band = "", "empty", "", ""
@@ -242,6 +264,7 @@ def _row(
         unit = parameter.unit_ucum
         limits = range_text(rng.low, rng.high, rng.display_text) if rng else ""
         unapproved = rng is None and sheet.range_for(parameter.id, False) is not None
+    informed = told.get(result.id) if result is not None and state == "critical" else None
     return GridRow(
         order_test_id=sheet.ordered.id,
         parameter=parameter,
@@ -255,7 +278,40 @@ def _row(
         range_unapproved=unapproved,
         previous=_previous(previous.get(parameter.id), result, parameter.decimals),
         editable=editable and parameter.result_type != "calculated",
+        result_id=result.id if result is not None else None,
+        must_inform=state == "critical" and informed is None,
+        can_inform=state == "critical" and informed is None and editable,
+        informed=informed,
     )
+
+
+def reported(result: Result, decimals: int) -> str:
+    """A result's value as it is read out over the phone and kept in the critical log."""
+    return shown(result.value_num, decimals) if result.value_num is not None else result.value_text
+
+
+def told_about(db: Session, sheet: Sheet) -> dict[uuid.UUID, CriticalNotification]:
+    """For each critical result of the test, the log entry that reports the value it has
+    now. A value corrected after the call has to be reported again."""
+    decimals = {p.id: p.decimals for p in sheet.parameters}
+    critical = {
+        r.id: r for r in sheet.results.values() if r.flag in CRITICAL and r.parameter_id in decimals
+    }
+    if not critical:
+        return {}
+    told: dict[uuid.UUID, CriticalNotification] = {}
+    for note in db.scalars(
+        select(CriticalNotification)
+        .where(CriticalNotification.result_id.in_(critical))
+        .order_by(CriticalNotification.recorded_at, CriticalNotification.id)
+    ):
+        result = critical[note.result_id]
+        if (note.reported_value, note.reported_flag) == (
+            reported(result, decimals[result.parameter_id]),
+            result.flag,
+        ):
+            told[result.id] = note
+    return told
 
 
 def rows(db: Session, sheet: Sheet, editable: bool) -> list[GridRow]:
@@ -263,7 +319,8 @@ def rows(db: Session, sheet: Sheet, editable: bool) -> list[GridRow]:
     previous = previous_values(
         db, sheet.visit.patient_id, sheet.visit.visited_at, [p.id for p in sheet.parameters]
     )
-    return [_row(sheet, p, editable, previous) for p in sheet.parameters]
+    told = told_about(db, sheet)
+    return [_row(sheet, p, editable, previous, told) for p in sheet.parameters]
 
 
 # The worklist
@@ -383,22 +440,254 @@ def departments(db: Session) -> list[tuple[uuid.UUID, str]]:
     ]
 
 
+# The critical-value log
+
+
+@dataclass(frozen=True)
+class CriticalEntry:
+    """One critical value: with `note`, who was told; without, still to be told."""
+
+    visit_id: uuid.UUID
+    order_test_id: uuid.UUID
+    visit_no: str
+    patient_name: str
+    age: str
+    sex: str
+    test_name: str
+    parameter_name: str
+    value: str
+    flag: str
+    unit: str
+    note: CriticalNotification | None = None
+    recorded_by: str = ""
+
+
+_CRITICAL_COLUMNS = (
+    OrderTest.visit_id,
+    OrderTest.id,
+    Visit.visit_no,
+    Patient.full_name,
+    Patient.dob,
+    Patient.sex,
+    Test.name,
+    TestParameter.name,
+    TestParameter.decimals,
+    Result,
+)
+
+
+def _critical_from(
+    stmt: Select[*tuple[Any, ...]], in_view: dict[uuid.UUID, str]
+) -> Select[*tuple[Any, ...]]:
+    return (
+        stmt.join(OrderTest, OrderTest.id == Result.order_test_id)
+        .join(Visit, Visit.id == OrderTest.visit_id)
+        .join(Patient, Patient.id == Visit.patient_id)
+        .join(Test, Test.id == OrderTest.test_id)
+        .join(TestParameter, TestParameter.id == Result.parameter_id)
+        .where(OrderTest.perform_branch_id.in_(in_view))
+    )
+
+
+def _critical_entry(
+    row: Any,
+    today: date,
+    note: CriticalNotification | None = None,
+    recorded_by: str = "",
+) -> CriticalEntry:
+    result: Result = row[9]
+    return CriticalEntry(
+        visit_id=row[0],
+        order_test_id=row[1],
+        visit_no=row[2],
+        patient_name=row[3],
+        age=age_text(row[4], today),
+        sex=row[5],
+        test_name=row[6],
+        parameter_name=row[7],
+        # The log keeps the value that was reported, even if it was corrected later.
+        value=note.reported_value if note else reported(result, row[8]),
+        flag=note.reported_flag if note else result.flag or "",
+        unit=units.label(result.unit),
+        note=note,
+        recorded_by=recorded_by,
+    )
+
+
+def critical_waiting(db: Session, principal: Principal) -> list[CriticalEntry]:
+    """Critical values on tests still at the bench that nobody is on record as told about."""
+    in_view = branches_in_view(db, principal)
+    found = db.execute(
+        _critical_from(select(*_CRITICAL_COLUMNS).select_from(Result), in_view)
+        .where(Result.flag.in_(CRITICAL), OrderTest.status.in_(EDITABLE), TestParameter.is_active)
+        .order_by(Result.entered_at, Result.id)
+        .limit(200)
+    ).all()
+    today = lab_today()
+    waiting = []
+    for row in found:
+        result: Result = row[9]
+        logged = db.scalar(
+            select(
+                exists().where(
+                    CriticalNotification.result_id == result.id,
+                    CriticalNotification.reported_value == reported(result, row[8]),
+                    CriticalNotification.reported_flag == result.flag,
+                )
+            )
+        )
+        if not logged:
+            waiting.append(_critical_entry(row, today))
+    return waiting
+
+
+def critical_log(db: Session, principal: Principal, page: int = 1) -> Page[CriticalEntry]:
+    """Who was told about which critical value, newest first, for the branches in view."""
+    in_view = branches_in_view(db, principal)
+    stmt = (
+        _critical_from(
+            select(*_CRITICAL_COLUMNS, CriticalNotification, AppUser.full_name)
+            .select_from(CriticalNotification)
+            .join(Result, Result.id == CriticalNotification.result_id),
+            in_view,
+        )
+        .join(AppUser, AppUser.id == CriticalNotification.recorded_by)
+        .order_by(CriticalNotification.informed_at.desc(), CriticalNotification.id.desc())
+    )
+    found = page_of(db, stmt, page)
+    today = lab_today()
+    items = [_critical_entry(row, today, row[10], row[11]) for row in found.items]
+    return Page(items, found.number, found.size, found.has_next)
+
+
+# Where a test can be done
+
+
+def has_sharing_consent(db: Session, patient_id: uuid.UUID) -> bool:
+    """Whether the patient agreed, under the notice now in force, to their details going to
+    an outside lab."""
+    return bool(
+        db.scalar(
+            select(
+                exists().where(
+                    Consent.subject_type == "patient",
+                    Consent.subject_id == patient_id,
+                    Consent.purpose == "referral_lab_sharing",
+                    Consent.notice_id == current_notice(db).id,
+                    Consent.withdrawn_at.is_(None),
+                )
+            )
+        )
+    )
+
+
+def charged_for(db: Session, ordered: OrderTest) -> Decimal:
+    """What the patient was charged for this test. A test ordered inside a package gets its
+    share of the package's price, split by the list prices of the package's tests."""
+    item = db.get_one(OrderItem, ordered.order_item_id)
+    if item.item_type != "package":
+        return item.net_price
+    visit = db.get_one(Visit, ordered.visit_id)
+    members = db.scalars(
+        select(OrderTest)
+        .where(OrderTest.order_item_id == item.id)
+        .order_by(OrderTest.created_at, OrderTest.id)
+    ).all()
+    weights = [
+        catalog.price_at(db, "test", m.test_id, visit.branch_id, visit.visited_at) or ZERO
+        for m in members
+    ]
+    if sum(weights) < item.net_price:
+        # Tests without a price of their own, or a package dearer than its parts.
+        weights = [item.net_price or Decimal(1) for _ in members]
+    shares = allocate(item.net_price, weights)
+    return shares[[m.id for m in members].index(ordered.id)]
+
+
+@dataclass(frozen=True)
+class RouteChoice:
+    """One place a test can be done, as the routing list offers it. Cost, margin and
+    turnaround are known for outside labs only."""
+
+    value: str
+    name: str
+    current: bool
+    cost: Decimal | None = None
+    margin: Decimal | None = None
+    tat_hours: int | None = None
+
+
+def can_route(principal: Principal, ordered: OrderTest, visit: Visit) -> bool:
+    return principal.can("test.route", visit.branch_id) or principal.can(
+        "test.route", ordered.perform_branch_id
+    )
+
+
+def route_choices(db: Session, principal: Principal, sheet: Sheet) -> list[RouteChoice]:
+    """Where the test can go from here: the main lab, the branch that took the sample, and
+    each outside lab that has a rate for it, cheapest first. Empty when the test can't be
+    moved any more or the user may not move it."""
+    ordered, visit = sheet.ordered, sheet.visit
+    if ordered.status not in ROUTABLE or not can_route(principal, ordered, visit):
+        return []
+    in_house = ordered.route == "in_house"
+    choices = []
+    branches = dict.fromkeys(b for b in (main_lab_id(db), visit.branch_id) if b is not None)
+    codes = dict(db.execute(select(Branch.id, Branch.code).where(Branch.id.in_(branches))).all())
+    for branch_id in branches:
+        choices.append(
+            RouteChoice(
+                value=f"branch:{branch_id}",
+                name=f"In-house at {codes[branch_id]}",
+                current=in_house and ordered.perform_branch_id == branch_id,
+            )
+        )
+    if principal.can("extlab.view"):
+        charged = charged_for(db, ordered)
+        for quote in extlabs.quotes_for(db, principal, ordered.test_id):
+            current = ordered.external_lab_id == quote.lab.id
+            # A test already with this lab keeps the cost it was routed at.
+            cost = ordered.external_cost if current and ordered.external_cost else quote.rate.cost
+            choices.append(
+                RouteChoice(
+                    value=f"lab:{quote.lab.id}",
+                    name=quote.lab.name,
+                    current=current,
+                    cost=cost,
+                    margin=charged - cost,
+                    tat_hours=quote.rate.tat_hours,
+                )
+            )
+    return choices
+
+
 # A visit on the grid
 
 
 @dataclass(frozen=True)
 class TestBlock:
-    """One test of the visit with its rows, and what is still to look at before it goes
-    for verification."""
+    """One test of the visit with its rows, what is still to look at before it goes for
+    verification, and what this user may do with it."""
 
     __test__ = False
 
     order_test_id: uuid.UUID
+    visit_id: uuid.UUID
     name: str
     status: str
     route: str
+    row_version: int
     editable: bool
     rows: list[GridRow]
+    can_submit: bool = False
+    can_verify: bool = False
+    can_reopen: bool = False
+    choices: list[RouteChoice] = field(default_factory=list)
+    lab_name: str = ""
+    external_cost: Decimal | None = None
+    margin: Decimal | None = None
+    verified_by: str = ""
+    error: str = ""
 
     def count(self, *states: str) -> int:
         return sum(1 for r in self.rows if r.state in states)
@@ -406,6 +695,51 @@ class TestBlock:
     @property
     def missing(self) -> int:
         return sum(1 for r in self.rows if r.state == "empty" and not r.calculated)
+
+    @property
+    def to_inform(self) -> int:
+        return sum(1 for r in self.rows if r.must_inform)
+
+
+def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
+    ordered = sheet.ordered
+    enters = principal.can("result.enter", ordered.perform_branch_id)
+    verifies = principal.can("result.verify", ordered.perform_branch_id)
+    can_type = ordered.status in EDITABLE and enters
+    lab_name, margin, verified_by = "", None, ""
+    if ordered.external_lab_id is not None:
+        lab_name = db.get_one(ExternalLab, ordered.external_lab_id).name
+        if ordered.external_cost is not None and can_route(principal, ordered, sheet.visit):
+            margin = charged_for(db, ordered) - ordered.external_cost
+    if ordered.status in SIGNED_OFF:
+        verified_by = (
+            db.scalar(
+                select(AppUser.full_name)
+                .join(Verification, Verification.verified_by == AppUser.id)
+                .where(Verification.order_test_id == ordered.id)
+                .order_by(Verification.verified_at.desc(), Verification.id.desc())
+                .limit(1)
+            )
+            or ""
+        )
+    return TestBlock(
+        order_test_id=ordered.id,
+        visit_id=ordered.visit_id,
+        name=sheet.test.name,
+        status=ordered.status,
+        route=ordered.route,
+        row_version=ordered.row_version,
+        editable=can_type,
+        rows=rows(db, sheet, can_type),
+        can_submit=ordered.status == "in_lab" and enters,
+        can_verify=ordered.status == "resulted" and verifies,
+        can_reopen=ordered.status == "verified" and verifies,
+        choices=route_choices(db, principal, sheet),
+        lab_name=lab_name,
+        external_cost=ordered.external_cost if margin is not None else None,
+        margin=margin,
+        verified_by=verified_by,
+    )
 
 
 @dataclass(frozen=True)
@@ -418,6 +752,8 @@ class VisitSheet:
     blocks: list[TestBlock]
     # Tests of the visit that another branch does, as "name (branch code)".
     elsewhere: list[str]
+    # The patient hasn't agreed to their details going to an outside lab.
+    sharing_consent_missing: bool = False
 
 
 def visit_sheet(db: Session, principal: Principal, visit_id: uuid.UUID) -> VisitSheet:
@@ -433,29 +769,15 @@ def visit_sheet(db: Session, principal: Principal, visit_id: uuid.UUID) -> Visit
     here = [o for o in ordered if o.perform_branch_id in in_view]
     if not here:
         raise NotFoundError()
-    blocks = []
-    sheet = load_sheet(db, here[0].id)
-    for o in here:
-        sheet = load_sheet(db, o.id) if o.id != sheet.ordered.id else sheet
-        can_type = sheet.ordered.status in EDITABLE and principal.can(
-            "result.enter", o.perform_branch_id
-        )
-        blocks.append(
-            TestBlock(
-                order_test_id=o.id,
-                name=o.name,
-                status=sheet.ordered.status,
-                route=sheet.ordered.route,
-                editable=can_type,
-                rows=rows(db, sheet, can_type),
-            )
-        )
+    sheets = [load_sheet(db, o.id) for o in here]
+    first = sheets[0]
     return VisitSheet(
         visit_id=visit_id,
-        visit_no=sheet.visit.visit_no,
-        patient_name=sheet.patient_name,
-        age=age_text(sheet.dob, lab_today()),
-        sex=sheet.sex,
-        blocks=blocks,
+        visit_no=first.visit.visit_no,
+        patient_name=first.patient_name,
+        age=age_text(first.dob, lab_today()),
+        sex=first.sex,
+        blocks=[test_block(db, principal, sheet) for sheet in sheets],
         elsewhere=[f"{o.name} ({o.code})" for o in ordered if o.perform_branch_id not in in_view],
+        sharing_consent_missing=not has_sharing_consent(db, first.visit.patient_id),
     )

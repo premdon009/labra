@@ -59,7 +59,9 @@ Every feature Labra has, and the manual page that explains it.
 | M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | [New visit](frontdesk/new-visit.md) |
 | M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
+| M09 | Manual routing, in-house or external, showing cost and margin | [Entering results](lab/entering-results.md) |
 | M10 | External labs and result PDF upload | [External labs](admin/external-labs.md) |
+| M11 | Results: worklist, flags, previous value, critical-value log, verification | [Critical values](lab/critical-values.md) |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | [Entering results](lab/entering-results.md) |
 | M11 | Results: worklist, flags, previous value, critical-value log, verification | [Lab worklist](lab/worklist.md) |
 | M11.1 | Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d) | [Entering results](lab/entering-results.md) |

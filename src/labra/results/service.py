@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from labra.auth.principal import Principal
 from labra.catalog.models import Test
 from labra.core import audit, lab_settings
+from labra.core.consent import current_notice
 from labra.core.errors import (
     ConflictError,
     NotFoundError,
@@ -21,17 +22,17 @@ from labra.core.errors import (
     ValidationFailedError,
 )
 from labra.core.ids import lab_today, utcnow
+from labra.core.models import Consent
 from labra.extlabs import service as extlabs
 from labra.org.models import Branch
 from labra.org.service import stale
 from labra.patients.age import age_text
 from labra.patients.models import Patient
 from labra.results.models import OrderTestEvent
+from labra.results.worklist import ROUTABLE, can_route, has_sharing_consent
 from labra.visits.models import OrderTest, Sample, Visit
 from labra.visits.service import main_lab_id, status_once_collected
 
-# A test can change hands until it leaves the building or has a result.
-ROUTABLE = ("ordered", "collected", "in_lab")
 MAX_REASON = 200
 
 
@@ -65,10 +66,7 @@ def route_test(
     if ordered is None:
         raise NotFoundError()
     visit = db.get_one(Visit, ordered.visit_id)
-    if not (
-        principal.can("test.route", visit.branch_id)
-        or principal.can("test.route", ordered.perform_branch_id)
-    ):
+    if not can_route(principal, ordered, visit):
         raise PermissionDeniedError()
     if ordered.row_version != row_version:
         raise stale(db, ordered)
@@ -142,11 +140,47 @@ def route_test(
             "perform_branch_id": str(ordered.perform_branch_id),
             "external_lab_id": str(ordered.external_lab_id) if ordered.external_lab_id else None,
             "external_cost": str(ordered.external_cost) if ordered.external_cost else None,
+            "sharing_consent": has_sharing_consent(db, visit.patient_id),
         },
         user_id=principal.user_id,
         branch_id=visit.branch_id,
     )
     return ordered
+
+
+def record_sharing_consent(db: Session, principal: Principal, visit_id: uuid.UUID) -> bool:
+    """Record that the visit's patient agreed to their details going to an outside lab.
+    Returns False when that was already on file."""
+    visit = db.get(Visit, visit_id)
+    if visit is None:
+        raise NotFoundError()
+    if not principal.can("test.route", visit.branch_id) and not principal.can(
+        "test.route", principal.branch_id
+    ):
+        raise PermissionDeniedError()
+    if has_sharing_consent(db, visit.patient_id):
+        return False
+    db.add(
+        Consent(
+            subject_type="patient",
+            subject_id=visit.patient_id,
+            purpose="referral_lab_sharing",
+            method="counter",
+            recorded_by=principal.user_id,
+            notice_id=current_notice(db).id,
+        )
+    )
+    db.flush()
+    audit.record(
+        db,
+        "consent.record",
+        "patient",
+        visit.patient_id,
+        {"purpose": "referral_lab_sharing", "visit_id": str(visit.id)},
+        user_id=principal.user_id,
+        branch_id=visit.branch_id,
+    )
+    return True
 
 
 # Receiving samples

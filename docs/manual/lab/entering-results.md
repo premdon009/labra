@@ -1,6 +1,6 @@
 ---
 title: Entering results
-features: [M11, M11.1]
+features: [M11, M11.1, M09]
 ---
 
 # Entering results
@@ -33,6 +33,24 @@ or critical.
 5. To go back one box, press **Shift+Enter**. To drop what you have just typed and keep
    the saved value, press **Esc**.
 6. To correct a saved value, type over it and press **Enter**.
+7. When the test is ready, press **Submit for verification** under its rows.
+
+### Verifying
+
+Only a signatory sees these buttons.
+
+1. Open the visit from the worklist. The line under each test says how many values are
+   critical, high, low, abnormal and missing.
+2. Read the values, then press **Verify**.
+3. To correct a verified test, type the reason in **Reason for reopening** and press
+   **Reopen**. Correct the value, submit the test and verify it again.
+
+### Choosing where a test is done
+
+1. In **Done at**, above the test's rows, pick your own lab, the branch that took the
+   sample, or an outside lab.
+2. Type a reason if you want one kept.
+3. Press **Move the test**.
 
 ## Screenshot
 
@@ -54,7 +72,22 @@ or critical.
   The value is saved without a flag.
 - Rows marked **(calc.)** are worked out by Labra and can't be typed. See
   [Calculated values](calculated-values.md).
-- A test that is verified can't be changed. A signatory must reopen it first.
+- You can submit a test with rows still empty. The line under the test counts them as
+  missing.
+- If a value is changed after the test was submitted, the test goes back to **In the
+  lab**. Submit it again.
+- A critical value can't be submitted or verified until you record who was informed. See
+  [Critical values](critical-values.md).
+- A test that is verified can't be changed. A signatory must reopen it first. Labra keeps
+  each value as it was before the correction, with the reason.
+- An administrator can't verify. Verifying needs the signatory role.
+- Each outside lab in **Done at** shows what it charges, the margin left from what the
+  patient paid for the test, and its turnaround time in hours. The cheapest lab is first.
+  For a test inside a package, the margin uses the test's share of the package price.
+- A test can be moved until it has a result. After that the list is gone.
+- If the patient hasn't agreed to their details going to an outside lab, Labra shows
+  **No consent to share with an outside lab**. Ask the patient, then press **Record
+  consent**. The warning doesn't stop you moving the test.
 - If someone else changed the same value while you were typing, Labra says so and shows
   the newer value. Type yours again if it is still right.
 - The screen shows the patient's name, age and sex, never the phone number or address.
@@ -64,6 +97,8 @@ or critical.
 ## Related pages
 
 - [Lab worklist](worklist.md)
+- [Critical values](critical-values.md)
 - [Calculated values](calculated-values.md)
+- [External labs](../admin/external-labs.md)
 - [Reference ranges](../admin/reference-ranges.md)
 - [Keyboard shortcuts](../getting-started/keyboard-shortcuts.md)

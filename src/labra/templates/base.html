@@ -38,6 +38,9 @@
       {% if principal.can('result.enter', principal.branch_id) %}
       <a href="/lab/worklist" {{ keys('alt+w') }} {% if request.url.path.startswith('/lab/worklist') or request.url.path.startswith('/lab/visits') %}aria-current="page"{% endif %}>Worklist</a>
       {% endif %}
+      {% if principal.can('result.enter', principal.branch_id) %}
+      <a href="/lab/critical" {% if request.url.path.startswith('/lab/critical') %}aria-current="page"{% endif %}>Critical values</a>
+      {% endif %}
       {% if principal.can('sample.receive', principal.branch_id) %}
       <a href="/lab/receive" {% if request.url.path.startswith('/lab/receive') %}aria-current="page"{% endif %}>Receive samples</a>
       {% endif %}

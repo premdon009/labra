@@ -29,3 +29,9 @@ TEST_STATUS_LABELS = {
     "released": "Released",
     "cancelled": "Cancelled",
 }
+CRITICAL_MODE_LABELS = {
+    "phone": "By phone",
+    "in_person": "In person",
+    "message": "By message",
+    "email": "By email",
+}

@@ -1,0 +1,30 @@
+{# What stands under one test's grid: what is still to look at, and what can be done next.
+   `oob` swaps it into place when a cell of the test is saved. #}
+{% macro block_foot(block, token, statuses, oob=False) %}
+<div class="result-foot" id="f-{{ block.order_test_id }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <p class="muted"><strong>{{ statuses.get(block.status, block.status) }}</strong>{% if block.verified_by %} by {{ block.verified_by }}{% endif %} · {{ block.count('critical') }} critical · {{ block.count('high') }} high · {{ block.count('low') }} low · {{ block.count('abnormal') }} abnormal · {{ block.missing }} missing</p>
+  {% if block.error %}<p class="field-error" role="alert">{{ block.error }}</p>{% endif %}
+  {% if block.can_submit %}
+  <form method="post" action="/lab/tests/{{ block.order_test_id }}/submit">
+    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
+    <button type="submit" class="btn-sm">Submit for verification</button>
+    {% if block.to_inform %}<span class="muted">First record who was informed of the critical value.</span>{% endif %}
+  </form>
+  {% endif %}
+  {% if block.can_verify %}
+  <form method="post" action="/lab/tests/{{ block.order_test_id }}/verify">
+    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
+    <button type="submit" class="btn-sm">Verify</button>
+    {% if block.to_inform %}<span class="muted">First record who was informed of the critical value.</span>{% endif %}
+  </form>
+  {% endif %}
+  {% if block.can_reopen %}
+  <form method="post" action="/lab/tests/{{ block.order_test_id }}/reopen" class="result-reopen">
+    <input type="hidden" name="csrf_token" value="{{ token }}"><input type="hidden" name="row_version" value="{{ block.row_version }}">
+    <label for="reopen-{{ block.order_test_id }}">Reason for reopening</label>
+    <input class="input" type="text" id="reopen-{{ block.order_test_id }}" name="reason" maxlength="300" required autocomplete="off">
+    <button type="submit" class="btn-sm-outline">Reopen</button>
+  </form>
+  {% endif %}
+</div>
+{% endmacro %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Critical values{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Critical values</h1></div>
+<h2>Nobody informed yet</h2>
+<table class="table">
+  <thead><tr><th>Patient</th><th>Test</th><th>Value</th><th></th></tr></thead>
+  <tbody>
+    {% for item in waiting %}
+    <tr>
+      <td>{{ item.patient_name }} <span class="muted">{{ item.age }} · {{ sexes.get(item.sex, item.sex) }} · {{ item.visit_no }}</span></td>
+      <td>{{ item.test_name }}: {{ item.parameter_name }}</td>
+      <td><span class="flag-critical">⚠ {{ item.flag }}</span> {{ item.value }} {{ item.unit }}</td>
+      <td><a href="/lab/visits/{{ item.visit_id }}#t-{{ item.order_test_id }}">Record who was informed</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">Every critical value has someone on record as informed.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<h2>Log</h2>
+<table class="table">
+  <thead><tr><th>Informed at</th><th>Patient</th><th>Test</th><th>Value</th><th>Who was informed</th><th>How</th><th>Recorded by</th></tr></thead>
+  <tbody>
+    {% for item in log.items %}
+    <tr>
+      <td>{{ item.note.informed_at|local_time }}</td>
+      <td><a href="/lab/visits/{{ item.visit_id }}#t-{{ item.order_test_id }}">{{ item.patient_name }}</a> <span class="muted">{{ item.age }} · {{ sexes.get(item.sex, item.sex) }} · {{ item.visit_no }}</span></td>
+      <td>{{ item.test_name }}: {{ item.parameter_name }}</td>
+      <td><span class="flag-critical">⚠ {{ item.flag }}</span> {{ item.value }} {{ item.unit }}</td>
+      <td>{{ item.note.informed_to }}{% if item.note.phone %} <span class="muted">{{ item.note.phone }}</span>{% endif %}</td>
+      <td>{{ modes.get(item.note.mode, item.note.mode) }}</td>
+      <td>{{ item.recorded_by }} <span class="muted">{{ item.note.recorded_at|local_time }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">No critical value has been logged yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(log, request) }}
+{% endblock %}

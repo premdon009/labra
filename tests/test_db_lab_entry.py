@@ -459,7 +459,7 @@ def test_the_cell_endpoint_shows_each_state(
     assert 'value="180"' in own and '"row_version": 1' in own
     assert "hx-swap-oob" not in own
     # The calculated rows come along, each swapped into its own place.
-    assert got.text.count('hx-swap-oob="true"') == 5
+    assert got.text.count('hx-swap-oob="true"') == 6
 
     _, own = cell("TC", "250", 1)
     assert "flag-high" in own and "↑ H" in own and "High" in own

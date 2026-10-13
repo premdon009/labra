@@ -45,6 +45,7 @@ nav = [
       "manual/lab/receiving-samples.md",
       "manual/lab/worklist.md",
       "manual/lab/entering-results.md",
+      "manual/lab/critical-values.md",
       "manual/lab/calculated-values.md",
     ] },
   ] },

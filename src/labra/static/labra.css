@@ -87,5 +87,16 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 .result-legend span { padding: 0 0.3rem; border-radius: 0.25rem; }
 .result-when { white-space: nowrap; }
 .range-unapproved { font-style: italic; }
+.result-foot { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; margin-top: 0.4rem; }
+.result-foot p { margin: 0; }
+.result-foot form, .route-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.route-row { margin-bottom: 0.4rem; }
+.result-informed { margin: 0.15rem 0 0; font-weight: 400; }
+.inform { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.5rem; align-items: center;
+  margin-top: 0.3rem; padding: 0.5rem; border-radius: 0.375rem; font-weight: 400;
+  background: var(--background, #fff); color: var(--foreground, #111); }
+.inform p, .inform button { grid-column: 1 / -1; margin: 0; }
+.inform button { justify-self: start; }
+.result-grid .inform .input, .result-grid .inform .select { width: 100%; }
 
 [hidden] { display: none !important; }

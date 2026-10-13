@@ -1,3 +1,5 @@
-{% from "lab/_row.html" import grid_row %}
+{% from "lab/_row.html" import grid_row with context %}
+{% from "lab/_block.html" import block_foot %}
 {% if row %}{{ grid_row(row, csrf_token) }}{% endif %}
 {% for other in calculated %}{{ grid_row(other, csrf_token, oob=True) }}{% endfor %}
+{% if block %}{{ block_foot(block, csrf_token, statuses, oob=True) }}{% endif %}

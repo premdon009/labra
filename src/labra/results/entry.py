@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
@@ -23,7 +24,7 @@ from labra.core.errors import ConflictError, PermissionDeniedError, ValidationFa
 from labra.core.ids import utcnow
 from labra.org.service import stale
 from labra.results.flags import compute_flag, is_absurd
-from labra.results.models import Result
+from labra.results.models import OrderTestEvent, Result, ResultRevision
 from labra.results.worklist import EDITABLE, Sheet, bands_of, load_sheet, plain, range_text
 
 NOT_YET = {
@@ -122,6 +123,7 @@ def _write(
         parameter.options if parameter.result_type == "option" else (),
     )
     result = sheet.results.get(parameter.id)
+    before = (result.value_num, result.value_text, result.flag) if result is not None else None
     if result is None:
         result = Result(
             order_test_id=sheet.ordered.id,
@@ -148,6 +150,19 @@ def _write(
         result.entered_by = principal.user_id
         result.entered_at = at
         result.updated_by = principal.user_id
+        sheet.changed = True
+        if before is not None and sheet.reopen_reason and before[:2] != (number, text):
+            db.add(
+                ResultRevision(
+                    result_id=result.id,
+                    old_value_num=before[0],
+                    old_value_text=before[1],
+                    old_flag=before[2],
+                    reason=sheet.reopen_reason,
+                    changed_by=principal.user_id,
+                    changed_at=at,
+                )
+            )
     return result
 
 
@@ -221,6 +236,21 @@ def recalculate(db: Session, sheet: Sheet, principal: Principal, at: datetime) -
     return written
 
 
+def reopen_reason(db: Session, order_test_id: uuid.UUID) -> str:
+    """Why the test was last reopened after verification; empty if it never was."""
+    return (
+        db.scalar(
+            select(OrderTestEvent.note)
+            .where(
+                OrderTestEvent.order_test_id == order_test_id, OrderTestEvent.event == "reopened"
+            )
+            .order_by(OrderTestEvent.at.desc(), OrderTestEvent.id.desc())
+            .limit(1)
+        )
+        or ""
+    )
+
+
 def save_value(
     db: Session,
     principal: Principal,
@@ -268,10 +298,15 @@ def save_value(
         else:
             text = _text(parameter, raw)
     at = now or utcnow()
+    sheet.reopen_reason = reopen_reason(db, ordered.id)
     result = _write(
         db, sheet, parameter, principal, at, number=number, text=text, absurd_confirmed=confirmed
     )
     calculated = recalculate(db, sheet, principal, at)
+    if sheet.changed and ordered.status == "resulted":
+        # The signatory verifies what was submitted; a later change is submitted again.
+        ordered.status = "in_lab"
+        ordered.updated_by = principal.user_id
     db.flush()
     if confirmed:
         audit.record(

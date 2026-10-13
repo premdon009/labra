@@ -28,6 +28,27 @@
   <td class="result-flag">
     {% if row.state == 'not-calculable' %}Not calculable, measure directly
     {% else %}{% if row.badge %}<span class="flag-badge">{{ row.badge }}</span>{% endif %}{% if row.band %} {{ row.band }}{% endif %}{% endif %}
+    {% if row.informed %}
+    <p class="result-informed">Informed {{ row.informed.informed_to }}, {{ modes.get(row.informed.mode, row.informed.mode)|lower }}, {{ row.informed.informed_at|local_time('%d %b %H:%M') }}</p>
+    {% elif row.can_inform %}
+    <form class="inform" hx-post="/lab/results/{{ row.result_id }}/critical" hx-target="closest tr" hx-swap="outerHTML" hx-vals='{{ {"csrf_token": token}|tojson }}'>
+      <p><strong>Critical value.</strong> Tell the doctor or the patient now, then record it here.</p>
+      {% if row.inform_error %}<p class="field-error" role="alert">{{ row.inform_error }}</p>{% endif %}
+      <label for="{{ box }}-to">Who was informed</label>
+      <input class="input" type="text" id="{{ box }}-to" name="informed_to" maxlength="120" required autocomplete="off">
+      <label for="{{ box }}-mode">How</label>
+      <select class="select" id="{{ box }}-mode" name="mode">
+        {% for code, label in modes.items() %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+      </select>
+      <label for="{{ box }}-phone">Their phone (optional)</label>
+      <input class="input" type="tel" id="{{ box }}-phone" name="phone" maxlength="15" autocomplete="off" inputmode="tel">
+      <label for="{{ box }}-at">When (empty means now)</label>
+      <input class="input" type="datetime-local" id="{{ box }}-at" name="informed_at">
+      <button type="submit" class="btn-sm">Record</button>
+    </form>
+    {% elif row.must_inform %}
+    <p class="result-informed">Nobody informed yet</p>
+    {% endif %}
   </td>
   <td class="muted">{{ row.range }}{% if row.range_unapproved %}<span class="range-unapproved">Range not approved</span>{% endif %}</td>
   <td class="muted">
