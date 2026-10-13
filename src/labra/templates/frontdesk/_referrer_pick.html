@@ -1,0 +1,14 @@
+{% if errors %}
+<p class="field-error" role="alert">{{ errors.values()|join(' ') }}</p>
+{% endif %}
+<ul class="hit-list"{% if added %} data-done="referrer"{% endif %}>
+  {% if added %}
+  <li><button type="button" data-pick="{{ added.id }}" data-pick-label="{{ added.name }}" data-pick-auto>{{ added.name }} · {{ kinds[added.kind] }}</button></li>
+  {% endif %}
+  {% for r in referrers if not added or r.id != added.id %}
+  <li><button type="button" data-pick="{{ r.id }}" data-pick-label="{{ r.name }}">{{ r.name }} · {{ kinds[r.kind] }}{% if r.qualification %} · {{ r.qualification }}{% endif %}</button></li>
+  {% else %}
+  {% if not added %}<li class="muted">{{ 'No referrer matches that name. Add them below.' if q else 'No referrers yet. Add one below.' }}</li>{% endif %}
+  {% endfor %}
+  <li><button type="button" data-pick="" data-pick-label="No referrer">No referrer</button></li>
+</ul>

@@ -10,7 +10,11 @@ Every feature Labra has, and the manual page that explains it.
 | EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Signing in](getting-started/login.md) |
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
+| EC-B05 | Released reports and issued bills are immutable | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| EC-B07 | Idempotent form submits | [Dues and payments](frontdesk/dues-and-payments.md) |
+| EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
+| EC-C01 | Consent recorded before testing and before referral-lab sharing | [New visit](frontdesk/new-visit.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
@@ -18,8 +22,13 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Prices](admin/prices.md) |
 | EC-F03 | Pagination everywhere | [Reference ranges](admin/reference-ranges.md) |
 | EC-F03 | Pagination everywhere | [Staff and roles](admin/users-and-roles.md) |
+| EC-F03 | Pagination everywhere | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
 | EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
+| EC-J01 | Keyboard-first front desk | [New visit](frontdesk/new-visit.md) |
+| EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
+| EC-J02 | Works in Chrome/Edge on a 1366×768 screen | [New visit](frontdesk/new-visit.md) |
+| EC-J03 | Clear empty, loading and error states | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |
@@ -29,6 +38,7 @@ Every feature Labra has, and the manual page that explains it.
 | M02 | Branches | [Branches](admin/branches.md) |
 | M02 | Branches | [Settings](admin/settings.md) |
 | M03 | Patients | [Find or register a patient](frontdesk/find-patient.md) |
+| M04 | Referrers | [New visit](frontdesk/new-visit.md) |
 | M04 | Referrers | [Referrers](frontdesk/referrers.md) |
 | M05 | Catalog (calculated parameters, preset comments) | [Test catalog](admin/catalog.md) |
 | M05 | Catalog (calculated parameters, preset comments) | [Methods and comment presets](admin/methods.md) |
@@ -36,9 +46,17 @@ Every feature Labra has, and the manual page that explains it.
 | M05.2 | Reference ranges by sex/age with critical + absurd limits, interpretation bands, abnormal flag on options (§1d) | [Reference ranges](admin/reference-ranges.md) |
 | M06 | Prices: branch override and history | [Prices](admin/prices.md) |
 | M07 | Visit and billing: bill of supply, payments, dues | [Settings](admin/settings.md) |
+| M07 | Visit and billing: bill of supply, payments, dues | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M07 | Visit and billing: bill of supply, payments, dues | [Dues and payments](frontdesk/dues-and-payments.md) |
+| M07 | Visit and billing: bill of supply, payments, dues | [New visit](frontdesk/new-visit.md) |
 | M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Settings](admin/settings.md) |
+| M07.1 | Bill Rule 49 / 46 field check; 16-character number-format validation (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
+| M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
+| M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
+| M23 | Currency display settings (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
+| M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |

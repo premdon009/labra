@@ -1,0 +1,10 @@
+{% if matches %}
+<p class="muted">Already registered with this number. Choose the patient, or carry on to register someone new.</p>
+<ul class="hit-list" aria-label="Patients with this phone number">
+  {% for p in matches %}
+  <li><a class="btn-sm-outline" href="/frontdesk/visits/new?patient_id={{ p.id }}">{{ p.patient_no }} · {{ (p.title ~ ' ' if p.title else '') ~ p.full_name }} · {{ ages[p.id] }} / {{ sexes[p.sex] }}</a></li>
+  {% endfor %}
+</ul>
+{% elif looked %}
+<p class="muted">No patient here has this number yet. Fill in the name, sex and age to register them.</p>
+{% endif %}

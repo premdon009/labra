@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf, keys %}
+{% block title %}Take payment{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Take payment · bill {{ bill.bill_no }}</h1></div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+<p>{{ bill.recipient_name }} · net {{ bill.net|money(fmt) }} · paid {{ bill.paid|money(fmt) }} · <strong>due {{ (bill.net - bill.paid)|money(fmt) }}</strong></p>
+{% if bill.status != 'open' %}
+<p>{{ 'This bill is cancelled.' if bill.status == 'cancelled' else 'This bill is fully paid.' }} <a href="/frontdesk/visits/{{ bill.visit_id }}">Back to the visit</a></p>
+{% else %}
+<form method="post" action="/frontdesk/bills/{{ bill.id }}/pay">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="client_ref" value="{{ values.client_ref }}">
+  <div class="form-grid">
+    <div class="field-row">
+      <label class="label" for="f-mode">Paid by</label>
+      <select class="select" id="f-mode" name="mode" {% if errors.get('mode') %}aria-invalid="true"{% endif %}>
+        {% for code, label in modes.items() %}<option value="{{ code }}" {% if values.mode == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {% if errors.get('mode') %}<p class="field-error">{{ errors.mode }}</p>{% endif %}
+    </div>
+    {{ field('amount', 'Amount', values.amount, errors, required=True) }}
+    {{ field('reference', 'UPI reference or card last 4', values.reference, errors, hint='Not needed for cash.') }}
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn" {{ keys('alt+s') }}>Save and print receipt <kbd>Alt+S</kbd></button>
+    <a class="btn-outline" href="/frontdesk/dues">Back to dues</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

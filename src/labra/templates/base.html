@@ -1,4 +1,4 @@
-<!doctype html>
+{% from "_macros.html" import keys %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -6,8 +6,10 @@
   <title>{% block title %}Labra{% endblock %} · Labra</title>
   <link rel="stylesheet" href="{{ vendor_url('basecoat-') }}">
   <link rel="stylesheet" href="/static/labra.css">
+  <meta name="htmx-config" content='{"noSwap": [204, 304, 401, 403, 404, 409, "5xx"]}'>
   <script src="{{ vendor_url('htmx-') }}" defer></script>
   <script src="{{ vendor_url('alpine-csp-') }}" defer></script>
+  <script src="/static/frontdesk.js" defer></script>
 </head>
 <body>
 {% if principal %}
@@ -16,8 +18,15 @@
     <a class="app-brand" href="/">Labra</a>
     <nav>
       <a href="/" {% if request.url.path == '/' %}aria-current="page"{% endif %}>Home</a>
+      {% if principal.can('visit.create', principal.branch_id) %}
+      <a href="/frontdesk/visits/new" {{ keys('alt+n') }} {% if request.url.path.startswith('/frontdesk/visits') %}aria-current="page"{% endif %}>New visit</a>
+      {% endif %}
       {% if principal.can('patient.view', principal.branch_id) %}
-      <a href="/frontdesk/patients" {% if request.url.path.startswith('/frontdesk/patients') %}aria-current="page"{% endif %}>Patients</a>
+      <a href="/frontdesk/patients" {{ keys('alt+f') }} {% if request.url.path.startswith('/frontdesk/patients') %}aria-current="page"{% endif %}>Patients</a>
+      {% endif %}
+      {% if principal.can('bill.view', principal.branch_id) %}
+      <a href="/frontdesk/bills" {% if request.url.path.startswith('/frontdesk/bills') %}aria-current="page"{% endif %}>Bills</a>
+      <a href="/frontdesk/dues" {{ keys('alt+d') }} {% if request.url.path.startswith('/frontdesk/dues') %}aria-current="page"{% endif %}>Dues</a>
       {% endif %}
       {% if principal.can('referrer.view') %}
       <a href="/frontdesk/referrers" {% if request.url.path.startswith('/frontdesk/referrers') %}aria-current="page"{% endif %}>Referrers</a>
@@ -62,6 +71,7 @@
       </div>
     </header>
     <main id="content">
+      <div id="flash" class="alert-destructive" role="alert" hidden></div>
       {% block content %}{% endblock %}
     </main>
     <footer class="app-foot">Labra {{ app_version }}</footer>

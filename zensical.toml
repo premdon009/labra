@@ -19,6 +19,7 @@ nav = [
     { "Getting started" = [
       "manual/getting-started/login.md",
       "manual/getting-started/screen-layout.md",
+      "manual/getting-started/keyboard-shortcuts.md",
     ] },
     { "Admin" = [
       "manual/admin/branches.md",
@@ -32,8 +33,11 @@ nav = [
       "manual/admin/starter-catalog.md",
     ] },
     { "Front desk" = [
+      "manual/frontdesk/new-visit.md",
       "manual/frontdesk/find-patient.md",
       "manual/frontdesk/referrers.md",
+      "manual/frontdesk/bills-and-receipts.md",
+      "manual/frontdesk/dues-and-payments.md",
     ] },
   ] },
   { "Developers" = [

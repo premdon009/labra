@@ -1,0 +1,14 @@
+{% if hits %}
+<ul class="hit-list" aria-label="Matching tests">
+  {% for hit in hits %}
+  <li><button type="button" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "add", "arg": "{{ hit.item_type }}:{{ hit.item_id }}"}'>
+    {{ hit.code }} · {{ hit.name }}
+    {% if hit.item_type == 'package' %}· package{% elif hit.in_house %}· in-house{% else %}· outsourced ★{% endif %}
+    · {% if hit.price is none %}no price at this branch{% else %}{{ hit.price|money(fmt) }}{% endif %}
+    {% if loop.first %}<kbd>Enter</kbd>{% endif %}
+  </button></li>
+  {% endfor %}
+</ul>
+{% elif q %}
+<p class="muted">No test or package matches “{{ q }}”. Check the spelling, or ask an administrator to add it.</p>
+{% endif %}

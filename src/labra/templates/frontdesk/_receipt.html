@@ -1,0 +1,10 @@
+<section class="receipt" aria-label="Receipt {{ payment.receipt_no }}">
+  <h2>Receipt {{ payment.receipt_no }}</h2>
+  <div class="sheet-meta">
+    <div>Date: {{ payment.received_at|local_time }}</div>
+    <div>Bill number: {{ bill.bill_no }}</div>
+    <div>Received from: {{ bill.recipient_name }}</div>
+    <div>Paid by: {{ modes[payment.mode] }}{% if payment.mode == 'upi' %} · UTR {{ payment.reference }}{% elif payment.mode == 'card' %} · card ending {{ payment.reference }}{% elif payment.reference %} · {{ payment.reference }}{% endif %}</div>
+    <div><strong>Amount received: {{ payment.amount|money(fmt) }}</strong></div>
+  </div>
+</section>

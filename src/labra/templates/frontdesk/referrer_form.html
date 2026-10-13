@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, checkbox, csrf %}
+{% from "_macros.html" import field, checkbox, csrf, keys %}
 {% set editing = referrer and referrer.id %}
 {% block title %}{{ 'Edit referrer' if editing else 'Add referrer' }}{% endblock %}
 {% block content %}
@@ -26,7 +26,7 @@
   </div>
   {% if editing %}<p>{{ checkbox('is_active', 'Still refers patients', referrer.is_active) }}</p>{% endif %}
   <div class="form-actions">
-    <button type="submit" class="btn">Save</button>
+    <button type="submit" class="btn" {{ keys('alt+s') }}>Save</button>
     <a class="btn-outline" href="/frontdesk/referrers">Cancel</a>
   </div>
 </form>

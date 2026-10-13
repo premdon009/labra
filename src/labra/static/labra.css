@@ -21,3 +21,40 @@
 .muted { opacity: 0.7; }
 .pager { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; }
 @media (max-width: 48rem) { .app { grid-template-columns: 1fr; } .app-nav { border-right: 0; } }
+.search-row { display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem; margin-bottom: 1rem; }
+.num { text-align: right; white-space: nowrap; }
+kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
+.busy { display: none; }
+.htmx-request.busy, .htmx-request .busy { display: inline; }
+.hit-list { display: flex; flex-direction: column; gap: 0.15rem; margin: 0.25rem 0 0; padding: 0; list-style: none; }
+.hit-list button { width: 100%; text-align: left; padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
+.hit-list li:first-child button { background: var(--accent, #f3f4f6); font-weight: 600; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.25rem; }
+.totals { margin-left: auto; min-width: 16rem; }
+.totals td { padding: 0.1rem 0.5rem; }
+.totals .net td { font-weight: 700; border-top: 1px solid var(--border, #e5e7eb); }
+
+/* The one-screen visit: two columns that fit 1366 x 768 without scrolling sideways, and a
+   foot with the totals, payment, consent and Save that stays in view. */
+.visit-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 1rem; align-items: start; }
+.visit-grid > section { min-width: 0; }
+.visit-grid h2, .visit-foot h2 { font-size: 0.95rem; font-weight: 600; margin: 0 0 0.4rem; }
+.visit-fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.4rem 0.6rem; }
+.visit-fields > * { grid-column: span 2; min-width: 0; }
+.visit-fields > .wide { grid-column: span 4; }
+.visit-fields > .full { grid-column: 1 / -1; }
+.visit-fields .input, .visit-fields .select { width: 100%; }
+.visit-lines { max-height: 13.5rem; overflow-y: auto; }
+.visit-lines td, .visit-lines th { padding: 0.2rem 0.4rem; }
+.visit-foot { position: sticky; bottom: 0; z-index: 1; margin-top: 0.75rem; padding: 0.6rem 0 0.2rem;
+  background: var(--background, #fff); border-top: 1px solid var(--border, #e5e7eb);
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.4rem 0.6rem; align-items: end; }
+.visit-foot > * { grid-column: span 2; min-width: 0; }
+.visit-foot > .wide { grid-column: span 4; }
+.visit-foot > .full { grid-column: 1 / -1; }
+.visit-foot .input, .visit-foot .select { width: 100%; }
+.picker { width: min(32rem, 92vw); padding: 1rem; border-radius: 0.5rem; }
+@media (max-width: 64rem) { .visit-grid { grid-template-columns: 1fr; } }
+@media print { .app-nav, .app-top, .app-foot, .no-print { display: none !important; } .app { display: block; } }
+
+[hidden] { display: none !important; }

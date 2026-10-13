@@ -1,0 +1,14 @@
+{% extends "print_base.html" %}
+{% block title %}Receipt {{ payment.receipt_no }}{% endblock %}
+{% block sheet %}
+<header class="sheet-head">
+  <div>
+    <h1>{{ snap.supplier.legal_name }}</h1>
+    <div>{{ snap.supplier.branch_name }}{% if snap.supplier.address %} · {{ snap.supplier.address }}{% endif %}</div>
+    {% if snap.supplier.phone %}<div>Phone {{ snap.supplier.phone }}</div>{% endif %}
+  </div>
+  <div><strong>Receipt</strong></div>
+</header>
+{% include "frontdesk/_receipt.html" %}
+{% if snap.receipt_footer %}<p>{{ snap.receipt_footer }}</p>{% endif %}
+{% endblock %}

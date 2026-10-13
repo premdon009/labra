@@ -19,6 +19,7 @@ from labra.auth.deps import csrf_cookie, csrf_token
 from labra.core.config import get_settings
 from labra.core.ids import IST
 from labra.web.money_format import money_filter
+from labra.web.shortcuts import SHORTCUTS
 
 PACKAGE = Path(str(files("labra")))
 TEMPLATES = PACKAGE / "templates"
@@ -57,6 +58,7 @@ templates.env.globals.update(
     app_version=__version__,
     vendor_url=vendor_url,
     page_url=page_url,
+    shortcuts=SHORTCUTS,
 )
 
 

@@ -49,6 +49,12 @@ def format_from(values: dict[str, str]) -> CurrencyFormat:
     )
 
 
+def format_from_snapshot(snapshot: dict[str, Any]) -> CurrencyFormat:
+    """The format an issued bill was printed with, from `CurrencyFormat.snapshot()`."""
+    unit = snapshot["round_off_to"]
+    return CurrencyFormat(**{**snapshot, "round_off_to": None if unit is None else Decimal(unit)})
+
+
 def load_format(db: Session, branch_id: uuid.UUID | None) -> CurrencyFormat:
     keys = [k for k, d in lab_settings.DEFINITIONS.items() if d.group == "currency"]
     return format_from(

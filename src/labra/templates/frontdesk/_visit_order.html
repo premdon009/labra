@@ -1,0 +1,41 @@
+{% from "_macros.html" import money_head %}
+<div id="visit-order"{% if done %} data-done="{{ done }}"{% endif %}>
+  {% for key in ('items', 'charge') %}{% if problems.get(key) %}
+  <p class="field-error" role="alert">{{ problems[key] }}</p>
+  {% endif %}{% endfor %}
+  <div class="visit-lines">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Test, package or charge</th><th>Done at</th><th class="num">{{ money_head('Price', fmt) }}</th><th></th></tr></thead>
+      <tbody>
+        {% for line in draft.lines %}
+        <tr>
+          <td>{{ line.code }}</td>
+          <td>
+            {{ line.description }}{% if line.reason %} <span class="muted">({{ line.reason }})</span>{% endif %}
+            {% if line.item_id %}
+            <input type="hidden" name="item" value="{{ line.item_type }}:{{ line.item_id }}">
+            {% else %}
+            <input type="hidden" name="charge_desc" value="{{ line.description }}">
+            <input type="hidden" name="charge_amount" value="{{ line.rate }}">
+            <input type="hidden" name="charge_reason" value="{{ line.reason }}">
+            {% endif %}
+          </td>
+          <td>{% if line.in_house is none %}{% elif line.in_house %}in-house{% else %}outsourced ★{% endif %}</td>
+          <td class="num">{{ line.rate|money(fmt, column=True) }}</td>
+          <td><button type="button" class="btn-sm-outline" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "remove", "arg": "{{ loop.index0 }}"}' aria-label="Remove {{ line.description }}">Remove</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Nothing ordered yet. Type a test code or name above and press Enter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <table class="totals" aria-label="Totals">
+    <tr><td>Total</td><td class="num">{{ draft.totals.gross|money(fmt) }}</td></tr>
+    {% if draft.totals.discount %}<tr><td>Discount</td><td class="num">-{{ draft.totals.discount|money(fmt) }}</td></tr>{% endif %}
+    {% if draft.totals.round_off %}<tr><td>Rounding</td><td class="num">{{ draft.totals.round_off|money(fmt) }}</td></tr>{% endif %}
+    <tr class="net"><td>To pay</td><td class="num" id="visit-net">{{ draft.totals.net|money(fmt) }}</td></tr>
+  </table>
+  {% if problems.get('discount') %}<p class="field-error" role="alert">{{ problems.discount }}</p>{% endif %}
+  {% if draft.lines %}<p class="muted">Results promised by {{ draft.promised_default|local_time }}, unless you set another time.</p>{% endif %}
+</div>

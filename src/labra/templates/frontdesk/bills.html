@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, money_head %}
+{% block title %}Bills{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Bills</h1></div>
+<form method="get" action="/frontdesk/bills" class="search-row" role="search">
+  <div class="field-row"><label class="label" for="f-from">From</label><input class="input" type="date" id="f-from" name="from" value="{{ day_from }}"></div>
+  <div class="field-row"><label class="label" for="f-to">To</label><input class="input" type="date" id="f-to" name="to" value="{{ day_to }}"></div>
+  <div class="field-row"><label class="label" for="f-status">Status</label>
+    <select class="select" id="f-status" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses.items() %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+<table class="table">
+  <thead><tr><th>Bill number</th><th>Date</th><th>Patient</th><th class="num">{{ money_head('Net', fmt) }}</th><th class="num">{{ money_head('Paid', fmt) }}</th><th class="num">{{ money_head('Due', fmt) }}</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for b in bills.items %}
+    <tr>
+      <td><a href="/frontdesk/visits/{{ b.visit_id }}">{{ b.bill_no }}</a></td>
+      <td>{{ b.bill_date.strftime('%d %b %Y') }}</td>
+      <td>{{ b.recipient_name }}</td>
+      <td class="num">{{ b.net|money(fmt, column=True) }}</td>
+      <td class="num">{{ b.paid|money(fmt, column=True) }}</td>
+      <td class="num">{{ (b.net - b.paid if b.status == 'open' else 0)|money(fmt, column=True) }}</td>
+      <td>{{ statuses[b.status] }}</td>
+      <td><a href="/frontdesk/bills/{{ b.id }}/print">Print</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">{% if day_from or day_to or status %}No bills match. Change the dates or the status.{% else %}No bills yet. Start with <a href="/frontdesk/visits/new">New visit</a>.{% endif %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(bills, request) }}
+{% endblock %}

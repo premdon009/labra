@@ -12,7 +12,7 @@ number that stays with them for every later visit.
 
 ## Where to find it
 
-**Menu ▸ Patients**. Front desk staff, branch managers and administrators see it.
+**Menu ▸ Patients**, or press **Alt+F** on any screen. Front desk staff, branch managers and administrators see it.
 
 ## Steps
 
@@ -32,7 +32,7 @@ To register a patient:
    the age in **Years**, **Months** and **Days** instead; Labra works out a date of birth
    from it and marks the age as *about*.
 4. Add the **Phone** as 10 digits, without +91, and any other details the patient gives.
-5. Select **Save**. Labra gives the next patient number of your branch and shows the patient
+5. Select **Save**, or press **Alt+S**. Labra gives the next patient number of your branch and shows the patient
    in the list.
 
 To change a patient's details, select **Edit** on their row, change the fields, and select
@@ -63,5 +63,6 @@ To change a patient's details, select **Edit** on their row, change the fields, 
 
 ## Related pages
 
+- [New visit](new-visit.md)
 - [Referrers](referrers.md)
 - [Staff and roles](../admin/users-and-roles.md)

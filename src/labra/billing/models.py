@@ -25,6 +25,7 @@ from labra.core.ids import utcnow
 
 DOC_TYPES = ("bill_of_supply", "tax_invoice")
 PAYMENT_MODES = ("cash", "upi", "card")
+BILL_STATUSES = ("open", "paid", "cancelled")
 MONEY = Numeric(12, 2)
 
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Print{% endblock %} · Labra</title>
+  <link rel="stylesheet" href="{{ vendor_url('basecoat-') }}">
+  <link rel="stylesheet" href="/static/labra.css">
+  <link rel="stylesheet" href="/static/print.css">
+  <script src="/static/frontdesk.js" defer></script>
+</head>
+<body{% if auto %} data-autoprint data-after-print="{{ after }}"{% endif %}>
+<div class="print-bar no-print">
+  <button type="button" class="btn" data-print>Print</button>
+  <a class="btn-outline" href="{{ back }}">Back to the visit</a>
+</div>
+<main class="sheet">
+  {% block sheet %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import keys, money_head %}
+{% block title %}Visit {{ s.visit.visit_no }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Visit {{ s.visit.visit_no }}</h1>
+  <a class="btn-outline" href="/frontdesk/visits/new">New visit</a>
+</div>
+{% if s.visit.status == 'cancelled' %}
+<div class="alert-destructive" role="alert"><h2>This visit is cancelled{% if s.bill and s.bill.cancel_reason %}: {{ s.bill.cancel_reason }}{% endif %}</h2></div>
+{% endif %}
+<div class="summary-grid">
+  <section class="stack" aria-labelledby="h-who">
+    <h2 id="h-who">Patient</h2>
+    <p><strong>{{ (s.patient.title ~ ' ' if s.patient.title else '') ~ s.patient.full_name }}</strong> · {{ s.patient.patient_no }}<br>
+      {{ age }} / {{ sexes[s.patient.sex] }}{% if s.patient.phone %} · {{ s.patient.phone }}{% endif %}</p>
+    <p>Visited {{ s.visit.visited_at|local_time }} · {{ collection_modes[s.visit.collection_mode] }}<br>
+      Referred by {{ s.referrer.name if s.referrer else 'no one' }}<br>
+      Results promised by {{ s.visit.promised_at|local_time }}</p>
+    {% if s.visit.footer_note %}<p>Printed note: {{ s.visit.footer_note }}</p>{% endif %}
+    {% if s.visit.internal_note %}<p>Staff note: {{ s.visit.internal_note }}</p>{% endif %}
+  </section>
+  <section class="stack" aria-labelledby="h-samples">
+    <h2 id="h-samples">Samples</h2>
+    <table class="table">
+      <thead><tr><th>Sample number</th><th>Container</th><th>Tests</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for sample in s.samples %}
+        <tr>
+          <td>{{ sample.sample_no }}</td>
+          <td>{{ sample.container or 'Not set' }}</td>
+          <td>{% for ordered, test in s.tests if ordered.sample_id == sample.id %}{{ test.short_name or test.code }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+          <td>{{ sample_statuses[sample.status] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">No samples: this visit has no tests, only charges.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% if s.bill %}
+<section class="stack" aria-labelledby="h-bill">
+  <div class="page-head">
+    <h2 id="h-bill">Bill {{ s.bill.bill_no }} · <span class="badge{% if s.bill.status != 'paid' %}-outline{% endif %}">{{ bill_statuses[s.bill.status] }}</span></h2>
+    <div class="form-actions">
+      <a class="btn" href="/frontdesk/bills/{{ s.bill.id }}/print?auto=1" {{ keys('alt+r') }}>Print bill and receipt <kbd>Alt+R</kbd></a>
+      {% if can_pay and s.bill.status == 'open' %}<a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/pay">Take payment</a>{% endif %}
+      {% if can_cancel and s.bill.status != 'cancelled' %}<a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/cancel">Cancel bill</a>{% endif %}
+    </div>
+  </div>
+  <table class="table">
+    <thead><tr><th>#</th><th>Test, package or charge</th><th class="num">{{ money_head('Rate', fmt) }}</th><th class="num">{{ money_head('Discount', fmt) }}</th><th class="num">{{ money_head('Amount', fmt) }}</th></tr></thead>
+    <tbody>
+      {% for line in s.lines %}
+      <tr><td>{{ line.line_no }}</td><td>{{ line.description }}</td><td class="num">{{ line.rate|money(fmt, column=True) }}</td><td class="num">{{ line.discount|money(fmt, column=True) }}</td><td class="num">{{ line.amount|money(fmt, column=True) }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table class="totals" aria-label="Bill totals">
+    <tr><td>Total</td><td class="num">{{ s.bill.gross|money(fmt) }}</td></tr>
+    {% if s.bill.discount %}<tr><td>Discount ({{ s.bill.discount_reason }})</td><td class="num">-{{ s.bill.discount|money(fmt) }}</td></tr>{% endif %}
+    {% if s.bill.round_off %}<tr><td>Rounding</td><td class="num">{{ s.bill.round_off|money(fmt) }}</td></tr>{% endif %}
+    <tr class="net"><td>Net</td><td class="num" id="bill-net">{{ s.bill.net|money(fmt) }}</td></tr>
+    <tr><td>Paid</td><td class="num">{{ s.bill.paid|money(fmt) }}</td></tr>
+    <tr><td>Due</td><td class="num" id="bill-due">{{ (s.bill.net - s.bill.paid)|money(fmt) }}</td></tr>
+  </table>
+  <h2>Payments</h2>
+  <table class="table">
+    <thead><tr><th>Receipt</th><th>Taken</th><th>Paid by</th><th>Reference</th><th class="num">{{ money_head('Amount', fmt) }}</th><th></th></tr></thead>
+    <tbody>
+      {% for p in s.payments %}
+      <tr><td>{{ p.receipt_no }}</td><td>{{ p.received_at|local_time }}</td><td>{{ modes[p.mode] }}</td><td>{{ p.reference }}</td><td class="num">{{ p.amount|money(fmt, column=True) }}</td><td><a href="/frontdesk/payments/{{ p.id }}/print">Print receipt</a></td></tr>
+      {% else %}
+      <tr><td colspan="6">Nothing paid yet.{% if can_pay and s.bill.status == 'open' %} Use Take payment when the patient pays.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if s.refund %}
+  <p>Refund {{ s.refund.refund_no }}: {{ s.refund.amount|money(fmt) }} paid back by {{ modes[s.refund.mode]|lower }}{% if s.refund.reference %} ({{ s.refund.reference }}){% endif %} on {{ s.refund.refunded_at|local_time }}.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

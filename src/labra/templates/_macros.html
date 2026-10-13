@@ -25,3 +25,13 @@
 </nav>
 {% endif %}
 {%- endmacro %}
+
+{# The attributes that tie an element to its keyboard shortcut. #}
+{% macro keys(key) -%}
+data-shortcut="{{ key }}" aria-keyshortcuts="{{ shortcuts[key].label }}" title="{{ shortcuts[key].action }} ({{ shortcuts[key].label }})"
+{%- endmacro %}
+
+{# A column heading for amounts: it carries the currency symbol unless every amount does. #}
+{% macro money_head(label, fmt) -%}
+{{ label }}{% if fmt.symbol and fmt.show_in_columns != 'every' %} ({{ fmt.symbol }}){% endif %}
+{%- endmacro %}

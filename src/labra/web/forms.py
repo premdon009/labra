@@ -1,0 +1,39 @@
+"""Reading what a form or URL sent: every value arrives as text."""
+
+import uuid
+from datetime import date, datetime
+
+from labra.core.errors import NotFoundError
+from labra.core.ids import IST
+
+
+def as_uuid(value: str) -> uuid.UUID:
+    """A record id from a URL or hidden field; anything else is simply not found."""
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise NotFoundError() from None
+
+
+def whole(value: str) -> int | None:
+    """An age part as typed: empty is None, anything else not a whole number is -1, which
+    the form check reports as out of range."""
+    value = value.strip()
+    if not value:
+        return None
+    return int(value) if value.isdigit() else -1
+
+
+def day(value: str) -> date | None:
+    try:
+        return date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
+def local_minute(value: str) -> datetime | None:
+    """A `datetime-local` box, which the browser sends without a zone: India time."""
+    try:
+        return datetime.fromisoformat(value).replace(tzinfo=IST) if value else None
+    except ValueError:
+        return None

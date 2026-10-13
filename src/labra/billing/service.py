@@ -20,7 +20,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
-from labra.billing.models import PAYMENT_MODES, Bill, BillLine, Payment, Refund
+from labra.billing.models import BILL_STATUSES, PAYMENT_MODES, Bill, BillLine, Payment, Refund
 from labra.core import audit, lab_settings, outbox
 from labra.core.currency import amount_in_words, load_format
 from labra.core.errors import (
@@ -32,9 +32,10 @@ from labra.core.errors import (
 from labra.core.ids import lab_today, utcnow
 from labra.core.money import ZERO, apply_payment, bill_status, money, round_to_unit
 from labra.core.numbering import financial_year, next_number
+from labra.core.paging import Page, page_of
 from labra.org.models import Branch
 from labra.org.service import stale
-from labra.patients.models import Patient
+from labra.patients.models import Patient, Referrer
 from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 
 # What staff copy from the payer's UPI app; banks differ in length and letters.
@@ -135,6 +136,7 @@ def _snapshot(
     legal_name = lab_settings.get_value(db, "lab.legal_name") or lab_settings.get_value(
         db, "lab.display_name"
     )
+    referrer = db.get(Referrer, visit.referrer_id) if visit.referrer_id else None
     return {
         "supplier": {
             "legal_name": legal_name,
@@ -147,6 +149,7 @@ def _snapshot(
             "email": branch.email,
         },
         "recipient": {"name": recipient, "patient_no": patient.patient_no},
+        "referrer": referrer.name if referrer else "",
         "visit_no": visit.visit_no,
         "sample_nos": list(sample_nos),
         "counter_user": principal.full_name,
@@ -324,6 +327,61 @@ def get_bill(
     if bill is None or not principal.can("bill.view", bill.branch_id):
         raise NotFoundError()
     return bill
+
+
+def bill_lines(db: Session, bill_id: uuid.UUID) -> list[BillLine]:
+    return list(
+        db.scalars(select(BillLine).where(BillLine.bill_id == bill_id).order_by(BillLine.line_no))
+    )
+
+
+def bill_payments(db: Session, bill_id: uuid.UUID) -> list[Payment]:
+    return list(
+        db.scalars(
+            select(Payment)
+            .where(Payment.bill_id == bill_id)
+            .order_by(Payment.received_at, Payment.receipt_no)
+        )
+    )
+
+
+def bill_refund(db: Session, bill_id: uuid.UUID) -> Refund | None:
+    return db.scalar(select(Refund).where(Refund.bill_id == bill_id))
+
+
+def get_payment(db: Session, principal: Principal, payment_id: uuid.UUID) -> tuple[Payment, Bill]:
+    """A payment and its bill, at a branch the user may see bills at."""
+    payment = db.get(Payment, payment_id)
+    if payment is None:
+        raise NotFoundError()
+    return payment, get_bill(db, principal, payment.bill_id)
+
+
+def bill_page(
+    db: Session,
+    principal: Principal,
+    page: int,
+    day_from: date | None = None,
+    day_to: date | None = None,
+    status: str = "",
+) -> Page[Bill]:
+    """Bills at the user's branches, newest first, optionally by date and status."""
+    stmt = select(Bill).where(Bill.branch_id.in_(principal.branches_with("bill.view")))
+    if day_from is not None:
+        stmt = stmt.where(Bill.bill_date >= day_from)
+    if day_to is not None:
+        stmt = stmt.where(Bill.bill_date <= day_to)
+    if status in BILL_STATUSES:
+        stmt = stmt.where(Bill.status == status)
+    return page_of(db, stmt.order_by(Bill.bill_date.desc(), Bill.issued_at.desc(), Bill.id), page)
+
+
+def dues_page(db: Session, principal: Principal, page: int) -> Page[Bill]:
+    """Bills with money still to collect, the oldest first."""
+    stmt = select(Bill).where(
+        Bill.branch_id.in_(principal.branches_with("bill.view")), Bill.status == "open"
+    )
+    return page_of(db, stmt.order_by(Bill.bill_date, Bill.issued_at, Bill.id), page)
 
 
 def take_payment(

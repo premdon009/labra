@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf, keys %}
+{% block title %}New visit{% endblock %}
+{% block content %}
+<div class="page-head"><h1>New visit</h1></div>
+{% if problems.get('duplicate') %}
+<div class="alert" role="alert">
+  <h2>{{ problems.duplicate }}</h2>
+  <div class="form-actions">
+    {% if hint %}{% for m in hint.matches %}
+    <button type="submit" form="visit-form" class="btn-outline" name="patient_id" value="{{ m.id }}">Save the visit for {{ m.patient_no }} · {{ m.full_name }}</button>
+    {% endfor %}{% endif %}
+    <button type="submit" form="visit-form" class="btn-outline" name="confirm_new" value="true">Register as a new patient and save</button>
+  </div>
+</div>
+{% elif problems %}
+<div class="alert-destructive" role="alert"><h2>Not saved yet. Please correct the highlighted fields.</h2></div>
+{% endif %}
+<form id="visit-form" method="post" action="/frontdesk/visits" data-no-enter-submit>
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="client_ref" value="{{ form.client_ref }}">
+  <input type="hidden" name="referrer_id" id="f-referrer_id" value="{{ form.referrer_id }}">
+  <div class="visit-grid">
+    <section aria-labelledby="h-patient">
+      <h2 id="h-patient">Patient</h2>
+      {% if patient %}
+      <input type="hidden" name="patient_id" value="{{ patient.id }}">
+      <p><strong>{{ (patient.title ~ ' ' if patient.title else '') ~ patient.full_name }}</strong> · {{ patient.patient_no }} · {{ age }} / {{ sexes[patient.sex] }}{% if patient.phone %} · {{ patient.phone }}{% endif %}</p>
+      <p><a href="/frontdesk/visits/new">Choose another patient</a></p>
+      {% else %}
+      {% if problems.get('patient') %}<p class="field-error" role="alert">{{ problems.patient }}</p>{% endif %}
+      <div class="visit-fields">
+        <div class="field-row wide">
+          <label class="label" for="f-phone">Phone</label>
+          <input class="input" type="tel" id="f-phone" name="phone" value="{{ form.phone }}" autofocus autocomplete="off" inputmode="numeric" maxlength="10"
+            data-enter="phone-find" hx-get="/frontdesk/visits/new/patient" hx-trigger="input changed delay:300ms" hx-target="#patient-match" hx-indicator="#phone-busy"
+            {% if problems.get('phone') %}aria-invalid="true" aria-describedby="e-phone"{% endif %}>
+          {% if problems.get('phone') %}<p class="field-error" id="e-phone">{{ problems.phone }}</p>{% endif %}
+        </div>
+        <div class="field-row">
+          <span class="label">&nbsp;</span>
+          <button type="button" class="btn-outline" id="phone-find" hx-get="/frontdesk/visits/new/patient" hx-include="#f-phone" hx-target="#patient-match" hx-indicator="#phone-busy">Look up</button>
+          <span class="busy muted" id="phone-busy" role="status">Searching…</span>
+        </div>
+        <div class="full" id="patient-match" aria-live="polite"></div>
+        {{ field('title', 'Title', form.title, problems) }}
+        <div class="wide">{{ field('full_name', 'Full name', form.full_name, problems) }}</div>
+        <div class="field-row">
+          <label class="label" for="f-sex">Sex</label>
+          <select class="select" id="f-sex" name="sex" {% if problems.get('sex') %}aria-invalid="true" aria-describedby="e-sex"{% endif %}>
+            <option value=""></option>
+            {% for code, label in sexes.items() %}
+            <option value="{{ code }}" {% if form.sex == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if problems.get('sex') %}<p class="field-error" id="e-sex">{{ problems.sex }}</p>{% endif %}
+        </div>
+        <div class="wide">{{ field('dob', 'Date of birth, or the age', form.dob, problems, type='date') }}</div>
+        {{ field('age_years', 'Years', form.age_years, {}, type='number') }}
+        {{ field('age_months', 'Months', form.age_months, {}, type='number') }}
+        {{ field('age_days', 'Days', form.age_days, {}, type='number') }}
+      </div>
+      {% endif %}
+      <h2 id="h-visit">Visit</h2>
+      <div class="visit-fields">
+        <div class="field-row wide">
+          <span class="label" id="l-referrer">Referred by</span>
+          <button type="button" class="btn-outline" id="referrer-open" data-picker="referrer-picker" aria-labelledby="l-referrer referrer-label" {{ keys('f2') }}><span id="referrer-label">{{ referrer.name if referrer else 'No referrer' }}</span> <kbd>F2</kbd></button>
+          {% if problems.get('referrer') %}<p class="field-error">{{ problems.referrer }}</p>{% endif %}
+        </div>
+        <div class="field-row">
+          <label class="label" for="f-collection_mode">Collection</label>
+          <select class="select" id="f-collection_mode" name="collection_mode">
+            {% for code, label in collection_modes.items() %}
+            <option value="{{ code }}" {% if form.collection_mode == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if problems.get('collection_mode') %}<p class="field-error">{{ problems.collection_mode }}</p>{% endif %}
+        </div>
+        <div class="wide">{{ field('promised_at', 'Promise results by (optional)', form.promised_at, problems, type='datetime-local') }}</div>
+        <div class="full">{{ field('footer_note', 'Note printed on the bill', form.footer_note, problems) }}</div>
+        <div class="full">{{ field('internal_note', 'Note for staff only (never printed)', form.internal_note, problems) }}</div>
+      </div>
+    </section>
+    <section aria-labelledby="h-order">
+      <h2 id="h-order">Tests</h2>
+      <div class="search-row">
+        <label class="label" for="f-q">Test code or name</label>
+        <input class="input" type="search" id="f-q" name="q" value="{{ form.q }}" autocomplete="off" {% if patient %}autofocus{% endif %}
+          data-enter="add-code" data-escape-clear="code-match" data-clear-on="code" data-focus-on="code"
+          hx-get="/frontdesk/visits/new/tests" hx-trigger="input changed delay:200ms" hx-target="#code-match" hx-indicator="#code-busy">
+        <button type="button" class="btn-outline" id="add-code" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "code"}'>Add <kbd>Enter</kbd></button>
+        <span class="busy muted" id="code-busy" role="status">Searching…</span>
+      </div>
+      <div id="code-match" data-clear-on="code" aria-live="polite"></div>
+      {% include "frontdesk/_visit_order.html" %}
+      <div class="visit-fields">
+        <div class="field-row">
+          <label class="label" for="f-new_charge_desc">Extra charge</label>
+          <input class="input" type="text" id="f-new_charge_desc" name="new_charge_desc" value="{{ form.new_charge_desc }}" maxlength="120" data-clear-on="charge" data-enter="add-charge" placeholder="Home collection">
+        </div>
+        <div class="field-row">
+          <label class="label" for="f-new_charge_amount">Amount</label>
+          <input class="input" type="text" id="f-new_charge_amount" name="new_charge_amount" value="{{ form.new_charge_amount }}" inputmode="decimal" data-clear-on="charge" data-enter="add-charge">
+        </div>
+        <div class="field-row">
+          <label class="label" for="f-new_charge_reason">Reason</label>
+          <input class="input" type="text" id="f-new_charge_reason" name="new_charge_reason" value="{{ form.new_charge_reason }}" maxlength="120" data-clear-on="charge" data-enter="add-charge">
+        </div>
+        <div class="full"><button type="button" class="btn-sm-outline" id="add-charge" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "charge"}'>Add charge</button></div>
+      </div>
+    </section>
+  </div>
+  <div class="visit-foot">
+    <div class="field-row">
+      <label class="label" for="f-discount_value">Discount</label>
+      <input class="input" type="text" id="f-discount_value" name="discount_value" value="{{ form.discount_value }}" inputmode="decimal"
+        hx-post="/frontdesk/visits/new/preview" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
+    </div>
+    <div class="field-row">
+      <label class="label" for="f-discount_kind">as</label>
+      <select class="select" id="f-discount_kind" name="discount_kind"
+        hx-post="/frontdesk/visits/new/preview" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
+        <option value="amount" {% if form.discount_kind == 'amount' %}selected{% endif %}>Amount</option>
+        <option value="pct" {% if form.discount_kind == 'pct' %}selected{% endif %}>Per cent</option>
+      </select>
+    </div>
+    {{ field('discount_reason', 'Discount reason', form.discount_reason, problems) }}
+    {% if can_take_payment %}
+    <div class="field-row">
+      <label class="label" for="f-pay_mode">Paid by</label>
+      <select class="select" id="f-pay_mode" name="pay_mode" {% if problems.get('pay_mode') %}aria-invalid="true"{% endif %}>
+        {% for code, label in modes.items() %}
+        <option value="{{ code }}" {% if form.pay_mode == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if problems.get('pay_mode') %}<p class="field-error">{{ problems.pay_mode }}</p>{% endif %}
+    </div>
+    {{ field('pay_amount', 'Amount paid now', form.pay_amount, problems, hint='Leave empty to collect later.') }}
+    {{ field('pay_reference', 'UPI reference or card last 4', form.pay_reference, problems) }}
+    {% endif %}
+    <div class="wide">
+      {% if consent %}
+      <p class="muted">Consent on file (notice version {{ notice.version }}, {{ consent.given_at|local_time('%d %b %Y') }}).</p>
+      {% else %}
+      <label class="label"><input class="input" type="checkbox" name="consent" value="true" {% if form.consent %}checked{% endif %} {% if problems.get('consent') %}aria-invalid="true"{% endif %}> The patient has read the notice and agrees to testing and to sharing with a referral lab</label>
+      <details><summary>Read the notice (version {{ notice.version }})</summary><p>{{ notice.body_text }}</p></details>
+      {% if problems.get('consent') %}<p class="field-error">{{ problems.consent }}</p>{% endif %}
+      {% endif %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn" id="visit-save" {{ keys('alt+s') }}>Save and print <kbd>Alt+S</kbd></button>
+    </div>
+  </div>
+</form>
+<dialog id="referrer-picker" class="picker" data-value-target="f-referrer_id" data-label-target="referrer-label" aria-labelledby="h-referrer">
+  <h2 id="h-referrer">Referred by</h2>
+  <div class="search-row">
+    <label class="label" for="f-referrer-q">Name</label>
+    <input class="input" type="search" id="f-referrer-q" name="q" autocomplete="off" data-picker-search
+      hx-get="/frontdesk/referrers/pick" hx-trigger="input changed delay:200ms" hx-target="#referrer-list" hx-indicator="#referrer-busy">
+    <span class="busy muted" id="referrer-busy" role="status">Searching…</span>
+  </div>
+  <div id="referrer-list">{% include "frontdesk/_referrer_pick.html" %}</div>
+  {% if can_add_referrer %}
+  <form hx-post="/frontdesk/referrers/quick" hx-target="#referrer-list" class="stack">
+    {{ csrf(csrf_token) }}
+    <h2>Not in the list? Add them</h2>
+    <div class="search-row">
+      <select class="select" name="kind" aria-label="Kind">
+        {% for code, label in kinds.items() %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+      </select>
+      <input class="input" type="text" name="name" aria-label="Name" placeholder="Name" maxlength="120" data-clear-on="referrer">
+      <input class="input" type="tel" name="phone" aria-label="Phone" placeholder="Phone" maxlength="10" data-clear-on="referrer">
+      <button type="submit" class="btn-outline">Add and choose</button>
+    </div>
+  </form>
+  {% endif %}
+  <div class="form-actions"><button type="button" class="btn-outline" data-close-dialog>Close <kbd>Esc</kbd></button></div>
+</dialog>
+{% endblock %}

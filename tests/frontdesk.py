@@ -13,12 +13,14 @@ from labra.auth import service as auth
 from labra.auth.principal import Principal
 from labra.billing import service as billing
 from labra.billing.models import Bill
+from labra.catalog import service as catalog
 from labra.core.ids import utcnow
 from labra.core.registry import Platform
 from labra.org.models import Branch
 from labra.patients import service as patients
 from labra.patients.models import Patient
 from labra.seed import DEMO_PASSWORD
+from labra.visits import service as visits
 from labra.visits.models import OrderItem, Sample, Visit
 from tests.conftest import SEED_DAY
 
@@ -125,3 +127,55 @@ def billed(
     return billing.issue_bill(
         db, principal, visit, person, items, discount_reason, payment=payment, today=SEED_DAY
     )
+
+
+def menu(db: Session, admin: Principal) -> dict[str, uuid.UUID]:
+    """A small synthetic catalog with prices: four tests over three kinds of tube, one of
+    them outsourced, and a package. Their ids by code."""
+    dept = catalog.save_department(db, admin, "Biochemistry", 20)
+    tubes = {
+        code: catalog.save_specimen_type(db, admin, code, name, container).id
+        for code, name, container in (
+            ("FLUORIDE", "Fluoride plasma", "Grey top"),
+            ("SERUM", "Serum", "Red top"),
+            ("URINE", "Urine", "Urine cup"),
+        )
+    }
+    ids: dict[str, uuid.UUID] = {}
+    for code, name, aliases, tube, hours, in_house, price in (
+        ("fbs", "Glucose, fasting", ["sf"], "FLUORIDE", 6, True, "80"),
+        ("lipid", "Lipid profile", [], "SERUM", 24, True, "450"),
+        ("urine", "Urine routine", ["urm"], "URINE", 6, True, "100"),
+        ("vitd", "Vitamin D, 25-hydroxy", [], "SERUM", 72, False, "1300"),
+    ):
+        test = catalog.save_test(
+            db,
+            admin,
+            catalog.TestInput(
+                code=code,
+                name=name,
+                department_id=dept.id,
+                aliases=aliases,
+                short_name=code.upper(),
+                specimen_type_id=tubes[tube],
+                default_tat_hours=hours,
+                in_house_available=in_house,
+            ),
+        )
+        catalog.set_price(db, admin, "test", test.id, price)
+        ids[code] = test.id
+    package = catalog.save_package(db, admin, "basic", "Basic check", [ids["fbs"], ids["lipid"]])
+    catalog.set_price(db, admin, "package", package.id, "500")
+    ids["basic"] = package.id
+    return ids
+
+
+def visit_input(ids: Mapping[str, uuid.UUID], *codes: str, **changes: object) -> visits.VisitInput:
+    """A new patient's visit for the tests and packages named by code, consent ticked."""
+    values: dict[str, object] = {
+        "client_ref": uuid.uuid4(),
+        "patient": patient_input(phone=f"90000{uuid.uuid4().int % 10**5:05d}"),
+        "consent": True,
+        "items": [("package" if code == "basic" else "test", ids[code]) for code in codes],
+    }
+    return visits.VisitInput(**{**values, **changes})  # type: ignore[arg-type]

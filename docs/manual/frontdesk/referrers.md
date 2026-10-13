@@ -24,7 +24,7 @@ To add a referrer:
 3. Fill in the **Name** as it should print, such as `Dr Asha Rao`.
 4. Add the **Qualification**, **Medical council registration** and **Phone** if you have
    them.
-5. Select **Save**.
+5. Select **Save**, or press **Alt+S**.
 
 To change a referrer, select **Edit** on its row. To stop using one, untick **Still refers
 patients**: old visits keep the name, but it is no longer offered for new visits.
@@ -37,6 +37,8 @@ To find a referrer in a long list, type part of the **Name** and select **Find**
 
 ## Good to know
 
+- A referrer can also be added from the [New visit](new-visit.md) screen, without leaving
+  it.
 - Use the kind **Self** for patients who come without a referral.
 - Labra keeps no commission or payout details for referrers.
 - If someone else saved the same referrer while you were editing, Labra refuses your save

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}Cancel bill{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Cancel bill {{ bill.bill_no }}</h1></div>
+{% if bill.status == 'cancelled' %}
+<p>This bill is already cancelled. <a href="/frontdesk/visits/{{ bill.visit_id }}">Back to the visit</a></p>
+{% else %}
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Not cancelled. Please correct the highlighted fields.</h2></div>{% endif %}
+<div class="alert" role="note">
+  <h2>Cancelling can't be undone</h2>
+  <p>The bill for {{ bill.recipient_name }} ({{ bill.net|money(fmt) }}) and its visit are cancelled, with the tests and any samples not yet in the lab.
+    {% if bill.paid %}The {{ bill.paid|money(fmt) }} already paid must be given back in full and is recorded as a refund.{% endif %}</p>
+</div>
+<form method="post" action="/frontdesk/bills/{{ bill.id }}/cancel">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="row_version" value="{{ bill.row_version }}">
+  <div class="form-grid">
+    {{ field('reason', 'Reason for cancelling', values.reason, errors, required=True) }}
+    {% if bill.paid %}
+    <div class="field-row">
+      <label class="label" for="f-refund_mode">Money paid back by</label>
+      <select class="select" id="f-refund_mode" name="refund_mode">
+        {% for code, label in modes.items() %}<option value="{{ code }}" {% if values.refund_mode == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {% if errors.get('refund_mode') %}<p class="field-error">{{ errors.refund_mode }}</p>{% endif %}
+    </div>
+    {{ field('refund_reference', 'Refund reference', values.refund_reference, errors, hint='The UPI reference, if there is one.') }}
+    {% endif %}
+  </div>
+  <label class="label"><input class="input" type="checkbox" name="confirm" value="yes" {% if errors.get('confirm') %}aria-invalid="true"{% endif %}> Yes, cancel this bill{% if bill.paid %} and record the refund{% endif %}</label>
+  {% if errors.get('confirm') %}<p class="field-error">{{ errors.confirm }}</p>{% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn-destructive">Cancel the bill</button>
+    <a class="btn-outline" href="/frontdesk/visits/{{ bill.visit_id }}">Keep the bill</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

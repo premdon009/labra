@@ -1,5 +1,7 @@
 """The patient and referrer screens, through the browser's requests."""
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -121,7 +123,7 @@ def test_referrer_form_has_no_commission_field(
     form = db_client.get("/frontdesk/referrers/new").text.lower()
     for word in ("commission", "payout", "percent", "share", "incentive", "cut"):
         assert f'name="{word}' not in form
-        assert word not in form
+        assert not re.search(rf"\b{word}", form)
     assert not {c.name for c in Referrer.__table__.columns} & {"commission", "commission_pct"}
 
 

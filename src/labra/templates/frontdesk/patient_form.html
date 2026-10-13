@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, csrf %}
+{% from "_macros.html" import field, csrf, keys %}
 {% set editing = patient and patient.id %}
 {% if patient and patient.dob_text is defined %}{% set dob_value = patient.dob_text %}
 {% elif patient and patient.dob %}{% set dob_value = patient.dob.isoformat() %}
@@ -60,7 +60,7 @@
     {% if errors.get('duplicate') %}
     <button type="submit" class="btn" name="confirm_new" value="true">Register as a new patient</button>
     {% else %}
-    <button type="submit" class="btn">Save</button>
+    <button type="submit" class="btn" {{ keys('alt+s') }}>Save</button>
     {% endif %}
     <a class="btn-outline" href="/frontdesk/patients">Cancel</a>
   </div>

@@ -1,0 +1,22 @@
+/* Printed documents: an A4 bill or receipt, and 50 mm x 25 mm sample labels. */
+@page { size: A4; margin: 12mm; }
+@page labels { size: 50mm 25mm; margin: 0; }
+
+.sheet { max-width: 186mm; margin: 0 auto; padding: 1rem; font-size: 11pt; color: #000; background: #fff; }
+.sheet h1 { font-size: 15pt; margin: 0; }
+.sheet h2 { font-size: 12pt; margin: 0.8rem 0 0.3rem; }
+.sheet table { width: 100%; border-collapse: collapse; }
+.sheet th, .sheet td { border-bottom: 1px solid #999; padding: 0.2rem 0.4rem; text-align: left; vertical-align: top; }
+.sheet .num { text-align: right; white-space: nowrap; }
+.sheet-head { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 2px solid #000; padding-bottom: 0.4rem; }
+.sheet-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem 1.5rem; margin: 0.6rem 0; }
+.sheet-totals { margin-left: auto; width: 60%; }
+.sheet-sign { margin-top: 2.2rem; text-align: right; }
+.sheet-cancelled { border: 2px solid #000; padding: 0.3rem 0.6rem; font-weight: 700; margin: 0.5rem 0; }
+.receipt { border-top: 1px dashed #000; margin-top: 1rem; padding-top: 0.6rem; break-inside: avoid; }
+.print-bar { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; }
+
+@media print {
+  .no-print { display: none !important; }
+  .sheet { max-width: none; padding: 0; }
+}

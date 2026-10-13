@@ -1,5 +1,3 @@
-import uuid
-from datetime import date
 from types import SimpleNamespace
 from typing import Annotated
 
@@ -10,49 +8,18 @@ from sqlalchemy.orm import Session
 from labra.auth.deps import require
 from labra.auth.principal import Principal
 from labra.core.db import get_session
-from labra.core.errors import NotFoundError, ValidationFailedError
+from labra.core.errors import ValidationFailedError
 from labra.core.ids import lab_today
 from labra.patients import service
 from labra.patients.age import age_text
 from labra.patients.models import REFERRER_KINDS
+from labra.web.forms import as_uuid, day, whole
+from labra.web.labels import KIND_LABELS, SEX_LABELS
 from labra.web.templating import page, render
 
 router = APIRouter(prefix="/frontdesk")
 
 DB = Annotated[Session, Depends(get_session)]
-
-SEX_LABELS = {"M": "Male", "F": "Female", "O": "Other"}
-KIND_LABELS = {
-    "doctor": "Doctor",
-    "clinic": "Clinic",
-    "hospital": "Hospital",
-    "corporate": "Company",
-    "self": "Self",
-}
-
-
-def _uuid(value: str) -> uuid.UUID:
-    try:
-        return uuid.UUID(value)
-    except ValueError:
-        raise NotFoundError() from None
-
-
-def _whole(value: str) -> int | None:
-    """An age part as typed: empty is None, anything else not a whole number is -1, which
-    the form check reports as out of range."""
-    value = value.strip()
-    if not value:
-        return None
-    return int(value) if value.isdigit() else -1
-
-
-def _day(value: str) -> date | None:
-    try:
-        return date.fromisoformat(value) if value else None
-    except ValueError:
-        return None
-
 
 # Patients
 
@@ -112,7 +79,7 @@ def patient_edit(
     db: DB,
     principal: Annotated[Principal, Depends(require("patient.edit"))],
 ) -> Response:
-    return _patient_form(request, service.get_patient(db, principal, _uuid(patient_id)), {})
+    return _patient_form(request, service.get_patient(db, principal, as_uuid(patient_id)), {})
 
 
 @router.post("/patients")
@@ -140,10 +107,10 @@ def patient_save(
     data = service.PatientInput(
         full_name=full_name,
         sex=sex,
-        dob=_day(dob),
-        age_years=_whole(age_years),
-        age_months=_whole(age_months),
-        age_days=_whole(age_days),
+        dob=day(dob),
+        age_years=whole(age_years),
+        age_months=whole(age_months),
+        age_days=whole(age_days),
         title=title,
         phone=phone,
         alt_phone=alt_phone,
@@ -154,7 +121,7 @@ def patient_save(
     )
     try:
         if patient_id:
-            patient = service.update_patient(db, principal, _uuid(patient_id), data, row_version)
+            patient = service.update_patient(db, principal, as_uuid(patient_id), data, row_version)
         else:
             patient = service.register_patient(db, principal, data, confirm_new=confirm_new)
     except ValidationFailedError as exc:
@@ -216,6 +183,61 @@ def referrer_new(
     return _referrer_form(request, None, {})
 
 
+def _pick_list(
+    request: Request,
+    db: Session,
+    principal: Principal,
+    q: str = "",
+    errors: dict[str, str] | None = None,
+    added: object = None,
+    status: int = 200,
+) -> Response:
+    return render(
+        request,
+        "frontdesk/_referrer_pick.html",
+        {
+            "referrers": service.pick_referrers(db, principal, q),
+            "q": q,
+            "errors": errors or {},
+            "added": added,
+            "kinds": KIND_LABELS,
+        },
+        status_code=status,
+    )
+
+
+@router.get("/referrers/pick", response_class=HTMLResponse)
+@page("frontdesk/new-visit", "frontdesk/_referrer_pick.html")
+def referrer_pick(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("referrer.view"))],
+    q: str = "",
+) -> Response:
+    return _pick_list(request, db, principal, q)
+
+
+@router.post("/referrers/quick")
+def referrer_quick(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("referrer.edit"))],
+    kind: Annotated[str, Form()] = "doctor",
+    name: Annotated[str, Form()] = "",
+    phone: Annotated[str, Form()] = "",
+) -> Response:
+    """Add a referrer without leaving the visit; the list comes back with them chosen."""
+    try:
+        referrer = service.create_referrer(
+            db, principal, service.ReferrerInput(kind, name, "", "", phone)
+        )
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _pick_list(request, db, principal, errors=exc.errors, status=422)
+    db.commit()
+    return _pick_list(request, db, principal, referrer.name, added=referrer)
+
+
 @router.get("/referrers/{referrer_id}", response_class=HTMLResponse)
 @page("frontdesk/referrers", "frontdesk/referrer_form.html")
 def referrer_edit(
@@ -224,7 +246,7 @@ def referrer_edit(
     db: DB,
     principal: Annotated[Principal, Depends(require("referrer.edit"))],
 ) -> Response:
-    return _referrer_form(request, service.get_referrer(db, principal, _uuid(referrer_id)), {})
+    return _referrer_form(request, service.get_referrer(db, principal, as_uuid(referrer_id)), {})
 
 
 @router.post("/referrers")
@@ -246,7 +268,7 @@ def referrer_save(
     )
     try:
         if referrer_id:
-            service.update_referrer(db, principal, _uuid(referrer_id), data, row_version)
+            service.update_referrer(db, principal, as_uuid(referrer_id), data, row_version)
         else:
             service.create_referrer(db, principal, data)
     except ValidationFailedError as exc:

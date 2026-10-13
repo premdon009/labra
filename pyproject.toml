@@ -153,7 +153,14 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "Feature module layers"
 type = "layers"
-containers = ["labra.auth", "labra.org", "labra.catalog", "labra.patients"]
+containers = [
+    "labra.auth",
+    "labra.org",
+    "labra.catalog",
+    "labra.patients",
+    "labra.visits",
+    "labra.billing",
+]
 layers = ["routes", "service", "models"]
 
 [[tool.importlinter.contracts]]
@@ -163,6 +170,8 @@ source_modules = [
     "labra.patients.models",
     "labra.patients.service",
     "labra.visits.models",
+    "labra.visits.labels",
+    "labra.visits.service",
     "labra.billing.models",
     "labra.billing.service",
 ]
