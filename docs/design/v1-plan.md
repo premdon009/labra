@@ -450,7 +450,7 @@ The owner shared screenshots of a commercial product's result screen as a workfl
 **Range selection:** the range is chosen from the patient's sex and **age at collection**. Its numbers and text are **copied into the result** when entered, so editing a range later never changes past results or reprints.
 
 ### Flag logic (one Python function, server-side only)
-`compute_flag(value, range, bands, options) → (flag, band_label)`, in `results/service.py`:
+`compute_flag(value, range, bands, options) → (flag, band_label)`, in `results/flags.py`:
 1. Empty → no flag.
 2. Option result → `A` if the chosen option is marked abnormal, else `N`.
 3. Numeric value outside the absurd limits → refused with "check value". Saving it needs a second confirm, which is audited.
@@ -576,7 +576,7 @@ Suresh opens the visit from the worklist (or by clicking it on the lab TV board 
  Triglycerides        [ 180 ]  ↑H Borderline high   mg/dL  < 150
  HDL cholesterol      [  38 ]  ↓L                   mg/dL  > 40
  VLDL (calc.)            36    ↑H                   mg/dL  < 30       = TG / 5
- LDL (calc.)            141    Borderline high      mg/dL  < 100 ⓘ    = TC − HDL − VLDL
+ LDL (calc.)            141    ↑H Borderline high   mg/dL  < 100 ⓘ    = TC − HDL − VLDL
  TC / HDL (calc.)       5.66   ↑H                          < 4.5
  ── URINE ROUTINE ───────────────────────────────────────────────────────
  Albumin              [Nil ▾]                  ✓
@@ -588,11 +588,12 @@ Colours on screen:
 
 | Row | Flag | Colour |
 |---|---|---|
-| Glucose, TC, TG, VLDL, TC/HDL | High | red |
+| Glucose, TC, TG, VLDL, LDL, TC/HDL | High | red |
 | HDL | Low | blue |
-| LDL | Borderline band | amber |
 | Crystals | Abnormal option | amber |
 | Rest | Normal | faint green |
+
+LDL is above its `high` of 100, so it is flagged High; its band label "Borderline high" shows beside the flag. Amber is only for a value whose flag is `N` and whose band is borderline (flag rule 6), and this visit has none.
 
 The calculated rows (VLDL, LDL, TC/HDL) appeared on their own once TC, TG and HDL were in.
 
@@ -602,7 +603,7 @@ What the guards do:
 - **Submit for verification:** it lists the 5 unconfirmed "Nil" defaults. Suresh confirms them, then submits.
 
 ### Step 5 · 15:00 · Verification and partial release [M11, M12, M20]
-Dr Meera's queue shows the visit with **5 high · 1 low · 1 borderline · 1 abnormal** and the previous values. She verifies, adds the interpretation comment from presets, and clicks **Release**. Only the signatory role can do this.
+Dr Meera's queue shows the visit with **6 high · 1 low · 1 abnormal** and the previous values. She verifies, adds the interpretation comment from presets, and clicks **Release**. Only the signatory role can do this.
 - Report mode is **combined** (the default) with Vitamin D still pending, so Labra releases **report R-2026-000456, partial**. It's the digital PDF on the letterhead [M17], with:
   - bold values with H/L, no colours (§7)
   - "Pending: Vitamin D (expected Sun 12:00)"
@@ -1473,7 +1474,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 | **1** | Repo, agent setup, docs site, foundation | W01, W02, W08, W08.1, W13, W14, W15, W16, W03, W04, W05 (seed framework + §1e cast), M02, M01, M01.1, M01.2, M15, **M25.1**, **M25.2** | A01–A05, A08–A10, B02, B04, B06, B07, D04, D05, E01, E03, G01, G02, G04, H01, H02, H04, I01–I03, K01, C03, C04 | `getting-started/login`, `getting-started/screen-layout`, `admin/branches`, `admin/users-and-roles`, `admin/settings`; dev docs `dev/setup.md`, `dev/workflow.md`; ADR-0001 to 0006; `docs/research/` |
 | **2** | Catalog, prices, admin screens | M05, M05.1, M05.2, M06, M14, M24 (cross-checked against Appendix A; disputed ranges left unapproved for the pathologist) | B03, K02, F02 | `admin/catalog`, `admin/reference-ranges`, `admin/methods`, `admin/prices`, `admin/starter-catalog` |
 | **3** | Front desk | M03, M04, M18, M07, M07.1, M23, M08 (M18.1 is gate P2 and waits) | B01, B04, B07, C01, F03, J01, J02; the bill and front-desk parts of B05 and J03, which close in Run 5 with released reports | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
-| **4** | Lab | M09, M10, M11, M11.1, M11.2, M21, M22 | A07, C02, F01 (results part) | `lab/worklist`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `lab/status-board` |
+| **4** | Lab | M09, M10, M11, M11.1, M11.2, M11.3, M07.4, the outsourcing timeline of M21 (delivery tracking closes in Run 5), the `test.sent_out` and `test.performed` events of M26 | C02; the upload part of A07; the results part of F01 | `lab/worklist`, `lab/receiving-samples`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `admin/external-labs` |
 | **5** | Reports + owner | M17, M17.1, M12, M12.1, M20, M20.1, M19, M13 | A06, K03, H03 (full-day Playwright + PDF snapshots) | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins` |
 | **6** | Install, backups, pilot prep | M16, W06, W07, **M25.3**, then W09 (the pilot week itself, after the run) | A11, A12, D01–D03, D06, D07, E02, E04, F01 (laptop budgets), G03, H05, L01–L03 | `admin/backups-and-restore`, `troubleshooting/*`, runbooks (`docs/runbooks/`), `install/laptop.md`, manual PDF, "A day at the lab" (§1e) |
 

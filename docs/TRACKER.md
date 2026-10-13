@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 10/20 · Minimal 25/40 · After pilot (P2) 0/9 · Checklist gate P 27/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/20 · Minimal 25/42 · After pilot (P2) 0/9 · Checklist gate P 27/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -73,17 +73,19 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M06~~ | ~~Prices: branch override and history~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M07~~ | ~~Visit and billing: bill of supply, payments, dues~~ | P | done | 2026-10-13 · 21d84e9 |
 | ~~M08~~ | ~~Barcode sample labels~~ | P | done | 2026-10-13 · 42dc5a9 |
-| M09 | Manual routing, in-house or external, showing cost and margin | P | todo | |
-| M10 | External labs and result PDF upload | P | todo | |
-| M11 | Results: worklist, flags, previous value, critical-value log, verification | P | todo | |
-| M11.1 | Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d) | P | todo | |
-| M11.2 | Absurd-value guard and Friedewald/formula validity checks (§1d) | P | todo | |
+| M09 | Manual routing, in-house or external, showing cost and margin | P | doing | |
+| M10 | External labs and result PDF upload | P | doing | |
+| M11 | Results: worklist, flags, previous value, critical-value log, verification | P | doing | |
+| M11.1 | Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d) | P | doing | |
+| M11.2 | Absurd-value guard and Friedewald/formula validity checks (§1d) | P | doing | |
+| M11.3 | Samples from another branch are scanned in at the lab before they appear on the worklist | P | doing | |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | P | todo | |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | todo | |
 | M13 | Reports for the owner | P | todo | |
 | ~~M07.1~~ | ~~Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27~~ | P | done | 2026-10-13 · 5c5912e |
 | ~~M07.2~~ | ~~UPI reference must have a digit in it; the audit log records a new visit before its bill~~ | P | done | 2026-10-13 · 6bdf904 |
 | ~~M07.3~~ | ~~A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills~~ | P | done | 2026-10-13 · ba826bb |
+| M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | P | doing | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | ~~M14~~ | ~~Admin screens (own HTMX, ADR-0010)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M14.1~~ | ~~Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test~~ | P | done | 2026-10-13 · 9123107 |
@@ -97,7 +99,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M18.2~~ | ~~Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date~~ | P | done | 2026-10-13 · 6bdf904 |
 | M19 | Patient history and cumulative results | P | todo | |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | P | todo | |
-| M21 | Delivery tracking and outsourcing timeline | P | todo | |
+| M21 | Delivery tracking and outsourcing timeline | P | doing | |
 | M22 | Lab status board (TV) | P2 | todo | |
 | ~~M23~~ | ~~Currency display settings (§8)~~ | P | done | 2026-10-13 · 4b99be5 |
 | ~~M23.1~~ | ~~Admin price headings use the currency symbol from settings~~ | P | done | 2026-10-13 · 9123107 |
