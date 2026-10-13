@@ -153,11 +153,16 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "Feature module layers"
 type = "layers"
-containers = ["labra.auth", "labra.org", "labra.catalog"]
+containers = ["labra.auth", "labra.org", "labra.catalog", "labra.patients"]
 layers = ["routes", "service", "models"]
 
 [[tool.importlinter.contracts]]
 name = "Front-desk domain code leaves formatting to the web layer"
 type = "forbidden"
-source_modules = ["labra.patients.models", "labra.visits.models", "labra.billing.models"]
+source_modules = [
+    "labra.patients.models",
+    "labra.patients.service",
+    "labra.visits.models",
+    "labra.billing.models",
+]
 forbidden_modules = ["labra.web"]

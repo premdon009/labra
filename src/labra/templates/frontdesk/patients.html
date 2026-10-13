@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Find patient{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Find patient</h1>
+  {% if can_edit %}<a class="btn" href="/frontdesk/patients/new">Register patient</a>{% endif %}
+</div>
+<form method="get" action="/frontdesk/patients" class="form-actions" role="search">
+  <label class="label" for="f-q">Phone, patient number or name</label>
+  <input class="input" type="search" id="f-q" name="q" value="{{ q }}" autofocus>
+  <button type="submit" class="btn-outline">Find</button>
+</form>
+<table class="table">
+  <thead><tr><th>Patient number</th><th>Name</th><th>Age / sex</th><th>Phone</th><th></th></tr></thead>
+  <tbody>
+    {% for p in patients.items %}
+    <tr>
+      <td>{{ p.patient_no }}</td>
+      <td>{{ (p.title ~ ' ' if p.title else '') ~ p.full_name }}</td>
+      <td>{{ ages[p.id] }}{% if p.dob_is_estimated %} (about){% endif %} / {{ sexes[p.sex] }}</td>
+      <td>{{ p.phone }}</td>
+      <td>{% if can_edit %}<a href="/frontdesk/patients/{{ p.id }}">Edit</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">{{ 'No patient matches that search.' if q else 'No patients yet.' }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(patients, request) }}
+{% endblock %}

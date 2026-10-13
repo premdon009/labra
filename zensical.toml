@@ -31,6 +31,10 @@ nav = [
       "manual/admin/prices.md",
       "manual/admin/starter-catalog.md",
     ] },
+    { "Front desk" = [
+      "manual/frontdesk/find-patient.md",
+      "manual/frontdesk/referrers.md",
+    ] },
   ] },
   { "Developers" = [
     "dev/setup.md",

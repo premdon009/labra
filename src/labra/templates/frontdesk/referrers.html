@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Referrers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Referrers</h1>
+  {% if can_edit %}<a class="btn" href="/frontdesk/referrers/new">Add referrer</a>{% endif %}
+</div>
+<form method="get" action="/frontdesk/referrers" class="form-actions" role="search">
+  <label class="label" for="f-q">Name</label>
+  <input class="input" type="search" id="f-q" name="q" value="{{ q }}">
+  <button type="submit" class="btn-outline">Find</button>
+</form>
+<table class="table">
+  <thead><tr><th>Name</th><th>Kind</th><th>Qualification</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for r in referrers.items %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td>{{ kinds[r.kind] }}</td>
+      <td>{{ r.qualification }}</td>
+      <td>{{ r.phone }}</td>
+      <td>{% if r.is_active %}<span class="badge">Active</span>{% else %}<span class="badge-outline">Not in use</span>{% endif %}</td>
+      <td>{% if can_edit %}<a href="/frontdesk/referrers/{{ r.id }}">Edit</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">{{ 'No referrer matches that name.' if q else 'No referrers yet.' }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(referrers, request) }}
+{% endblock %}

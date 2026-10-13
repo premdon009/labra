@@ -18,6 +18,8 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Prices](admin/prices.md) |
 | EC-F03 | Pagination everywhere | [Reference ranges](admin/reference-ranges.md) |
 | EC-F03 | Pagination everywhere | [Staff and roles](admin/users-and-roles.md) |
+| EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
+| EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |
@@ -26,6 +28,8 @@ Every feature Labra has, and the manual page that explains it.
 | M01.2 | Staff without login (collected/delivered by) | [Signing in](getting-started/login.md) |
 | M02 | Branches | [Branches](admin/branches.md) |
 | M02 | Branches | [Settings](admin/settings.md) |
+| M03 | Patients | [Find or register a patient](frontdesk/find-patient.md) |
+| M04 | Referrers | [Referrers](frontdesk/referrers.md) |
 | M05 | Catalog (calculated parameters, preset comments) | [Test catalog](admin/catalog.md) |
 | M05 | Catalog (calculated parameters, preset comments) | [Methods and comment presets](admin/methods.md) |
 | M05.1 | Test short codes + aliases; code-first search with confirm line (§1d) | [Test catalog](admin/catalog.md) |

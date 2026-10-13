@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% set editing = patient and patient.id %}
+{% if patient and patient.dob_text is defined %}{% set dob_value = patient.dob_text %}
+{% elif patient and patient.dob %}{% set dob_value = patient.dob.isoformat() %}
+{% else %}{% set dob_value = '' %}{% endif %}
+{% block title %}{{ 'Edit patient' if editing else 'Register patient' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Edit ' ~ patient.full_name if editing else 'Register patient' }}</h1></div>
+{% if errors.get('duplicate') %}
+<div class="alert" role="alert">
+  <h2>{{ errors.duplicate }}</h2>
+  {% if hint and hint.matches %}
+  <ul>
+    {% for m in hint.matches %}
+    <li><a href="/frontdesk/patients/{{ m.id }}">{{ m.patient_no }} · {{ m.full_name }} · {{ m.phone }}</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <p>If this is a different person, register them below.</p>
+</div>
+{% elif errors %}
+<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>
+{% endif %}
+<form method="post" action="/frontdesk/patients">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="patient_id" value="{{ patient.id if editing else '' }}">
+  <input type="hidden" name="row_version" value="{{ patient.row_version if editing else 0 }}">
+  {% if editing %}<p class="muted">Patient number {{ patient.patient_no }}</p>{% endif %}
+  <div class="form-grid">
+    {{ field('title', 'Title', patient.title if patient, errors, hint='Mr, Ms, Dr, Baby…') }}
+    {{ field('full_name', 'Full name', patient.full_name if patient, errors, required=True) }}
+    <div class="field-row">
+      <label class="label" for="f-sex">Sex *</label>
+      <select class="select" id="f-sex" name="sex" required {% if errors.get('sex') %}aria-invalid="true" aria-describedby="e-sex"{% endif %}>
+        <option value=""></option>
+        {% for code, label in sexes.items() %}
+        <option value="{{ code }}" {% if patient and patient.sex == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.get('sex') %}<p class="field-error" id="e-sex">{{ errors.sex }}</p>{% endif %}
+    </div>
+    {{ field('dob', 'Date of birth', dob_value, errors, type='date', hint='Or give the age below if the date isn\'t known.') }}
+  </div>
+  <fieldset class="form-grid">
+    <legend>Age, when the date of birth isn't known</legend>
+    {{ field('age_years', 'Years', patient.age_years if patient and patient.age_years is defined, {}, type='number') }}
+    {{ field('age_months', 'Months', patient.age_months if patient and patient.age_months is defined, {}, type='number') }}
+    {{ field('age_days', 'Days', patient.age_days if patient and patient.age_days is defined, {}, type='number') }}
+  </fieldset>
+  <div class="form-grid">
+    {{ field('phone', 'Phone', patient.phone if patient, errors, type='tel', hint='10 digits, without +91.') }}
+    {{ field('alt_phone', 'Other phone', patient.alt_phone if patient, errors, type='tel') }}
+    {{ field('email', 'Email', patient.email if patient, errors, type='email') }}
+    {{ field('address', 'Address', patient.address if patient, errors) }}
+    {{ field('city', 'City', patient.city if patient, errors) }}
+    {{ field('pincode', 'PIN code', patient.pincode if patient, errors) }}
+  </div>
+  <div class="form-actions">
+    {% if errors.get('duplicate') %}
+    <button type="submit" class="btn" name="confirm_new" value="true">Register as a new patient</button>
+    {% else %}
+    <button type="submit" class="btn">Save</button>
+    {% endif %}
+    <a class="btn-outline" href="/frontdesk/patients">Cancel</a>
+  </div>
+</form>
+{% endblock %}

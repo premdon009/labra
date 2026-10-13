@@ -30,6 +30,15 @@ PERMISSIONS: dict[str, Permission] = {
         Permission("catalog.edit", "Change tests, parameters, ranges and packages", "lab"),
         Permission("price.edit", "Change prices", "lab"),
         Permission("range.approve", "Approve reference ranges", "lab"),
+        Permission("patient.view", "Find patients", "branch"),
+        Permission("patient.edit", "Register patients and change their details", "branch"),
+        Permission("referrer.view", "See referring doctors", "lab"),
+        Permission("referrer.edit", "Add and change referring doctors", "lab"),
+        Permission("visit.create", "Book visits", "branch"),
+        Permission("visit.view", "See visits", "branch"),
+        Permission("bill.view", "See bills and receipts", "branch"),
+        Permission("payment.take", "Take payments", "branch"),
+        Permission("bill.cancel", "Cancel bills", "branch"),
     ]
 }
 
@@ -42,6 +51,18 @@ class SystemRole:
 
 
 _EVERY_BRANCH_ROLE = frozenset({"branch.view", "catalog.view"})
+_FRONT_DESK = frozenset(
+    {
+        "patient.view",
+        "patient.edit",
+        "referrer.view",
+        "referrer.edit",
+        "visit.create",
+        "visit.view",
+        "bill.view",
+        "payment.take",
+    }
+)
 # Approving a range is a clinical sign-off (ISO 15189), so it belongs to the signatory alone.
 _CLINICAL = frozenset({"range.approve"})
 
@@ -52,9 +73,11 @@ SYSTEM_ROLES: dict[str, SystemRole] = {
         SystemRole(
             "branch_manager",
             "Branch manager",
-            _EVERY_BRANCH_ROLE | {"setting.view", "setting.edit_branch"},
+            _EVERY_BRANCH_ROLE
+            | _FRONT_DESK
+            | {"setting.view", "setting.edit_branch", "bill.cancel"},
         ),
-        SystemRole("front_desk", "Front desk", _EVERY_BRANCH_ROLE),
+        SystemRole("front_desk", "Front desk", _EVERY_BRANCH_ROLE | _FRONT_DESK),
         SystemRole("phlebotomist", "Phlebotomist", _EVERY_BRANCH_ROLE),
         SystemRole("technician", "Technician", _EVERY_BRANCH_ROLE),
         SystemRole("signatory", "Signatory", _EVERY_BRANCH_ROLE | _CLINICAL),

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, checkbox, csrf %}
+{% set editing = referrer and referrer.id %}
+{% block title %}{{ 'Edit referrer' if editing else 'Add referrer' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Edit ' ~ referrer.name if editing else 'Add referrer' }}</h1></div>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+<form method="post" action="/frontdesk/referrers">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="referrer_id" value="{{ referrer.id if editing else '' }}">
+  <input type="hidden" name="row_version" value="{{ referrer.row_version if editing else 0 }}">
+  <div class="form-grid">
+    <div class="field-row">
+      <label class="label" for="f-kind">Kind *</label>
+      <select class="select" id="f-kind" name="kind" required {% if errors.get('kind') %}aria-invalid="true" aria-describedby="e-kind"{% endif %}>
+        {% for code, label in kinds.items() %}
+        <option value="{{ code }}" {% if referrer and referrer.kind == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.get('kind') %}<p class="field-error" id="e-kind">{{ errors.kind }}</p>{% endif %}
+    </div>
+    {{ field('name', 'Name', referrer.name if referrer, errors, required=True) }}
+    {{ field('qualification', 'Qualification', referrer.qualification if referrer, errors, hint='MBBS, MD…') }}
+    {{ field('council_reg_no', 'Medical council registration', referrer.council_reg_no if referrer, errors) }}
+    {{ field('phone', 'Phone', referrer.phone if referrer, errors, type='tel') }}
+  </div>
+  {% if editing %}<p>{{ checkbox('is_active', 'Still refers patients', referrer.is_active) }}</p>{% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn">Save</button>
+    <a class="btn-outline" href="/frontdesk/referrers">Cancel</a>
+  </div>
+</form>
+{% endblock %}
