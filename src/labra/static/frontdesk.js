@@ -102,6 +102,19 @@
     if (el.closest("[data-print]")) window.print();
   });
 
+  // The text of the code box as it was sent with the order change now with the server.
+  var sentCode = null;
+
+  // What has been typed into a box after the text that was sent; nothing for other boxes.
+  function typedSince(box) {
+    if (box.id !== "f-q" || !sentCode || box.value.indexOf(sentCode) !== 0) return "";
+    return box.value.slice(sentCode.length).replace(/^\s+/, "");
+  }
+
+  function searchText(ctx) {
+    return new URL(ctx.request.action, window.location.href).searchParams.get("q") || "";
+  }
+
   // After the server redraws part of the screen it may name what is finished with
   // (data-done="code"): boxes marked data-clear-on for it are emptied and refocused.
   document.addEventListener("htmx:after:swap", function () {
@@ -110,7 +123,9 @@
       block.removeAttribute("data-done");
       document.querySelectorAll('[data-clear-on~="' + done + '"]').forEach(function (box) {
         if ("value" in box) {
-          box.value = "";
+          box.value = typedSince(box);
+          // What was typed while the server was busy is looked up like any other typing.
+          if (box.value) box.dispatchEvent(new Event("input", { bubbles: true }));
         } else {
           box.replaceChildren();
         }
@@ -129,14 +144,24 @@
   // (hx-sync). One that waited its turn was prepared before the change ahead of it came
   // back: its lines are read again as it leaves, or it would undo that change, and it is
   // pointed at the order now on screen, or its reply would go into the piece just replaced.
-  var ORDER_FIELDS = ["item", "charge_desc", "charge_amount", "charge_reason"];
+  // The code box is read again too: the code ahead of it has been taken out by then.
+  var ORDER_FIELDS = ["item", "charge_desc", "charge_amount", "charge_reason", "q"];
+  var TEST_SEARCH = /\/visits\/new\/tests(\?|$)/;
   document.addEventListener("htmx:before:request", function (event) {
     flash("");
     var ctx = event.detail && event.detail.ctx;
     var form = byId("visit-form");
+    var action = (ctx && ctx.request && ctx.request.action) || "";
+    var codeBox = byId("f-q");
+    if (codeBox && TEST_SEARCH.test(action) && !codeBox.value.trim()) {
+      // The box was emptied while this search waited its turn: there is nothing to ask.
+      event.preventDefault();
+      byId("code-match").replaceChildren();
+      return;
+    }
     var body = ctx && ctx.request && ctx.request.body;
     if (!form || !(body instanceof URLSearchParams)) return;
-    if (!/\/visits\/new\/preview$/.test(ctx.request.action || "")) return;
+    if (!/\/visits\/new\/preview$/.test(action)) return;
     if (ctx.target && !ctx.target.isConnected) ctx.target = byId("visit-order") || ctx.target;
     var now = new FormData(form);
     ORDER_FIELDS.forEach(function (name) {
@@ -145,6 +170,14 @@
         body.append(name, value);
       });
     });
+    sentCode = body.get("q") || "";
+  });
+  // A search answered after its text was added or changed would list the wrong tests.
+  document.addEventListener("htmx:before:swap", function (event) {
+    var ctx = event.detail && event.detail.ctx;
+    var codeBox = byId("f-q");
+    if (!codeBox || !ctx || !ctx.request || !TEST_SEARCH.test(ctx.request.action || "")) return;
+    if (searchText(ctx).trim() !== codeBox.value.trim()) event.preventDefault();
   });
   // A 422 comes back as the same piece of screen with its messages, so it is shown as it
   // is. Other errors are not swapped in (see htmx-config in base.html) and are told here.

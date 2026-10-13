@@ -52,10 +52,13 @@ Every feature Labra has, and the manual page that explains it.
 | M07 | Visit and billing: bill of supply, payments, dues | [New visit](frontdesk/new-visit.md) |
 | M07.1 | Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27 | [Settings](admin/settings.md) |
 | M07.1 | Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27 | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M07.2 | UPI reference must have a digit in it; the audit log records a new visit before its bill | [Dues and payments](frontdesk/dues-and-payments.md) |
+| M07.2 | UPI reference must have a digit in it; the audit log records a new visit before its bill | [New visit](frontdesk/new-visit.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
+| M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
 | M23 | Currency display settings (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |

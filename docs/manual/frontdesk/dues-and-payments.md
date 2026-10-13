@@ -1,6 +1,6 @@
 ---
 title: Dues and payments
-features: [M07, EC-B07, EC-F03]
+features: [M07, M07.2, EC-B07, EC-F03]
 ---
 
 # Dues and payments
@@ -24,8 +24,8 @@ administrators see it.
 3. Choose **Paid by**: cash, UPI or card.
 4. Check the **Amount**. It starts at the full amount due; change it if the patient pays
    only a part.
-5. For UPI, type the reference number from the patient's phone. For a card, type the last
-   4 digits.
+5. For UPI, type the reference number (UTR) from the patient's phone: 8 to 35 letters and
+   digits, with at least one digit. For a card, type the last 4 digits.
 6. Select **Save and print receipt**, or press **Alt+S**. The receipt opens ready to
    print, and Labra returns to **Dues** afterwards.
 

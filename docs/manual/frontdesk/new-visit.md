@@ -1,6 +1,6 @@
 ---
 title: New visit
-features: [M18, M07, M04, EC-C01, EC-B07, EC-J01, EC-J02]
+features: [M18, M18.2, M07, M07.2, M04, EC-C01, EC-B07, EC-J01, EC-J02]
 ---
 
 # New visit
@@ -37,7 +37,8 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
 6. To give a discount, type the **Discount**, choose **Amount** or **Per cent**, and give
    the **Discount reason**. **To pay** shows the new figure.
 7. Choose **Paid by** and type the **Amount paid now**. For UPI, type the reference number
-   from the patient's phone; for a card, the last 4 digits. Leave the amount empty if the
+   (UTR) from the patient's phone, 8 to 35 letters and digits with at least one digit; for a
+   card, the last 4 digits. Leave the amount empty if the
    patient will pay later.
 8. Tick the consent box after the patient has read the notice. **Read the notice** shows
    its words.
@@ -54,6 +55,8 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
   print** or **Alt+S** saves.
 - You can add tests and change the discount quickly, one after the other. Labra applies
   the changes in the order you made them, so the total always matches the lines shown.
+- You don't have to wait for one test to appear before typing the next code. What you type
+  while Labra is still adding the last test stays in the box.
 - Nothing is kept until you save. If a field is wrong, Labra says **Not saved yet**, marks
   the field, and keeps everything you typed.
 - If the phone and a similar name are already registered, Labra asks whether this is the

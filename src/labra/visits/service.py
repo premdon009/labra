@@ -413,6 +413,27 @@ def save_visit(
         )
     db.flush()
     items, samples = _order(db, principal, visit, branch, draft, today)
+
+    def audit_visit() -> None:
+        if new_patient:
+            audit.record(
+                db,
+                "patient.create",
+                "patient",
+                patient.id,
+                user_id=principal.user_id,
+                branch_id=branch.id,
+            )
+        audit.record(
+            db,
+            "visit.create",
+            "visit",
+            visit.id,
+            {"visit_no": visit.visit_no, "patient_id": str(patient.id)},
+            user_id=principal.user_id,
+            branch_id=branch.id,
+        )
+
     billing.issue_bill(
         db,
         principal,
@@ -423,24 +444,7 @@ def save_visit(
         [s.sample_no for s in samples],
         data.payment,
         today,
-    )
-    if new_patient:
-        audit.record(
-            db,
-            "patient.create",
-            "patient",
-            patient.id,
-            user_id=principal.user_id,
-            branch_id=branch.id,
-        )
-    audit.record(
-        db,
-        "visit.create",
-        "visit",
-        visit.id,
-        {"visit_no": visit.visit_no, "patient_id": str(patient.id)},
-        user_id=principal.user_id,
-        branch_id=branch.id,
+        audit_visit,
     )
     return visit
 

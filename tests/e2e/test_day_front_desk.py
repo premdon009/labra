@@ -91,6 +91,55 @@ def page(live_url: str) -> Iterator["Page"]:
         browser.close()
 
 
+def _sign_in(page: "Page") -> None:
+    page.goto("/login")
+    page.fill("[name=username]", "priya")
+    page.fill("[name=password]", DEMO_PASSWORD)
+    page.keyboard.press("Enter")
+    page.wait_for_url("**/")
+
+
+@pytest.mark.e2e
+@pytest.mark.item("M18.2")
+def test_codes_typed_while_the_server_is_busy_are_kept(page: "Page") -> None:
+    from playwright.sync_api import expect
+
+    keys = page.keyboard
+    _sign_in(page)
+    page.goto("/frontdesk/visits/new")
+    box = page.locator("#f-q")
+    box.focus()
+
+    # The first change to the order is held back until the second code has been typed.
+    held: list[Route] = []
+
+    def hold_the_first(route: "Route") -> None:
+        if held:
+            route.continue_()
+        else:
+            held.append(route)
+
+    page.route("**/frontdesk/visits/new/preview", hold_the_first)
+    keys.type("sf")
+    keys.press("Enter")
+    keys.type("lipid")
+    keys.press("Enter")
+    expect(box).to_have_value("sflipid")
+    assert len(held) == 1
+    held[0].continue_()
+
+    lines = page.locator("#visit-order .visit-lines tbody tr")
+    expect(lines).to_have_count(2)
+    expect(lines.nth(0)).to_contain_text("Glucose, fasting")
+    expect(lines.nth(1)).to_contain_text("Lipid profile")
+    expect(box).to_have_value("")
+    expect(box).to_be_focused()
+    # No search answered late lists tests for a code that is already on the order.
+    page.wait_for_timeout(600)
+    expect(page.locator("#code-match")).to_be_empty()
+    expect(page.locator("#code-busy")).to_be_hidden()
+
+
 @pytest.mark.e2e
 @pytest.mark.item("M18")
 @pytest.mark.item("M08")
@@ -101,12 +150,7 @@ def test_front_desk_day_with_keys_only(page: "Page", committed_engine: Engine) -
     from playwright.sync_api import expect
 
     keys = page.keyboard
-
-    page.goto("/login")
-    page.fill("[name=username]", "priya")
-    page.fill("[name=password]", DEMO_PASSWORD)
-    keys.press("Enter")
-    page.wait_for_url("**/")
+    _sign_in(page)
 
     # Alt+D is the browser's address-bar key and Alt+F its menu key; here they reach the page.
     keys.press("Alt+KeyD")

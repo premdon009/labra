@@ -181,6 +181,7 @@ def test_currency_change_leaves_issued_bill(seeded: Session, platform: Platform)
 
 
 @pytest.mark.item("M07")
+@pytest.mark.item("M07.2")
 def test_part_payment_then_due_cleared(seeded: Session, platform: Platform) -> None:
     priya = as_user(seeded, platform, "priya")
     bill = billed(seeded, priya, payment=CASH_300)
@@ -197,6 +198,7 @@ def test_part_payment_then_due_cleared(seeded: Session, platform: Platform) -> N
     refused = [
         (PaymentInput("upi", Decimal(100)), "reference"),
         (PaymentInput("upi", Decimal(100), "12-34"), "reference"),
+        (PaymentInput("upi", Decimal(100), "paidbyupi"), "reference"),
         (PaymentInput("card", Decimal(100), "12345"), "reference"),
         (PaymentInput("cheque", Decimal(100)), "mode"),
         (PaymentInput("cash", None), "amount"),

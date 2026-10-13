@@ -10,7 +10,7 @@ series, and last the audit chain.
 
 import re
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -39,7 +39,7 @@ from labra.patients.models import Patient, Referrer
 from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 
 # What staff copy from the payer's UPI app; banks differ in length and letters.
-_UTR_RE = re.compile(r"^[A-Za-z0-9]{8,35}$")
+_UTR_RE = re.compile(r"^(?=.*\d)[A-Za-z0-9]{8,35}$")
 _CARD_RE = re.compile(r"^\d{4}$")
 _NAMESPACE_PARTS = ("bill", "payment", "refund")
 # The money columns hold ten digits before the point.
@@ -89,7 +89,9 @@ class PaymentInput:
         if self.mode not in PAYMENT_MODES:
             p["mode"] = "Choose cash, UPI or card."
         elif self.mode == "upi" and not _UTR_RE.match(reference):
-            p["reference"] = "Enter the UPI reference (UTR): 8 to 35 letters and digits."
+            p["reference"] = (
+                "Enter the UPI reference (UTR): 8 to 35 letters and digits, with a digit in it."
+            )
         elif self.mode == "card" and not _CARD_RE.match(reference):
             p["reference"] = "Enter the last 4 digits of the card."
         elif len(reference) > 40:
@@ -224,13 +226,15 @@ def issue_bill(
     sample_nos: Sequence[str] = (),
     payment: PaymentInput | None = None,
     today: date | None = None,
+    audit_first: Callable[[], None] | None = None,
 ) -> Bill:
     """Issue the bill of supply for a visit's order lines, with the payment taken at the
     counter if there is one. The lines already carry their rate and discount; the bill
     adds them up and rounds the total as the branch's currency settings say.
 
     Called while a visit is being saved, after its own number series: this takes the bill
-    and receipt numbers and then writes the audit rows.
+    and receipt numbers and then writes the audit rows. `audit_first` writes the caller's
+    own audit rows just ahead of them, so the log reads visit, bill, payment.
     """
     _check(principal, "visit.create", visit.branch_id)
     if payment is not None:
@@ -302,6 +306,8 @@ def issue_bill(
     if payment is not None:
         ref = derived_ref(visit.client_ref, "payment")
         received = _receive(db, principal, bill, branch, patient.id, payment, ref, today)
+    if audit_first is not None:
+        audit_first()
     audit.record(
         db,
         "bill.issue",

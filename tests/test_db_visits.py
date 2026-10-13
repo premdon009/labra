@@ -40,6 +40,7 @@ def _problems(db: Session, principal, data: service.VisitInput) -> dict[str, str
 @pytest.mark.item("M07")
 @pytest.mark.item("M18")
 @pytest.mark.item("M08")
+@pytest.mark.item("M07.2")
 def test_save_visit_issues_bill_receipt_samples(seeded: Session, platform: Platform) -> None:
     ids = menu(seeded, as_user(seeded, platform, "anil"))
     priya = as_user(seeded, platform, "priya")
@@ -88,7 +89,8 @@ def test_save_visit_issues_bill_receipt_samples(seeded: Session, platform: Platf
         for row in seeded.scalars(select(AuditLog).order_by(AuditLog.id))
         if row.entity_id in {str(visit.id), str(patient.id), str(bill.id), str(payment.id)}
     ]
-    assert actions == ["bill.issue", "payment.receive", "patient.create", "visit.create"]
+    # In the order things happened at the counter: the bill belongs to the visit.
+    assert actions == ["patient.create", "visit.create", "bill.issue", "payment.receive"]
 
 
 @pytest.mark.item("M18")
