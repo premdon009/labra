@@ -19,6 +19,8 @@ from labra.catalog.starter import import_starter
 from labra.core.errors import ConfigError
 from labra.core.numbering import ensure_series
 from labra.core.ports import IdentityProvider
+from labra.extlabs import service as extlabs
+from labra.extlabs.models import ExternalLab
 from labra.org.models import AppUser, Branch, Role, UserBranchRole
 from labra.org.service import sync_system_roles
 from labra.patients import service as patients
@@ -41,6 +43,13 @@ CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
 
 # Lab-wide demo prices by test code. The starter catalog ships without prices.
 DEMO_PRICES = {"fbs": "80", "lipid": "500", "urine": "150", "vitd": "1200"}
+
+# Invented referral labs with a different cost and wait for the outsourced demo test:
+# (name, certificate, cost, hours, their code).
+DEMO_EXTERNAL_LABS = [
+    ("Demo Referral Lab A", "MC-0000A", "700", 48, "VD25"),
+    ("Demo Referral Lab B", "MC-0000B", "620", 72, "D-TOTAL"),
+]
 
 # (branch code, sex, age in years) of the demo patients; their phones are 9000000001 onwards.
 DEMO_PATIENTS = [
@@ -96,8 +105,9 @@ def _acting(db: Session, username: str, branch: Branch | None = None) -> Princip
     )
 
 
-def _demo_catalog(db: Session, admin: Principal) -> None:
-    """The starter catalog, an outsourced test it lacks, and prices for a demo order."""
+def _demo_catalog(db: Session, admin: Principal, today: date) -> None:
+    """The starter catalog, an outsourced test it lacks, prices for a demo order, and two
+    external labs that do the outsourced test."""
     import_starter(db, admin)
     tests = {code: test_id for test_id, code in db.execute(select(Test.id, Test.code))}
     if "vitd" not in tests:
@@ -120,6 +130,10 @@ def _demo_catalog(db: Session, admin: Principal) -> None:
     for code, amount in DEMO_PRICES.items():
         if tests[code] not in priced:
             catalog.set_price(db, admin, "test", tests[code], amount)
+    for name, cert, cost, hours, their_code in DEMO_EXTERNAL_LABS:
+        if db.scalar(select(ExternalLab.id).where(ExternalLab.name == name)) is None:
+            lab = extlabs.create_lab(db, admin, extlabs.LabInput(name, cert, dpa_signed_on=today))
+            extlabs.set_rate(db, admin, lab.id, "vitd", cost, hours, their_code)
 
 
 def _demo_people(db: Session, fake: "Faker", branches: dict[str, Branch], today: date) -> None:
@@ -191,7 +205,7 @@ def seed(
         )
     db.flush()
     if with_catalog:
-        _demo_catalog(db, _acting(db, "anil"))
+        _demo_catalog(db, _acting(db, "anil"), today)
     if with_people:
         _demo_people(db, fake, branches, today)
 

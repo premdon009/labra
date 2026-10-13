@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}External labs{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>External labs</h1>
+  {% if can_edit %}<a class="btn" href="/admin/external-labs/new">Add lab</a>{% endif %}
+</div>
+<table class="table">
+  <thead><tr><th>Name</th><th>NABL certificate</th><th>Contact</th><th>Phone</th><th>Data agreement</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for lab in labs.items %}
+    <tr>
+      <td>{{ lab.name }}</td>
+      <td>{{ lab.nabl_cert_no }}</td>
+      <td>{{ lab.contact_name }}</td>
+      <td>{{ lab.phone }}</td>
+      <td>{% if lab.dpa_signed_on %}Signed {{ lab.dpa_signed_on.strftime('%d %b %Y') }}{% else %}<span class="badge-outline">Not signed</span>{% endif %}</td>
+      <td>{% if lab.is_active %}<span class="badge">Active</span>{% else %}<span class="badge-outline">Not in use</span>{% endif %}</td>
+      <td><a href="/admin/external-labs/{{ lab.id }}">Open</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">No external labs yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(labs, request) }}
+{% endblock %}

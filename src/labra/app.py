@@ -14,6 +14,7 @@ from labra.core import health, metrics
 from labra.core.config import get_settings
 from labra.core.logging import configure_logging, get_logger
 from labra.core.registry import get_platform
+from labra.extlabs.routes import router as extlabs_router
 from labra.org.routes import router as org_router
 from labra.patients.routes import router as patients_router
 from labra.visits.routes import router as visits_router
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(org_router)
     app.include_router(catalog_router)
+    app.include_router(extlabs_router)
     app.include_router(patients_router)
     app.include_router(visits_router)
     app.include_router(billing_router)

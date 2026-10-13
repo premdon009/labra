@@ -30,6 +30,7 @@ nav = [
       "manual/admin/reference-ranges.md",
       "manual/admin/methods.md",
       "manual/admin/prices.md",
+      "manual/admin/external-labs.md",
       "manual/admin/starter-catalog.md",
     ] },
     { "Front desk" = [

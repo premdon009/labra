@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, checkbox, csrf, keys %}
+{% set editing = lab and lab.id %}
+{% block title %}{{ lab.name if editing else 'Add external lab' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ lab.name if editing else 'Add external lab' }}</h1></div>
+<p><a href="/admin/external-labs">Back to external labs</a></p>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+{% if can_edit %}
+<form method="post" action="/admin/external-labs">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="lab_id" value="{{ lab.id if editing else '' }}">
+  <input type="hidden" name="row_version" value="{{ lab.row_version if editing else 0 }}">
+  <div class="form-grid">
+    {{ field('name', 'Name', values.name if values, errors, required=True) }}
+    {{ field('nabl_cert_no', 'NABL certificate number', values.nabl_cert_no if values, errors) }}
+    {{ field('contact_name', 'Contact person', values.contact_name if values, errors) }}
+    {{ field('phone', 'Phone', values.phone if values, errors, type='tel') }}
+    {{ field('email', 'Email', values.email if values, errors, type='email') }}
+    {{ field('results_email', 'Email that results come from', values.results_email if values, errors, type='email') }}
+    {{ field('portal_url', 'Results website', values.portal_url if values, errors, type='url', hint='Where staff sign in to fetch reports.') }}
+    {{ field('dpa_signed_on', 'Data agreement signed on', values.dpa_signed_on if values and values.dpa_signed_on else '', errors, type='date', hint='The date this lab agreed in writing how it handles patient details.') }}
+  </div>
+  <fieldset>
+    <legend>On the sheet sent with a sample, beside name, age and sex</legend>
+    <p>{{ checkbox('share_phone', "Patient's phone", values.share_phone if values else False) }}</p>
+    <p>{{ checkbox('share_address', "Patient's address", values.share_address if values else False) }}</p>
+  </fieldset>
+  {% if editing %}<p>{{ checkbox('is_active', 'We still send tests to this lab', values.is_active if values else True) }}</p>{% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn" {{ keys('alt+s') }}>Save</button>
+    <a class="btn-outline" href="/admin/external-labs">Cancel</a>
+  </div>
+</form>
+{% else %}
+<dl>
+  <dt>NABL certificate number</dt><dd>{{ lab.nabl_cert_no or '—' }}</dd>
+  <dt>Contact person</dt><dd>{{ lab.contact_name or '—' }}</dd>
+  <dt>Phone</dt><dd>{{ lab.phone or '—' }}</dd>
+  <dt>Email</dt><dd>{{ lab.email or '—' }}</dd>
+  <dt>Results website</dt><dd>{{ lab.portal_url or '—' }}</dd>
+  <dt>Data agreement</dt><dd>{{ 'Signed ' ~ lab.dpa_signed_on.strftime('%d %b %Y') if lab.dpa_signed_on else 'Not signed' }}</dd>
+  <dt>Status</dt><dd>{{ 'Active' if lab.is_active else 'Not in use' }}</dd>
+</dl>
+{% endif %}
+
+{% if editing %}
+<h2>Tests this lab does for us</h2>
+<table class="table">
+  <thead><tr><th>Test</th><th>Their code</th><th>Cost{{ unit }}</th><th>Result in (hours)</th><th>Since</th><th></th></tr></thead>
+  <tbody>
+    {% for r in rates %}
+    <tr>
+      <td>{{ r.test.code }} · {{ r.test.name }}</td>
+      <td>{{ r.rate.their_test_code }}</td>
+      <td>{{ r.rate.cost }}</td>
+      <td>{{ r.rate.tat_hours }}</td>
+      <td>{{ r.rate.valid_from | local_time }}</td>
+      <td>
+        {% if can_edit %}
+        <form method="post" action="/admin/external-labs/{{ lab.id }}/rates/{{ r.rate.id }}/end">
+          {{ csrf(csrf_token) }}
+          <button type="submit" class="btn-sm-outline">Stop sending</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No tests yet. Add the first one below.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if can_edit %}
+<h2>Add a test or change its cost</h2>
+<form method="post" action="/admin/external-labs/{{ lab.id }}/rates">
+  {{ csrf(csrf_token) }}
+  <div class="form-grid">
+    {{ field('test_code', 'Test code', rate.get('test_code'), errors, required=True, hint='Our code, as in the test catalog, for example vitd.') }}
+    {{ field('cost', 'Cost' ~ unit, rate.get('cost'), errors, required=True, hint='What the lab charges us. Starts now; tests already sent keep their cost.') }}
+    {{ field('tat_hours', 'Result in (hours)', rate.get('tat_hours'), errors, required=True) }}
+    {{ field('their_test_code', 'Their code', rate.get('their_test_code'), errors, hint="Optional. The lab's own code for this test.") }}
+  </div>
+  <div class="form-actions"><button type="submit" class="btn">Set cost</button></div>
+</form>
+{% endif %}
+
+{% if ended %}
+<h2>Earlier costs</h2>
+<table class="table">
+  <thead><tr><th>Test</th><th>Cost{{ unit }}</th><th>Result in (hours)</th><th>From</th><th>Until</th></tr></thead>
+  <tbody>
+    {% for r in ended %}
+    <tr>
+      <td>{{ r.test.code }} · {{ r.test.name }}</td>
+      <td>{{ r.rate.cost }}</td>
+      <td>{{ r.rate.tat_hours }}</td>
+      <td>{{ r.rate.valid_from | local_time }}</td>
+      <td>{{ r.rate.valid_to | local_time }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+{% endblock %}
