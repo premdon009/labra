@@ -101,6 +101,7 @@ testpaths = ["tests"]
 markers = [
     "item(id): tracker ID this test proves",
     "db: needs Postgres (Docker); skipped with a reason when Docker isn't reachable",
+    "e2e: drives a real browser; skipped with a reason when Chromium isn't installed",
 ]
 addopts = "--strict-markers"
 

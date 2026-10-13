@@ -56,6 +56,10 @@ def test_visit_saved_from_one_screen_only_once(
     for name in ("client_ref", "phone", "full_name", "q", "discount_value", "pay_amount"):
         assert f'name="{name}"' in screen
     assert 'name="consent"' in screen
+    # Every change to the order waits its turn, so a late reply can't show an old total.
+    changes = screen.count('hx-post="/frontdesk/visits/new/preview"')
+    assert changes >= 4
+    assert screen.count('hx-sync="#visit-form:queue all"') == changes
 
     form = _form(ids, "fbs", "lipid", pay_mode="cash", pay_amount="530")
     first = post(db_client, "/frontdesk/visits", form)

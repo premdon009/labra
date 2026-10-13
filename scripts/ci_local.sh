@@ -82,6 +82,11 @@ stage_tests() {
     return 2
   fi
   uv run python scripts/check_coverage.py "$LOG_DIR/coverage.json" || return 1
+  if grep -q "SKIPPED.*no browser for e2e tests" "$out"; then
+    echo "WARN: the browser test was skipped (no Chromium; run: uv run playwright install chromium);" \
+      "keyboard shortcuts and the loading state are unchecked."
+    return 2
+  fi
 }
 stage_tracker() {
   uv run python scripts/check_tracker.py

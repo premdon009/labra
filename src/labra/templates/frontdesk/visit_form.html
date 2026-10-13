@@ -89,7 +89,7 @@
         <input class="input" type="search" id="f-q" name="q" value="{{ form.q }}" autocomplete="off" {% if patient %}autofocus{% endif %}
           data-enter="add-code" data-escape-clear="code-match" data-clear-on="code" data-focus-on="code"
           hx-get="/frontdesk/visits/new/tests" hx-trigger="input changed delay:200ms" hx-target="#code-match" hx-indicator="#code-busy">
-        <button type="button" class="btn-outline" id="add-code" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "code"}'>Add <kbd>Enter</kbd></button>
+        <button type="button" class="btn-outline" id="add-code" hx-post="/frontdesk/visits/new/preview" hx-sync="#visit-form:queue all" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "code"}'>Add <kbd>Enter</kbd></button>
         <span class="busy muted" id="code-busy" role="status">Searching…</span>
       </div>
       <div id="code-match" data-clear-on="code" aria-live="polite"></div>
@@ -107,7 +107,7 @@
           <label class="label" for="f-new_charge_reason">Reason</label>
           <input class="input" type="text" id="f-new_charge_reason" name="new_charge_reason" value="{{ form.new_charge_reason }}" maxlength="120" data-clear-on="charge" data-enter="add-charge">
         </div>
-        <div class="full"><button type="button" class="btn-sm-outline" id="add-charge" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "charge"}'>Add charge</button></div>
+        <div class="full"><button type="button" class="btn-sm-outline" id="add-charge" hx-post="/frontdesk/visits/new/preview" hx-sync="#visit-form:queue all" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "charge"}'>Add charge</button></div>
       </div>
     </section>
   </div>
@@ -115,12 +115,12 @@
     <div class="field-row">
       <label class="label" for="f-discount_value">Discount</label>
       <input class="input" type="text" id="f-discount_value" name="discount_value" value="{{ form.discount_value }}" inputmode="decimal"
-        hx-post="/frontdesk/visits/new/preview" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
+        hx-post="/frontdesk/visits/new/preview" hx-sync="#visit-form:queue all" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
     </div>
     <div class="field-row">
       <label class="label" for="f-discount_kind">as</label>
       <select class="select" id="f-discount_kind" name="discount_kind"
-        hx-post="/frontdesk/visits/new/preview" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
+        hx-post="/frontdesk/visits/new/preview" hx-sync="#visit-form:queue all" hx-trigger="change" hx-target="#visit-order" hx-swap="outerHTML">
         <option value="amount" {% if form.discount_kind == 'amount' %}selected{% endif %}>Amount</option>
         <option value="pct" {% if form.discount_kind == 'pct' %}selected{% endif %}>Per cent</option>
       </select>

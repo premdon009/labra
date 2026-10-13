@@ -23,6 +23,7 @@ jobs:
           version=$(grep -m1 -E '^version = ' pyproject.toml | cut -d'"' -f2)
           [[ "v$version" == "$GITHUB_REF_NAME" ]] || { echo "tag $GITHUB_REF_NAME, pyproject $version"; exit 1; }
       - run: uv run python scripts/check_tracker.py --tag "$GITHUB_REF_NAME"
+      - run: uv run playwright install --with-deps chromium # for the browser test
       - run: scripts/ci_local.sh
 
   images:

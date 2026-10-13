@@ -22,7 +22,7 @@
           </td>
           <td>{% if line.in_house is none %}{% elif line.in_house %}in-house{% else %}outsourced ★{% endif %}</td>
           <td class="num">{{ line.rate|money(fmt, column=True) }}</td>
-          <td><button type="button" class="btn-sm-outline" hx-post="/frontdesk/visits/new/preview" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "remove", "arg": "{{ loop.index0 }}"}' aria-label="Remove {{ line.description }}">Remove</button></td>
+          <td><button type="button" class="btn-sm-outline" hx-post="/frontdesk/visits/new/preview" hx-sync="#visit-form:queue all" hx-target="#visit-order" hx-swap="outerHTML" hx-vals='{"op": "remove", "arg": "{{ loop.index0 }}"}' aria-label="Remove {{ line.description }}">Remove</button></td>
         </tr>
         {% else %}
         <tr><td colspan="5">Nothing ordered yet. Type a test code or name above and press Enter.</td></tr>

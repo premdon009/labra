@@ -28,6 +28,8 @@ Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, lint, t
 ## Tests and Docker
 Tests that need Postgres are marked `db` and start a `postgres:18` container through testcontainers. When Docker isn't reachable they're **skipped with a reason**, and the gate reports the test stage as `WARN`, never `PASS`.
 
+One test, marked `e2e`, drives the front desk in a real browser with the keyboard. Install its browser once with `uv run playwright install chromium`. Without it the test is skipped with the reason "no browser for e2e tests" and the test stage is `WARN`.
+
 On Windows with WSL: turn on *Settings ▸ Resources ▸ WSL integration* in Docker Desktop for your distribution, so `docker` inside WSL talks to the Docker Desktop engine.
 
 ## Settings

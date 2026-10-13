@@ -125,8 +125,26 @@
     }
   });
 
-  document.addEventListener("htmx:before:request", function () {
+  // The order's lines live in the page, and changes to the order are sent one at a time
+  // (hx-sync). One that waited its turn was prepared before the change ahead of it came
+  // back: its lines are read again as it leaves, or it would undo that change, and it is
+  // pointed at the order now on screen, or its reply would go into the piece just replaced.
+  var ORDER_FIELDS = ["item", "charge_desc", "charge_amount", "charge_reason"];
+  document.addEventListener("htmx:before:request", function (event) {
     flash("");
+    var ctx = event.detail && event.detail.ctx;
+    var form = byId("visit-form");
+    var body = ctx && ctx.request && ctx.request.body;
+    if (!form || !(body instanceof URLSearchParams)) return;
+    if (!/\/visits\/new\/preview$/.test(ctx.request.action || "")) return;
+    if (ctx.target && !ctx.target.isConnected) ctx.target = byId("visit-order") || ctx.target;
+    var now = new FormData(form);
+    ORDER_FIELDS.forEach(function (name) {
+      body.delete(name);
+      now.getAll(name).forEach(function (value) {
+        body.append(name, value);
+      });
+    });
   });
   // A 422 comes back as the same piece of screen with its messages, so it is shown as it
   // is. Other errors are not swapped in (see htmx-config in base.html) and are told here.

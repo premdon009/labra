@@ -52,6 +52,8 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
 
 - **Enter** never saves the visit by accident. It adds the test you typed. Only **Save and
   print** or **Alt+S** saves.
+- You can add tests and change the discount quickly, one after the other. Labra applies
+  the changes in the order you made them, so the total always matches the lines shown.
 - Nothing is kept until you save. If a field is wrong, Labra says **Not saved yet**, marks
   the field, and keeps everything you typed.
 - If the phone and a similar name are already registered, Labra asks whether this is the
