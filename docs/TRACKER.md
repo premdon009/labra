@@ -32,7 +32,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 10/20 · Minimal 23/40 · After pilot (P2) 0/9 · Checklist gate P 27/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 10/20 · Minimal 25/40 · After pilot (P2) 0/9 · Checklist gate P 27/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -83,11 +83,11 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M13 | Reports for the owner | P | todo | |
 | ~~M07.1~~ | ~~Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27~~ | P | done | 2026-10-13 · 5c5912e |
 | ~~M07.2~~ | ~~UPI reference must have a digit in it; the audit log records a new visit before its bill~~ | P | done | 2026-10-13 · 6bdf904 |
-| M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | P | doing | |
+| ~~M07.3~~ | ~~A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills~~ | P | done | 2026-10-13 · ba826bb |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | ~~M14~~ | ~~Admin screens (own HTMX, ADR-0010)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M14.1~~ | ~~Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test~~ | P | done | 2026-10-13 · 9123107 |
-| M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | P | doing | |
+| ~~M14.2~~ | ~~A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
 | M17 | Letterhead and margin calibration (§7.2) | P | todo | |
