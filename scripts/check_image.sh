@@ -46,6 +46,13 @@ check "runs as uid 10001" 10001 "$(run id -u)"
 check "labra is installed" ok "$(run python -c "import labra.cli; print('ok')")"
 check "changelog is packaged" ok \
   "$(run python -c "import importlib.resources as r; r.files('labra').joinpath('CHANGELOG.md').read_text(); print('ok')")"
+check "PDF engine renders with the vendored fonts" ok \
+  "$(run python -W error::DeprecationWarning -c "
+import io, pypdf
+from labra.printing.pdf import render_pdf
+page = pypdf.PdfReader(io.BytesIO(render_pdf('<p>₹ रमेश</p>').pdf)).pages[0]
+fonts = {str(f['/BaseFont']).split('+')[-1] for f in page['/Resources']['/Font'].values()}
+print('ok' if '₹' in page.extract_text() and fonts == {'Labra-Sans', 'Labra-Devanagari'} else fonts)")"
 check "files volume is writable" ok "$(run sh -c 'touch /data/files/.probe && echo ok')"
 health=$("$rt" image inspect "$ref" 2>/dev/null | grep -c healthz)
 check "health check kept" yes "$( ((health > 0)) && echo yes || echo no)"

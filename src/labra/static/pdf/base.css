@@ -1,0 +1,27 @@
+/* Fonts and defaults for every server-made PDF. The fonts are vendored (static/vendor), so a
+   report looks the same on every machine and nothing is fetched while rendering. */
+@font-face {
+  font-family: "Labra Sans";
+  src: url("labra-asset:vendor/NotoSans-Regular.ttf");
+  font-weight: normal;
+}
+@font-face {
+  font-family: "Labra Sans";
+  src: url("labra-asset:vendor/NotoSans-Bold.ttf");
+  font-weight: bold;
+}
+@font-face {
+  font-family: "Labra Devanagari";
+  src: url("labra-asset:vendor/NotoSansDevanagari-Regular.ttf");
+  font-weight: normal;
+}
+@font-face {
+  font-family: "Labra Devanagari";
+  src: url("labra-asset:vendor/NotoSansDevanagari-Bold.ttf");
+  font-weight: bold;
+}
+html {
+  font-family: "Labra Sans", "Labra Devanagari", sans-serif;
+  font-size: 10pt;
+  color: #000;
+}

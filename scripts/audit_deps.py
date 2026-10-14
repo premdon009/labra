@@ -8,6 +8,7 @@
 - a Python package, image, Action or vendored file has no row, or a row has nothing behind it
 - a row's Pinned version differs from uv.lock or the vendor manifest
 - a licence is outside the allowlist, or a runtime package (direct or not) is copyleft
+- a font row (OFL-1.1) vendors anything but font files and their licence text
 - a workflow `uses:` isn't pinned by a 40-character commit SHA
 - an image in compose.yaml or the Dockerfile has no digest
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
@@ -47,6 +48,9 @@ ALLOWED = {
     "PostgreSQL", "PSF-2.0",
 }  # fmt: skip
 LGPL_EXCEPTION = {"psycopg", "psycopg-binary", "psycopg-c"}
+# Tri-licensed (GPL-2.0+ OR LGPL-2.1+ OR MPL-1.1); used under MPL-1.1, unmodified, by WeasyPrint.
+MPL11_EXCEPTION = {"pyphen"}
+FONT_FILES = (".ttf", ".otf", ".woff2")
 NOT_SHIPPED = {"dev", "CLI"}
 PYTHON_KINDS = {"runtime", "seed", "dev", "build"}
 COPYLEFT = re.compile(r"\b(A?GPL|LGPL|SSPL|EUPL|General Public)", re.IGNORECASE)
@@ -57,7 +61,7 @@ NAME_CELL_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
 
 # Minimum release age: no pinned version younger than this, unless it fixes a published advisory.
 MIN_AGE = timedelta(days=7)
-DATED_KINDS = {"action", "image", "vendored"}
+DATED_KINDS = {"action", "image", "vendored", "font"}
 ADVISORY_RE = re.compile(r"^(GHSA(-[0-9a-z]{4}){3}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
 EXCEPTIONS_HEADING = "## Age exceptions"
 
@@ -138,6 +142,10 @@ def _allowed(spdx: str, row: Row) -> bool:
         return True
     if spdx.startswith("GPL-") and row.kind == "CLI":
         return True  # run as a separate command, never imported
+    if spdx == "OFL-1.1":
+        return row.kind == "font"  # font files only, checked against the manifest
+    if spdx == "MPL-1.1":
+        return norm(row.name) in MPL11_EXCEPTION
     return spdx == "MPL-2.0" and row.kind in NOT_SHIPPED
 
 
@@ -216,7 +224,7 @@ def check_python(rows: list[Row]) -> list[str]:
             )
     for name in sorted(runtime_closure(packages)):
         text = installed_licence(name)
-        if text and COPYLEFT.search(text) and name not in LGPL_EXCEPTION:
+        if text and COPYLEFT.search(text) and name not in LGPL_EXCEPTION | MPL11_EXCEPTION:
             problems.append(f"{name}: runtime package with a copyleft licence ({text.strip()})")
     return problems
 
@@ -312,7 +320,7 @@ def check_images(rows: list[Row]) -> list[str]:
 
 
 def check_vendored(rows: list[Row]) -> list[str]:
-    known = {r.name: r for r in rows if r.kind == "vendored"}
+    known = {r.name: r for r in rows if r.kind in {"vendored", "font"}}
     manifest = json.loads((VENDOR / "manifest.json").read_text(encoding="utf-8"))
     problems = []
     for filename, entry in sorted(manifest.items()):
@@ -324,6 +332,8 @@ def check_vendored(rows: list[Row]) -> list[str]:
         row = known.get(entry["package"])
         if row is None:
             problems.append(f"vendor/{filename}: {entry['package']} has no register row")
+        elif row.kind == "font" and not filename.endswith((*FONT_FILES, "-OFL.txt")):
+            problems.append(f"vendor/{filename}: a font row vendors font files only")
         elif row.version != entry["version"]:
             problems.append(
                 f"DEPENDENCIES.md:{row.line}: {row.name} pinned {row.version}, "

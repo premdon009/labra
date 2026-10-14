@@ -9,16 +9,23 @@ dependencies = [
     "alembic>=1.20",
     "argon2-cffi>=25.1",
     "babel>=2.18",
+    "defusedxml>=0.7",
+    "duckdb>=1.5",
     "fastapi>=0.142",
     "jinja2>=3.1.6",
+    "pillow>=12.3",
     "prometheus-client>=0.23",
     "psycopg[binary]>=3.3",
     "pydantic-settings>=2.15",
+    "pypdf>=6.19",
+    "pypdfium2>=5.14",
     "python-barcode>=0.16",
     "python-multipart>=0.0.32",
+    "segno>=1.6",
     "sqlalchemy>=2.1",
     "structlog>=26.1",
     "uvicorn>=0.54",
+    "weasyprint>=70",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +63,7 @@ dev = [
     "httpx2>=2.13.1",
     "hypothesis>=6.168",
     "import-linter>=2.5",
+    "pdfplumber>=0.11",
     "pip-audit>=2.9",
     "playwright>=1.56",
     "pre-commit>=4.3",
@@ -138,6 +146,7 @@ source_modules = [
     "labra.billing",
     "labra.extlabs",
     "labra.results",
+    "labra.printing",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
@@ -187,6 +196,31 @@ name = "The front desk doesn't depend on external labs"
 type = "forbidden"
 source_modules = ["labra.patients", "labra.visits", "labra.billing"]
 forbidden_modules = ["labra.extlabs"]
+
+[[tool.importlinter.contracts]]
+name = "PDF, image and QR libraries are used only in the printing package"
+type = "protected"
+protected_modules = ["weasyprint"]
+allowed_importers = ["labra.printing"]
+
+[[tool.importlinter.contracts]]
+name = "Untrusted XML is parsed only by the SVG sanitiser"
+type = "protected"
+protected_modules = ["defusedxml"]
+allowed_importers = ["labra.core.svg"]
+
+[[tool.importlinter.contracts]]
+name = "The printing package knows nothing of patients, visits, bills or results"
+type = "forbidden"
+source_modules = ["labra.printing"]
+forbidden_modules = [
+    "labra.catalog",
+    "labra.patients",
+    "labra.visits",
+    "labra.billing",
+    "labra.extlabs",
+    "labra.results",
+]
 
 [[tool.importlinter.contracts]]
 name = "Front-desk domain code leaves formatting to the web layer"

@@ -5,7 +5,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from labra.core.errors import ValidationFailedError
-from labra.core.uploads import PDF, check_upload, sniff
+from labra.core.uploads import JPEG, PDF, PNG, SVG, WEBP, check_upload, sniff
 
 SMALL_PDF = b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< >>\n%%EOF\n"
 HTML = b"<!doctype html><html><body><script>alert(1)</script></body></html>"
@@ -39,7 +39,7 @@ def test_a_pdf_is_recognised_by_its_bytes() -> None:
     ],
 )
 def test_anything_that_is_not_a_pdf_is_refused_whatever_it_is_called(data: bytes) -> None:
-    assert sniff(data) is None
+    assert sniff(data) != PDF
     assert "not a PDF file" in _refused(data)
 
 
@@ -61,4 +61,36 @@ def test_a_type_that_is_recognised_but_not_wanted_is_refused() -> None:
 @given(st.binary(max_size=200))
 def test_bytes_that_do_not_start_as_a_pdf_never_pass(data: bytes) -> None:
     if not data.startswith(b"%PDF-"):
-        assert sniff(data) is None
+        assert sniff(data) != PDF
+
+
+def _image(fmt: str) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    out = BytesIO()
+    Image.new("RGB", (8, 8), "white").save(out, fmt)
+    return out.getvalue()
+
+
+@pytest.mark.item("EC-A07")
+@pytest.mark.parametrize(("fmt", "mime"), [("PNG", PNG), ("JPEG", JPEG), ("WEBP", WEBP)])
+def test_images_are_recognised_by_their_bytes(fmt: str, mime: str) -> None:
+    data = _image(fmt)
+    assert sniff(data) == mime
+    assert check_upload(data, allowed={mime, PDF}) == mime
+    with pytest.raises(ValidationFailedError):
+        check_upload(data, allowed={PDF})
+
+
+@pytest.mark.item("EC-A07")
+def test_an_svg_is_recognised_only_when_it_parses_safely() -> None:
+    assert sniff(b"<svg xmlns='http://www.w3.org/2000/svg'><rect width='1'/></svg>") == SVG
+    entity_bomb = (
+        b"<?xml version='1.0'?><!DOCTYPE svg [<!ENTITY a 'aaaa'>]>"
+        b"<svg xmlns='http://www.w3.org/2000/svg'><text>&a;</text></svg>"
+    )
+    assert sniff(entity_bomb) is None
+    assert sniff(b"<svg><rect/></svg>") is None  # no SVG namespace
+    assert sniff(HTML) is None

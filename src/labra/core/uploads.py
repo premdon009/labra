@@ -1,17 +1,23 @@
 """Checks on a file a user uploads, before it is stored.
 
-The type is read from the file's own first bytes, never from its name or the browser's
-content type, so an HTML page renamed `result.pdf` is refused. Stored files are later served
-as downloads with a fixed content type and a generated name; nothing uploaded is rendered or
-run by Labra.
+The type is read from the file's own bytes, never from its name or the browser's content
+type, so an HTML page renamed `result.pdf` is refused. Stored files are later served as
+downloads with a fixed content type and a generated name. An uploaded SVG or image is only
+ever drawn into a PDF, after `labra.core.svg` or the printing package has rebuilt it.
 """
 
 from collections.abc import Callable, Collection
 
 from labra.core.errors import ValidationFailedError
 from labra.core.files import MAX_BYTES
+from labra.core.svg import is_svg
 
 PDF = "application/pdf"
+SVG = "image/svg+xml"
+PNG = "image/png"
+JPEG = "image/jpeg"
+WEBP = "image/webp"
+IMAGES = frozenset({PNG, JPEG, WEBP})
 
 # Markup a browser would render or run if the bytes ever reached it under the wrong type.
 _ACTIVE_MARKUP = (b"<!doctype", b"<html", b"<script", b"<svg", b"<?xml")
@@ -23,8 +29,32 @@ def _is_pdf(data: bytes) -> bool:
     return not any(mark in data[:1024].lower() for mark in _ACTIVE_MARKUP)
 
 
-_SNIFFERS: dict[str, Callable[[bytes], bool]] = {PDF: _is_pdf}
-_NAMES = {PDF: "PDF"}
+def _is_png(data: bytes) -> bool:
+    return data.startswith(b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR")
+
+
+def _is_jpeg(data: bytes) -> bool:
+    # Start-of-image then a real segment marker, and an end-of-image marker near the end.
+    return (
+        len(data) > 4
+        and data.startswith(b"\xff\xd8\xff")
+        and data[3] in {0xC0, 0xC2, 0xC4, 0xDB, 0xFE} | set(range(0xE0, 0xF0))
+        and b"\xff\xd9" in data[-1024:]
+    )
+
+
+def _is_webp(data: bytes) -> bool:
+    return data[:4] == b"RIFF" and data[8:15] == b"WEBPVP8"
+
+
+_SNIFFERS: dict[str, Callable[[bytes], bool]] = {
+    PDF: _is_pdf,
+    PNG: _is_png,
+    JPEG: _is_jpeg,
+    WEBP: _is_webp,
+    SVG: is_svg,
+}
+_NAMES = {PDF: "PDF", PNG: "PNG", JPEG: "JPEG", WEBP: "WebP", SVG: "SVG"}
 
 
 def sniff(data: bytes) -> str | None:

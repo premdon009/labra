@@ -199,6 +199,38 @@ def test_register_licence_rules() -> None:
     assert refused == {"beta", "delta", "epsilon", "eta"}
 
 
+FONT_REGISTER = """\
+| Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status |
+|---|---|---|---|---|---|---|---|
+| `some-font` | font | P | OFL-1.1 | 1.0 · 2026-01-01 | 1.0 · 2026-01-01 | — | Stable |
+| `font-js` | vendored | P | OFL-1.1 | 1.0 · 2026-01-01 | 1.0 · 2026-01-01 | — | Stable |
+| `font-lib` | runtime | P | OFL-1.1 | 1.0 | 1.0 | 1 | Active |
+| `pyphen` | runtime | P | MPL-1.1 | 1.0 | 1.0 | 1 | Active |
+| `other-mpl` | runtime | P | MPL-1.1 | 1.0 | 1.0 | 1 | Active |
+"""
+
+
+@pytest.mark.item("M17")
+def test_ofl_only_for_font_files_and_mpl11_only_for_pyphen(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    rows = audit.parse_register(FONT_REGISTER)
+    refused = {r.name for r in rows if audit.licence_problem(r)}
+    assert refused == {"font-js", "font-lib", "other-mpl"}
+
+    files = {"Some-Regular.ttf": b"font", "Some-OFL.txt": b"licence", "some.js": b"code"}
+    manifest = {}
+    for name, data in files.items():
+        (tmp_path / name).write_bytes(data)
+        digest = hashlib.sha256(data).hexdigest()
+        manifest[name] = {"package": "some-font", "version": "1.0", "sha256": digest}
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(audit, "VENDOR", tmp_path)
+    problems = audit.check_vendored([r for r in rows if r.name == "some-font"])
+    assert problems == ["vendor/some.js: a font row vendors font files only"]
+
+
 @pytest.mark.item("W14")
 @pytest.mark.parametrize(
     ("ref", "name"),

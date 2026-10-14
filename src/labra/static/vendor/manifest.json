@@ -19,5 +19,47 @@
     "source": "https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat.cdn.min.css",
     "license": "MIT",
     "sha256": "8123677adb9bba43be3298e1543bcc5fc763e8cda3d32dc74c806046a3537ca0"
+  },
+  "NotoSans-Regular.ttf": {
+    "package": "noto-sans",
+    "version": "2.015",
+    "source": "https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip#NotoSans/unhinted/ttf/NotoSans-Regular.ttf",
+    "license": "OFL-1.1",
+    "sha256": "f3961a9cde016d41a4879aecda1474d3a36d6bf54fa0e4643de029cc2248b0e8"
+  },
+  "NotoSans-Bold.ttf": {
+    "package": "noto-sans",
+    "version": "2.015",
+    "source": "https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip#NotoSans/unhinted/ttf/NotoSans-Bold.ttf",
+    "license": "OFL-1.1",
+    "sha256": "87cb2d84472a7d66da659ee47b6cdb9552326e8c128245231f191b6ac72529d9"
+  },
+  "NotoSans-OFL.txt": {
+    "package": "noto-sans",
+    "version": "2.015",
+    "source": "https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip#OFL.txt",
+    "license": "OFL-1.1",
+    "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
+  },
+  "NotoSansDevanagari-Regular.ttf": {
+    "package": "noto-sans-devanagari",
+    "version": "2.007",
+    "source": "https://github.com/notofonts/devanagari/releases/download/NotoSansDevanagari-v2.007/NotoSansDevanagari-v2.007.zip#NotoSansDevanagari/unhinted/ttf/NotoSansDevanagari-Regular.ttf",
+    "license": "OFL-1.1",
+    "sha256": "9c7d935139ea6a1e6ad9dbac4f6d27ece1e04bca8123c8888d00a0f9df4724cd"
+  },
+  "NotoSansDevanagari-Bold.ttf": {
+    "package": "noto-sans-devanagari",
+    "version": "2.007",
+    "source": "https://github.com/notofonts/devanagari/releases/download/NotoSansDevanagari-v2.007/NotoSansDevanagari-v2.007.zip#NotoSansDevanagari/unhinted/ttf/NotoSansDevanagari-Bold.ttf",
+    "license": "OFL-1.1",
+    "sha256": "ff2f76a23aad41e0608c2d7dbc4bacd247ff3bec78f0ec2a8fb106b561636e58"
+  },
+  "NotoSansDevanagari-OFL.txt": {
+    "package": "noto-sans-devanagari",
+    "version": "2.007",
+    "source": "https://github.com/notofonts/devanagari/releases/download/NotoSansDevanagari-v2.007/NotoSansDevanagari-v2.007.zip#OFL.txt",
+    "license": "OFL-1.1",
+    "sha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331"
   }
 }
