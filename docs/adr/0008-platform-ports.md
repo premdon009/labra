@@ -37,3 +37,4 @@ Details: design §17.6.
 - A lab can adopt its own monitoring or SSO by setting environment variables.
 - Each port needs a contract test suite that every adapter passes, and an in-memory fake for domain tests.
 - External adapters are built only when an install needs one (ADR-0007).
+- Every replaceable part, ports included, is listed with the setting that selects it and the test that proves the swap in the [service register](../dev/services.md).
