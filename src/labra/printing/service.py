@@ -7,6 +7,7 @@ unchanged; a document is always reprinted on the version it was made with.
 """
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -32,7 +33,13 @@ from labra.core.uploads import IMAGES, JPEG, PDF, PNG, SVG, WEBP, check_upload
 from labra.org.models import Branch
 from labra.org.service import stale
 from labra.printing.images import optimise_raster
-from labra.printing.letterhead import BUILTIN, PageSpec, compose, prepare_pdf_letterhead
+from labra.printing.letterhead import (
+    BUILTIN,
+    OUTPUTS,
+    PageSpec,
+    compose,
+    prepare_pdf_letterhead,
+)
 from labra.printing.models import APPLY_ON, DOC_KINDS, LetterheadLayout
 from labra.printing.pdf import FileReader, Rendered
 from labra.printing.samples import FOR_KIND, SAMPLES
@@ -565,3 +572,31 @@ def calibration(
     kind = _kind(doc_kind)
     spec = spec_of(draft(db, branch.id, kind) or published(db, branch.id, kind))
     return render_sample(db, store, branch, spec, FOR_KIND[kind][0], "print", guides="calibration")
+
+
+# Documents on a branch's letterhead
+
+
+def render_document(
+    db: Session,
+    store: FileStore,
+    branch_id: uuid.UUID,
+    doc_kind: str,
+    output: str,
+    build: Callable[[dict[str, object] | None], str],
+    *,
+    at: datetime | None = None,
+) -> Rendered:
+    """A document on the layout the branch had published at `at`, or now. `build` is given
+    the built-in header, which it prints when that layout has no letterhead file, and returns
+    the document's HTML."""
+    kind = _kind(doc_kind)
+    if output not in OUTPUTS:
+        raise NotFoundError()
+    branch = db.get(Branch, branch_id)
+    if branch is None:
+        raise NotFoundError()
+    spec = spec_of(published(db, branch.id, kind, at=at))
+    html = build(builtin_header(db, branch) if spec.file_id is None else None)
+    offset = printer_offset(db, branch.id) if output == "print" else (Decimal(0), Decimal(0))
+    return compose(html, spec, output, files=file_reader(db, store), offset_mm=offset)

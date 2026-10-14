@@ -1,54 +1,5 @@
 {% extends "print_base.html" %}
-{% from "_macros.html" import money_head %}
 {% block title %}Bill {{ bill.bill_no }}{% endblock %}
 {% block sheet %}
-<header class="sheet-head">
-  <div>
-    <h1>{{ snap.supplier.legal_name }}</h1>
-    <div>{{ snap.supplier.branch_name }}{% if snap.supplier.address %} · {{ snap.supplier.address }}{% endif %}</div>
-    <div>{% if snap.supplier.gstin %}GSTIN {{ snap.supplier.gstin }}{% else %}GSTIN: not registered{% endif %}{% if snap.supplier.phone %} · Phone {{ snap.supplier.phone }}{% endif %}{% if snap.supplier.email %} · {{ snap.supplier.email }}{% endif %}</div>
-  </div>
-  <div><strong>Bill of Supply</strong></div>
-</header>
-{% if bill.status == 'cancelled' %}
-<p class="sheet-cancelled">CANCELLED on {{ bill.cancelled_at|local_time }}: {{ bill.cancel_reason }}</p>
-{% endif %}
-<div class="sheet-meta">
-  <div>Bill number: <strong>{{ bill.bill_no }}</strong></div>
-  <div>Date: {{ bill.bill_date.strftime('%d %b %Y') }}</div>
-  <div>Patient: <strong>{{ snap.recipient.name }}</strong> ({{ snap.recipient.patient_no }})</div>
-  <div>Visit number: {{ snap.visit_no }}</div>
-  <div>Referred by: {{ snap.referrer or 'Self' }}</div>
-  <div>Place of supply: state code {{ bill.place_of_supply_state }}</div>
-  {% if snap.sample_nos %}<div>Sample numbers: {{ snap.sample_nos|join(', ') }}</div>{% endif %}
-</div>
-<table>
-  <thead><tr><th>#</th><th>Description</th><th>SAC</th><th class="num">{{ money_head('Rate', fmt) }}</th><th class="num">{{ money_head('Discount', fmt) }}</th><th class="num">{{ money_head('Amount', fmt) }}</th></tr></thead>
-  <tbody>
-    {% for line in lines %}
-    <tr><td>{{ line.line_no }}</td><td>{{ line.description }}</td><td>{{ line.sac_code }}</td><td class="num">{{ line.rate|money(fmt, column=True) }}</td><td class="num">{{ line.discount|money(fmt, column=True) }}</td><td class="num">{{ line.amount|money(fmt, column=True) }}</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-<table class="sheet-totals">
-  <tr><td>Total</td><td class="num">{{ bill.gross|money(fmt) }}</td></tr>
-  {% if bill.discount %}<tr><td>Discount: {{ bill.discount_reason }}</td><td class="num">-{{ bill.discount|money(fmt) }}</td></tr>{% endif %}
-  {% if bill.round_off %}<tr><td>Rounding</td><td class="num">{{ bill.round_off|money(fmt) }}</td></tr>{% endif %}
-  <tr><td><strong>Net amount</strong></td><td class="num"><strong>{{ bill.net|money(fmt) }}</strong></td></tr>
-  <tr><td>Paid</td><td class="num">{{ bill.paid|money(fmt) }}</td></tr>
-  <tr><td><strong>Balance due</strong></td><td class="num"><strong>{{ (bill.net - bill.paid if bill.status != 'cancelled' else 0)|money(fmt) }}</strong></td></tr>
-</table>
-<p>Amount in words: {{ snap.amount_in_words }}</p>
-{% if snap.exemption_note %}<p>{{ snap.exemption_note }}</p>{% endif %}
-{% if snap.footer_note %}<p>{{ snap.footer_note }}</p>{% endif %}
-<p>Billed by: {{ snap.counter_user }}</p>
-<p class="sheet-sign">For {{ snap.supplier.legal_name }}<br><br>Authorised signatory</p>
-{% for payment in payments %}
-{% include "frontdesk/_receipt.html" %}
-{% endfor %}
-{% if refund %}
-<section class="receipt"><h2>Refund {{ refund.refund_no }}</h2>
-  <p>{{ refund.amount|money(fmt) }} paid back by {{ modes[refund.mode]|lower }}{% if refund.reference %} ({{ refund.reference }}){% endif %} on {{ refund.refunded_at|local_time }}.</p></section>
-{% endif %}
-{% if snap.receipt_footer %}<p>{{ snap.receipt_footer }}</p>{% endif %}
+{% include "frontdesk/_bill_sheet.html" %}
 {% endblock %}

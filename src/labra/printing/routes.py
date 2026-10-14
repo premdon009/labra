@@ -12,6 +12,7 @@ from labra.core.files import MAX_BYTES
 from labra.core.registry import get_platform
 from labra.printing import service
 from labra.printing.preview import data_uri, page_pngs
+from labra.web.documents import pdf_inline
 from labra.web.forms import RowVersion, as_uuid
 from labra.web.templating import page, render
 
@@ -228,11 +229,7 @@ def calibration(branch_id: str, doc_kind: str, db: DB, principal: Admin) -> Resp
     rendered = service.calibration(
         db, get_platform().filestore, principal, as_uuid(branch_id), doc_kind
     )
-    return Response(
-        rendered.pdf,
-        media_type="application/pdf",
-        headers={"content-disposition": f'inline; filename="calibration-{doc_kind}.pdf"'},
-    )
+    return pdf_inline(rendered.pdf, f"calibration-{doc_kind}")
 
 
 @router.post("/{branch_id}/{doc_kind}/publish")

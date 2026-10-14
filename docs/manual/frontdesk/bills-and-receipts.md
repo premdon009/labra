@@ -1,6 +1,6 @@
 ---
 title: Bills and receipts
-features: [M07, M07.1, M07.4, M23, M26, EC-B05, EC-J03]
+features: [M07, M07.1, M07.4, M17, M23, M26, EC-B05, EC-J03]
 ---
 
 # Bills and receipts
@@ -34,6 +34,13 @@ To print a bill again:
 3. To print one receipt on its own, select **Print receipt** on its row under
    **Payments**.
 
+To get the bill as a PDF:
+
+1. On the visit, select **PDF to print** for paper that already has your letterhead
+   printed on it, or **PDF to send** for a copy with the letterhead on it, to share or
+   print on plain paper. From the list, **PDF** on the bill's row opens the copy to send.
+2. The PDF opens in a new tab. Use the browser's print or download button there.
+
 To cancel a bill:
 
 1. On the visit, select **Cancel bill**.
@@ -64,6 +71,13 @@ To cancel a bill:
   with its own number. Giving back only a part is not possible yet.
 - A printed bill always shows what was true on the day it was made: the lab's name, the
   currency and the wording, even if an administrator has changed them since.
+- The bill PDF uses your branch's [bill letterhead and margins](../admin/letterhead-and-margins.md).
+  A reprint uses the letterhead that was published when the bill was made, even if it has
+  been changed since. Until a letterhead is set, the PDF has plain margins and the bill's
+  own heading.
+- **PDF to print** leaves the letterhead off and moves the text by your branch's printer
+  offset, so it lands inside the frame of the printed paper. An administrator can make it
+  include the letterhead instead, in **Settings ▸ What the Print button makes**.
 - Amounts print with the currency symbol and commas the way your lab has set them, such as
   `₹1,23,456.00`.
 - The printed page has no menu and no buttons. Use **Back to the visit** on the screen to
@@ -77,3 +91,4 @@ To cancel a bill:
 - [New visit](new-visit.md)
 - [Dues and payments](dues-and-payments.md)
 - [Currency](../admin/currency.md)
+- [Letterhead and margins](../admin/letterhead-and-margins.md)

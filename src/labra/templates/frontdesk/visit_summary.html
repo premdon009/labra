@@ -49,6 +49,8 @@
     <h2 id="h-bill">Bill {{ s.bill.bill_no }} · <span class="badge{% if s.bill.status != 'paid' %}-outline{% endif %}">{{ bill_statuses[s.bill.status] }}</span></h2>
     <div class="form-actions">
       <a class="btn" href="/frontdesk/bills/{{ s.bill.id }}/print?auto=1" {{ keys('alt+r') }}>Print bill and receipt <kbd>Alt+R</kbd></a>
+      <a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/pdf" target="_blank" rel="noopener">PDF to print</a>
+      <a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/pdf?output=digital" target="_blank" rel="noopener">PDF to send</a>
       {% if can_pay and s.bill.status == 'open' %}<a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/pay">Take payment</a>{% endif %}
       {% if can_cancel and s.bill.status != 'cancelled' %}<a class="btn-outline" href="/frontdesk/bills/{{ s.bill.id }}/cancel">Cancel bill</a>{% endif %}
     </div>

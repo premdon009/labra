@@ -26,7 +26,7 @@
       <td class="num">{{ b.paid|money(fmt, column=True) }}</td>
       <td class="num">{{ (b.net - b.paid if b.status == 'open' else 0)|money(fmt, column=True) }}</td>
       <td>{{ statuses[b.status] }}</td>
-      <td><a href="/frontdesk/bills/{{ b.id }}/print">Print</a></td>
+      <td><a href="/frontdesk/bills/{{ b.id }}/print">Print</a> · <a href="/frontdesk/bills/{{ b.id }}/pdf?output=digital" target="_blank" rel="noopener">PDF</a></td>
     </tr>
     {% else %}
     <tr><td colspan="8">{% if day_from or day_to or status %}No bills match. Change the dates or the status.{% else %}No bills yet. Start with <a href="/frontdesk/visits/new">New visit</a>.{% endif %}</td></tr>

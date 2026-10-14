@@ -1,0 +1,7 @@
+{% extends "pdf/base.html" %}
+{% block title %}Bill {{ bill.bill_no }}{% endblock %}
+{% block content %}
+<div class="sheet">
+{% include "frontdesk/_bill_sheet.html" %}
+</div>
+{% endblock %}

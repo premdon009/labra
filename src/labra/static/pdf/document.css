@@ -26,3 +26,15 @@ table.results tr { break-inside: avoid; }
 .guide-corner.bottom-left { bottom: -8mm; left: -8mm; border-top-width: 0.5pt; border-right-width: 0.5pt; }
 .guide-corner.bottom-right { bottom: -8mm; right: -8mm; border-top-width: 0.5pt; border-left-width: 0.5pt; }
 .guide-ruler { width: 100mm; border-top: 0.5pt solid #000; border-left: 0.5pt solid #000; border-right: 0.5pt solid #000; font-size: 7pt; text-align: center; margin: 0 0 4mm; }
+
+/* The bill of supply and its receipts (templates/frontdesk/_bill_sheet.html). */
+.sheet h1 { font-size: 1.4rem; margin: 0; }
+.sheet h2 { font-size: 1.15rem; margin: 3mm 0 1mm; }
+.sheet th, .sheet td { border-bottom: 0.5pt solid #999; padding: 0.8mm 1.5mm; }
+.sheet-head { display: flex; justify-content: space-between; gap: 4mm; border-bottom: 0.8pt solid #000; padding-bottom: 1.5mm; }
+.sheet-meta { display: flex; flex-wrap: wrap; margin: 2.5mm 0; }
+.sheet-meta > div { width: 50%; padding: 0.4mm 0; }
+.sheet-totals { margin-left: auto; width: 60%; }
+.sheet-cancelled { border: 1pt solid #000; padding: 1mm 2mm; font-weight: bold; }
+.sheet-sign { text-align: right; }
+.receipt { border-top: 0.5pt dashed #000; margin-top: 4mm; padding-top: 2mm; break-inside: avoid; }

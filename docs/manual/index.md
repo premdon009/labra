@@ -79,6 +79,7 @@ Every feature Labra has, and the manual page that explains it.
 | M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | [Test catalog](admin/catalog.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Settings](admin/settings.md) |
+| M17 | Letterhead and margin calibration (§7.2) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |

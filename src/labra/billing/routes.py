@@ -13,6 +13,10 @@ from labra.billing.models import Bill
 from labra.core.currency import format_from_snapshot, load_format
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
+from labra.core.lab_settings import get_value
+from labra.core.registry import get_platform
+from labra.printing.service import render_document
+from labra.web.documents import document_html, pdf_inline
 from labra.web.forms import RowVersion, as_uuid, day, page_no
 from labra.web.labels import BILL_STATUS_LABELS, MODE_LABELS
 from labra.web.templating import page, render
@@ -102,6 +106,37 @@ def bill_print(
     # After a new visit's bill, the sample labels print next.
     after = f"{context['back']}/labels?print=1" if then == "labels" else context["back"]
     return render(request, "frontdesk/bill_print.html", context | {"after": after})
+
+
+@router.get("/bills/{bill_id}/pdf")
+@page("frontdesk/bills-and-receipts", "pdf/bill.html")
+def bill_pdf(
+    bill_id: str,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("bill.view"))],
+    output: str = "",
+) -> Response:
+    """The bill as a PDF on the branch's bill letterhead as it was published when the bill
+    was issued. `print` leaves the letterhead off for pre-printed paper; no choice means the
+    branch's usual one."""
+    bill = service.get_bill(db, principal, as_uuid(bill_id))
+    chosen = output or str(get_value(db, "print.default_mode", bill.branch_id))
+    context = _printed(db, bill) | {
+        "lines": service.bill_lines(db, bill.id),
+        "payments": service.bill_payments(db, bill.id),
+        "refund": service.bill_refund(db, bill.id),
+    }
+    rendered = render_document(
+        db,
+        get_platform().filestore,
+        bill.branch_id,
+        "bill_a4",
+        chosen,
+        # The bill's own heading names the supplier, so the built-in header is not added.
+        lambda _header: document_html("pdf/bill.html", context),
+        at=bill.issued_at,
+    )
+    return pdf_inline(rendered.pdf, f"bill-{bill.bill_no}")
 
 
 @router.get("/payments/{payment_id}/print", response_class=HTMLResponse)
