@@ -12,7 +12,6 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from sqlalchemy import Select, exists, select
-from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session, aliased
 
 from labra.auth.principal import Principal
@@ -20,6 +19,7 @@ from labra.catalog import service as catalog
 from labra.catalog import units
 from labra.catalog.models import Department, ReferenceBand, ReferenceRange, Test, TestParameter
 from labra.core.consent import current_notice
+from labra.core.dialect import latest_per
 from labra.core.errors import NotFoundError, PermissionDeniedError
 from labra.core.ids import IST, lab_today
 from labra.core.models import Consent
@@ -175,7 +175,7 @@ def previous_values(
     """The patient's last signed-off result for each parameter from an earlier visit."""
     if not parameter_ids:
         return {}
-    stmt = (
+    stmt = latest_per(
         select(Result, Visit.visited_at)
         .join(OrderTest, OrderTest.id == Result.order_test_id)
         .join(Visit, Visit.id == OrderTest.visit_id)
@@ -184,10 +184,9 @@ def previous_values(
             Visit.visited_at < before,
             OrderTest.status.in_(SIGNED_OFF),
             Result.parameter_id.in_(parameter_ids),
-        )
-        .ext(distinct_on(Result.parameter_id))
-        .order_by(Result.parameter_id, Visit.visited_at.desc())
-    )
+        ),
+        Result.parameter_id,
+    ).order_by(Result.parameter_id, Visit.visited_at.desc())
     return {result.parameter_id: (result, at) for result, at in db.execute(stmt)}
 
 

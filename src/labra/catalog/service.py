@@ -35,6 +35,7 @@ from labra.catalog.models import (
 )
 from labra.catalog.units import UNITS
 from labra.core import audit
+from labra.core.dialect import list_as_text, list_contains, similar, similarity
 from labra.core.errors import NotFoundError, PermissionDeniedError, ValidationFailedError
 from labra.core.ids import utcnow
 from labra.core.paging import Page, page_of
@@ -227,7 +228,7 @@ def _code_taken(
     """Codes and aliases are one namespace across tests and packages, so a typed code finds
     exactly one thing."""
     t = db.scalar(
-        select(Test.id).where(or_(Test.code == code, Test.aliases.contains([code]))).limit(1)
+        select(Test.id).where(or_(Test.code == code, list_contains(Test.aliases, code))).limit(1)
     )
     if t is not None and t != test_id:
         return True
@@ -277,7 +278,7 @@ def test_page(
         q = q.where(Test.department_id == department_id)
     text = text.strip().lower()
     if text:
-        aliases = literal(" ") + func.array_to_string(Test.aliases, " ")
+        aliases = literal(" ") + list_as_text(Test.aliases)
         q = q.where(
             or_(
                 func.lower(Test.code).contains(text, autoescape=True),
@@ -318,7 +319,7 @@ def tests_by_code(db: Session, principal: Principal, typed: str) -> tuple[list[T
     for code in codes:
         test = db.scalar(
             select(Test)
-            .where(Test.is_active, or_(Test.code == code, Test.aliases.contains([code])))
+            .where(Test.is_active, or_(Test.code == code, list_contains(Test.aliases, code)))
             .limit(1)
         )
         if test is None:
@@ -1216,19 +1217,19 @@ def search(
         exact = model.code == q
         prefix = model.code.like(like)
         if model is Test:
-            exact = or_(exact, Test.aliases.contains([q]))
+            exact = or_(exact, list_contains(Test.aliases, q))
             # Any alias starting with the text: " hgb haemo" matches "% hae%".
-            aliases = func.concat(" ", func.array_to_string(Test.aliases, " "))
+            aliases = func.concat(" ", list_as_text(Test.aliases))
             prefix = or_(prefix, aliases.like(f"% {like}"))
-        # pg_trgm ignores case, and the trigram index serves both % and ILIKE.
-        sim = func.similarity(model.name, q)
+        # Trigram matching ignores case, and the trigram index serves it and ILIKE alike.
+        sim = similarity(model.name, q)
         base = select(model.id, model.code, model.name, sim).where(model.is_active)
         add(kind, db.execute(base.where(exact)), 0)
         add(kind, db.execute(base.where(prefix).limit(limit)), 1)
         add(
             kind,
             db.execute(
-                base.where(or_(model.name.op("%")(q), model.name.ilike(f"%{like[:-1]}%")))
+                base.where(or_(similar(model.name, q), model.name.ilike(f"%{like[:-1]}%")))
                 .order_by(sim.desc())
                 .limit(limit)
             ),

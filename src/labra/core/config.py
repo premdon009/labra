@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -11,6 +11,8 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+
+from labra.core.errors import ConfigError
 
 ENV_PREFIX = "LABRA_"
 
@@ -65,6 +67,19 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     session_idle_minutes: int = 30
     session_absolute_hours: int = 12
+
+    @field_validator("database_url")
+    @classmethod
+    def _postgresql_only(cls, url: SecretStr) -> SecretStr:
+        # ConfigError passes through pydantic unwrapped, so `labra check-config` exits 2. The
+        # URL holds a password, so it is never echoed.
+        scheme = url.get_secret_value().partition("://")[0]
+        if scheme.partition("+")[0] != "postgresql":
+            raise ConfigError(
+                "LABRA_DATABASE_URL must start with postgresql:// or postgresql+<driver>://. "
+                "Labra runs on PostgreSQL; see docs/dev/services.md."
+            )
+        return url
 
     @classmethod
     def settings_customise_sources(

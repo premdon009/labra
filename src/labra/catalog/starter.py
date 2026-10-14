@@ -12,12 +12,13 @@ from decimal import Decimal
 from importlib import resources
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.catalog import service
 from labra.catalog.models import Package, Test
+from labra.core.dialect import list_items
 from labra.core.errors import PermissionDeniedError
 
 STARTER_FILE = "starter_catalog.toml"
@@ -160,7 +161,7 @@ def import_starter(
     # Codes and aliases share one namespace; a lab's own code wins over a starter alias.
     taken = {
         *db.scalars(select(Test.code)),
-        *db.scalars(select(func.unnest(Test.aliases))),
+        *db.scalars(select(list_items(Test.aliases))),
         *db.scalars(select(Package.code)),
     }
     for raw in data["tests"]:

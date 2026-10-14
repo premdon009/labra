@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from labra.core.dialect import advisory_lock
 from labra.core.ids import utcnow
 from labra.core.models import AuditLog
 
@@ -58,7 +59,7 @@ def record(
 ) -> AuditLog:
     """Add an audit row in the caller's transaction. Never put personal data in `detail`;
     refer to records by ID."""
-    db.execute(text("select pg_advisory_xact_lock(:k)"), {"k": _CHAIN_LOCK})
+    advisory_lock(db, _CHAIN_LOCK)
     prev = db.scalar(select(AuditLog.hash).order_by(AuditLog.id.desc()).limit(1)) or GENESIS
     at = utcnow()
     eid = str(entity_id) if entity_id is not None else None

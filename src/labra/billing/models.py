@@ -17,10 +17,10 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
+from labra.core.dialect import Json
 from labra.core.ids import utcnow
 
 DOC_TYPES = ("bill_of_supply", "tax_invoice")
@@ -89,9 +89,9 @@ class Bill(TrackedMixin, Base):
     cancel_reason: Mapped[str] = mapped_column(String(200), default="")
     cancelled_at: Mapped[datetime | None]
     cancelled_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
-    print_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    print_snapshot: Mapped[dict[str, Any]] = mapped_column(Json)
     extra: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, default=dict, server_default=text("'{}'::jsonb")
+        Json, default=dict, server_default=text("'{}'::jsonb")
     )
     origin_device_id: Mapped[str | None] = mapped_column(String(40))
     client_ref: Mapped[uuid.UUID] = mapped_column(unique=True)

@@ -7,10 +7,10 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Numeric, String, Text, text
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
+from labra.core.dialect import Json
 from labra.core.ids import utcnow
 
 COLLECTION_MODES = ("walk_in", "home")
@@ -52,7 +52,7 @@ class Visit(TrackedMixin, Base):
     internal_note: Mapped[str] = mapped_column(Text, default="")
     manual_receipt_ref: Mapped[str] = mapped_column(String(30), default="")
     extra: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, default=dict, server_default=text("'{}'::jsonb")
+        Json, default=dict, server_default=text("'{}'::jsonb")
     )
     origin_device_id: Mapped[str | None] = mapped_column(String(40))
     client_ref: Mapped[uuid.UUID] = mapped_column(unique=True)

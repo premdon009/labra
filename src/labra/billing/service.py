@@ -16,13 +16,14 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.billing.models import BILL_STATUSES, PAYMENT_MODES, Bill, BillLine, Payment, Refund
 from labra.core import audit, lab_settings, outbox
 from labra.core.currency import amount_in_words, load_format
+from labra.core.dialect import advisory_lock_for
 from labra.core.errors import (
     ConflictError,
     NotFoundError,
@@ -61,9 +62,7 @@ def derived_ref(client_ref: uuid.UUID, part: str) -> uuid.UUID:
 
 def lock_ref(db: Session, client_ref: uuid.UUID) -> None:
     """Make a second save of the same form wait for the first, until commit."""
-    db.execute(
-        text("select pg_advisory_xact_lock(hashtextextended(:ref, 0))"), {"ref": str(client_ref)}
-    )
+    advisory_lock_for(db, str(client_ref))
 
 
 def parse_amount(value: str) -> Decimal | None:

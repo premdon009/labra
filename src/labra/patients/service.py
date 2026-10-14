@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.core import audit
+from labra.core.dialect import similar, similarity
 from labra.core.errors import NotFoundError, PermissionDeniedError, ValidationFailedError
 from labra.core.ids import lab_today
 from labra.core.numbering import next_number
@@ -28,7 +29,7 @@ from labra.visits.models import Visit
 _PHONE_RE = re.compile(r"^[6-9]\d{9}$")
 _PINCODE_RE = re.compile(r"^[1-9]\d{5}$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-# How alike two names must be (pg_trgm similarity) to count as the same person.
+# How alike two names must be (trigram similarity) to count as the same person.
 SAME_NAME = 0.45
 
 
@@ -155,8 +156,8 @@ def find_patients(db: Session, principal: Principal, q: str, page: int) -> Page[
         ).order_by(Patient.patient_no)
     else:
         stmt = stmt.where(
-            or_(Patient.full_name.icontains(q, autoescape=True), Patient.full_name.op("%")(q))
-        ).order_by(func.similarity(Patient.full_name, q).desc(), Patient.full_name, Patient.id)
+            or_(Patient.full_name.icontains(q, autoescape=True), similar(Patient.full_name, q))
+        ).order_by(similarity(Patient.full_name, q).desc(), Patient.full_name, Patient.id)
     return page_of(db, stmt, page)
 
 
@@ -179,7 +180,7 @@ def possible_duplicates(
         or_(Patient.phone == data.phone, Patient.alt_phone == data.phone),
         or_(
             func.lower(Patient.full_name) == name.lower(),
-            func.similarity(Patient.full_name, name) >= SAME_NAME,
+            similarity(Patient.full_name, name) >= SAME_NAME,
         ),
     )
     if exclude is not None:
@@ -340,8 +341,8 @@ def pick_referrers(db: Session, principal: Principal, q: str, limit: int = 10) -
     stmt = select(Referrer).where(Referrer.is_active)
     if q:
         stmt = stmt.where(
-            or_(Referrer.name.icontains(q, autoescape=True), Referrer.name.op("%")(q))
-        ).order_by(func.similarity(Referrer.name, q).desc(), Referrer.name)
+            or_(Referrer.name.icontains(q, autoescape=True), similar(Referrer.name, q))
+        ).order_by(similarity(Referrer.name, q).desc(), Referrer.name)
     else:
         stmt = stmt.order_by(Referrer.name)
     return list(db.scalars(stmt.limit(limit)))

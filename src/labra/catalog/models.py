@@ -10,10 +10,10 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
+from labra.core.dialect import Json, StringList
 
 RESULT_TYPES = ("numeric", "text", "option", "calculated")
 SEXES = ("M", "F", "O")
@@ -64,7 +64,7 @@ class Test(TrackedMixin, Base):
     )
 
     code: Mapped[str] = mapped_column(String(20), unique=True)
-    aliases: Mapped[list[str]] = mapped_column(ARRAY(String(20)), default=list)
+    aliases: Mapped[list[str]] = mapped_column(StringList(String(20)), default=list)
     name: Mapped[str] = mapped_column(String(120))
     short_name: Mapped[str] = mapped_column(String(40), default="")
     department_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("department.id"), index=True)
@@ -97,7 +97,7 @@ class TestParameter(TrackedMixin, Base):
     formula: Mapped[str] = mapped_column(String(200), default="")
     formula_valid_if: Mapped[str] = mapped_column(String(200), default="")
     # [{"value": "Nil", "abnormal": false, "default": true}, ...]
-    options: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    options: Mapped[list[dict[str, Any]]] = mapped_column(Json, default=list)
     # A regular expression a text result must match, for example "120/80" for blood pressure.
     text_pattern: Mapped[str] = mapped_column(String(100), default="")
     display_order: Mapped[int] = mapped_column(default=0)

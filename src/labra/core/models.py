@@ -17,10 +17,10 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, IdMixin, TrackedMixin
+from labra.core.dialect import Json
 from labra.core.ids import utcnow
 
 
@@ -32,7 +32,7 @@ class Setting(TrackedMixin, Base):
 
     key: Mapped[str] = mapped_column(String(100))
     branch_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("branch.id"))
-    value: Mapped[Any] = mapped_column(JSONB)
+    value: Mapped[Any] = mapped_column(Json)
 
 
 class NumberSeries(TrackedMixin, Base):
@@ -77,7 +77,7 @@ class EventOutbox(IdMixin, Base):
     )
 
     topic: Mapped[str] = mapped_column(String(100))
-    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    payload: Mapped[dict[str, Any]] = mapped_column(Json)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     available_at: Mapped[datetime] = mapped_column(default=utcnow)
     processed_at: Mapped[datetime | None]
@@ -98,7 +98,7 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(60))
     entity: Mapped[str] = mapped_column(String(60))
     entity_id: Mapped[str | None] = mapped_column(String(64))
-    detail: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    detail: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
 
