@@ -11,7 +11,7 @@ part, what selects it, and the test or script that proves the swap works.
 
 | Service | Kind | Default | Alternatives | Selected by | Proof | Status |
 |---|---|---|---|---|---|---|
-| Database server | setting | PostgreSQL 18: the `db` service, `postgres` image | any PostgreSQL server the lab already runs, managed or not | `LABRA_DATABASE_URL` | `tests/test_tooling.py::test_check_config_refuses_other_databases`, `tests/test_db_dialect.py::test_similar_finds_spelling_variants` | swappable |
+| Database server | setting | PostgreSQL 18: the `db` service, `postgres` image | any PostgreSQL server the lab already runs, managed or not | `LABRA_DATABASE_URL` | `tests/test_tooling.py::test_check_config_refuses_other_databases`, `tests/test_db_dialect.py::test_similar_finds_spelling_variants`, `.github/workflows/portability.yml` (the database tests against an outside server, weekly) | swappable |
 | Database engine | setting | PostgreSQL, with Postgres-only code behind `labra.core.dialect` | MariaDB, then others | `LABRA_DATABASE_URL` | X40 | planned |
 | Database driver | setting | psycopg 3 (`postgresql+psycopg://…`) | pg8000 | `LABRA_DATABASE_URL` | X44 | planned |
 | Identity (`labra.identity`) | port | `local`: passwords hashed with argon2 | any OIDC provider (X42) | `LABRA_AUTH_PROVIDER` | `tests/test_platform.py::test_default_settings_build_every_builtin`, `tests/test_platform.py::test_unknown_adapter_fails_fast_with_choices` | swappable |
@@ -57,6 +57,9 @@ a Python package used in one module.
 ## What ties Labra to PostgreSQL
 
 Labra supports the PostgreSQL family: any PostgreSQL 18 server, with psycopg 3 as the driver.
+The `outside-postgres` job in `.github/workflows/portability.yml` runs the database tests each
+week against a server Labra didn't start; run the same locally by pointing
+`LABRA_TEST_DATABASE_URL` at a database whose name ends in `_test`.
 Another engine is tracker row X40 and another driver is X44. This list keeps that work sized.
 
 | Feature | Where it lives | What another engine needs |

@@ -1,7 +1,8 @@
 name: portability
 # The same image and Compose file on every supported runtime and builder (ADR-0009,
 # docs/dev/runtimes.md). Ubuntu 26.04 for Podman 5; 24.04's Podman 4.9 can't resolve names on
-# internal networks.
+# internal networks. The outside-postgres job runs the tests against a PostgreSQL server that
+# Labra didn't start (docs/dev/services.md).
 on:
   schedule:
     - cron: "17 3 * * 1"
@@ -17,6 +18,10 @@ on:
       - scripts/stack_smoke.sh
       - scripts/compare_runtimes.sh
       - scripts/runtime_bench.py
+      - src/labra/core/dialect.py
+      - src/labra/migrations/**
+      - tests/conftest.py
+      - tests/test_db_dialect.py
       - .github/workflows/portability.yml
 permissions:
   contents: read
@@ -81,3 +86,24 @@ jobs:
       - run: ${{ matrix.run }}
       - if: always()
         run: if [ -f results/results.md ]; then cat results/results.md >>"$GITHUB_STEP_SUMMARY"; fi
+
+  outside-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: docker.io/library/postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+        env:
+          POSTGRES_DB: labra_test
+          POSTGRES_HOST_AUTH_METHOD: trust # a throwaway server on the runner only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d labra_test"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      # With this set, a database test that can't reach the server fails instead of skipping.
+      LABRA_TEST_DATABASE_URL: postgresql://postgres@localhost:5432/labra_test
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - run: uv run pytest -q -rs -m "db and not e2e"
