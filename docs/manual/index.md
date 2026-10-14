@@ -70,13 +70,16 @@ Every feature Labra has, and the manual page that explains it.
 | M11.1 | Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d) | [Entering results](lab/entering-results.md) |
 | M11.2 | Absurd-value guard and Friedewald/formula validity checks (§1d) | [Calculated values](lab/calculated-values.md) |
 | M11.3 | Samples from another branch are scanned in at the lab before they appear on the worklist | [Receiving samples](lab/receiving-samples.md) |
+| M12 | Reports: combined/separate, signature image, release, amendments, QR | [Settings](admin/settings.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
 | M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | [Test catalog](admin/catalog.md) |
+| M17 | Letterhead and margin calibration (§7.2) | [Settings](admin/settings.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Settings](admin/settings.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Entering results](lab/entering-results.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Outsourcing](lab/outsourcing.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |

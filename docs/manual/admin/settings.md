@@ -1,6 +1,6 @@
 ---
 title: Settings
-features: [W04, M02, M07, M07.1, EC-C01]
+features: [W04, M02, M07, M07.1, EC-C01, M12, M17, M20]
 ---
 
 # Settings
@@ -37,6 +37,13 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 | SAC code printed on bill lines | Whole lab | 4 to 8 digits; starts as `999316` |
 | Exemption note printed on bills | Whole lab | Up to 200 characters |
 | Scan samples in when they reach the lab | Whole lab | Only samples from another branch (the start value), every sample, or never. See [Receiving samples](../lab/receiving-samples.md) |
+| Reports for a visit with outsourced tests | Whole lab | One report with every test (the start value), or the lab's own report plus one for each outside lab document |
+| Reference interval column on reports | Whole lab | Show it (the start value) or hide it |
+| Web address the report QR code points to | Whole lab | An `https://` address without a trailing slash, up to 120 characters. Leave it empty and the QR code carries the report number and a check code instead |
+| Footer printed on reports | Whole lab | Up to 200 characters |
+| Resolution for picture letterheads | Whole lab | 150 to 200 dots per inch; starts at 150 |
+| What the Print button makes | Each branch | A PDF for pre-printed letterhead paper, without the letterhead (the start value), or a PDF with the letterhead on it |
+| Printer offset right / down (mm) | Each branch | −10 to 10; starts at 0. Moves everything on the printed copy to make up for a printer that doesn't print exactly where it should. A negative value moves it left or up |
 
 - A branch value overrides the whole-lab value at that branch. Branches without their own
   value use the whole-lab one.
@@ -47,13 +54,18 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 - Every change is recorded in the audit log with the old and new value.
 - The legal name, SAC code and exemption note are printed on new bills only. A bill that
   is already issued keeps what it was printed with.
+- Report settings apply to reports released after the change. A report that is already
+  released keeps what it was released with.
+- The printer offset applies only to the Print copy, never to the PDF that is downloaded
+  or sent.
 - The SAC code and the exemption note start with common values for diagnostic labs. Ask
   your accountant to confirm them for your lab.
 
 ## Number formats
 
 Select **Number formats** at the top of the page to see how each branch numbers its
-patients, visits, bills, receipts, refunds and samples, and the next number in each.
+patients, visits, bills, receipts, refunds, samples and reports, and the next number in
+each.
 Administrators can change a format; branch managers can only look.
 
 | Part | Becomes | Example |
@@ -64,7 +76,10 @@ Administrators can change a format; branch managers can only look.
 | `{SEQ:5}` | The running number, padded to 5 digits (any width from 1 to 9) | `00123` |
 
 - A new branch gets the standard formats as soon as it is added, for example bill numbers
-  like `B2/2627/00001` and patient numbers like `B2/P/000001`.
+  like `B2/2627/00001`, patient numbers like `B2/P/000001` and report numbers like
+  `B2/R/2627/000001`.
+- A report's later versions keep its number; the version is printed beside it, as in
+  `B2/R/2627/000001 v2`.
 - Numbers with `{FY2}` or `{FY}` in them start again from 1 on 1 April. Numbers without
   the year, such as patient numbers, never start again, so they never repeat.
 - Bill numbers can be at most 16 characters and may use only letters, digits, `-` and `/`,

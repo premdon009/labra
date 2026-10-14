@@ -954,8 +954,9 @@ Rules:
 | version, status (`draft` / `published`), published_by, published_at | versioning |
 | original_file_id, letterhead_file_id (optimised), file_type (`svg` / `pdf` / `raster`), raster_dpi, original_bytes, optimised_bytes, converted_from (`none` / `pdf` / `raster_traced`), apply_on (`all` / `first`) | letterhead file, optimisation result and pages |
 | margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm, signature_area_mm | layout box |
-| font_size_pt, print_offset_x_mm, print_offset_y_mm | fine tuning |
-| default_print_mode (`print_no_lh` / `plain_with_lh`) | branch default |
+| font_size_pt | fine tuning |
+
+The printer offset and the default print mode belong to the branch's printer, not to a layout version, so they are branch settings: `print.offset_x_mm`, `print.offset_y_mm` and `print.default_mode` (`print` = no letterhead, `digital` = with letterhead).
 
 **Tests:**
 - **Content box:** golden-file tests render each dummy dataset at fixed margins and check that every text box lies inside the content box. pdfplumber reads the text coordinates (MIT, test-only dependency).

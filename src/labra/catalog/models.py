@@ -9,7 +9,16 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    false,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
@@ -72,6 +81,11 @@ class Test(TrackedMixin, Base):
     default_tat_hours: Mapped[int] = mapped_column(default=24)
     in_house_available: Mapped[bool] = mapped_column(default=True)
     interpretation_text: Mapped[str] = mapped_column(Text, default="")
+    # Report order inside the department; the department's report_order comes first.
+    display_order: Mapped[int] = mapped_column(default=0, server_default="0")
+    # "For research use only" footnote on the report.
+    research_use: Mapped[bool] = mapped_column(default=False, server_default=false())
+    in_nabl_scope: Mapped[bool] = mapped_column(default=False, server_default=false())
     is_active: Mapped[bool] = mapped_column(default=True)
 
 

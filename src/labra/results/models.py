@@ -27,7 +27,17 @@ from labra.core.ids import utcnow
 FLAGS = ("N", "L", "H", "LL", "HH", "A")
 RESULT_SOURCES = ("manual", "calculated", "external_pdf")
 NOTIFY_MODES = ("phone", "in_person", "message", "email")
-TEST_EVENTS = ("routed", "received", "sent", "received_back", "resulted", "verified", "reopened")
+TEST_EVENTS = (
+    "routed",
+    "received",
+    "sent",
+    "received_back",
+    "resulted",
+    "verified",
+    "reopened",
+    "released",
+    "delivered",
+)
 
 
 class Result(TrackedMixin, Base):
@@ -159,7 +169,7 @@ class OrderTestEvent(IdMixin, Base):
     __table_args__ = (
         CheckConstraint(
             "event in ('routed', 'received', 'sent', 'received_back', 'resulted', 'verified',"
-            " 'reopened')",
+            " 'reopened', 'released', 'delivered')",
             name="event",
         ),
     )

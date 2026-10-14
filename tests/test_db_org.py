@@ -231,7 +231,10 @@ def test_a_longer_branch_code_is_refused_when_a_number_would_no_longer_fit(
 
 @pytest.mark.item("M02.1")
 def test_upgrade_gives_older_branches_the_series_they_lack(seeded: Session) -> None:
-    migration = import_module("labra.migrations.versions.0005_default_number_series")
+    backfills = (
+        import_module("labra.migrations.versions.0005_default_number_series").ADD_MISSING_SERIES,
+        import_module("labra.migrations.versions.0007_reports").ADD_REPORT_SERIES,
+    )
     b2, b3 = (seeded.scalars(select(Branch).where(Branch.code == c)).one() for c in ("B2", "B3"))
     kept = _series(seeded, "B2", "bos")
     kept.format, kept.next_value = "{BR}-{SEQ:6}", 41
@@ -243,8 +246,9 @@ def test_upgrade_gives_older_branches_the_series_they_lack(seeded: Session) -> N
         )
     )
 
-    for _ in range(2):  # running it again adds nothing
-        seeded.execute(text(migration.ADD_MISSING_SERIES))
+    for _ in range(2):  # running them again adds nothing
+        for backfill in backfills:
+            seeded.execute(text(backfill))
     seeded.expire_all()
     for branch in (b2, b3):
         rows = seeded.scalars(select(NumberSeries).where(NumberSeries.branch_id == branch.id)).all()

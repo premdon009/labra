@@ -34,6 +34,8 @@ DEFAULT_SERIES = {
     "refund": "{BR}/RF/{FY2}/{SEQ:5}",
     # Printed as a barcode, so no slashes: MAIN2627000123.
     "sample": "{BR}{FY2}{SEQ:6}",
+    # Its versions share the number: MAIN/R/2627/000123 v2.
+    "report": "{BR}/R/{FY2}/{SEQ:6}",
 }
 DOC_LABELS = {
     "patient": "Patient number",
@@ -42,6 +44,7 @@ DOC_LABELS = {
     "receipt": "Receipt number",
     "refund": "Refund number",
     "sample": "Sample number",
+    "report": "Report number",
 }
 
 

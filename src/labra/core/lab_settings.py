@@ -97,6 +97,75 @@ define(
         ),
     )
 )
+define(
+    SettingDef(
+        "report.default_mode",
+        str,
+        "combined",
+        "Reports for a visit with outsourced tests",
+        choices=(
+            ("combined", "One report with every test"),
+            ("separate", "The lab's own report, plus one per outside lab document"),
+        ),
+    )
+)
+define(
+    SettingDef(
+        "report.reference_column",
+        str,
+        "show",
+        "Reference interval column on reports",
+        choices=(("show", "Show it"), ("hide", "Hide it")),
+    )
+)
+define(
+    SettingDef(
+        "report.verify_base_url",
+        str,
+        "",
+        "Web address the report QR code points to (empty: the QR code carries the report "
+        "number and a check code)",
+        max_length=120,
+        pattern=r"(https://[A-Za-z0-9.-]+(:\d{1,5})?(/[A-Za-z0-9._~-]+)*)?",
+        pattern_hint="Enter an https:// address without a trailing slash, or leave it empty.",
+    )
+)
+define(SettingDef("report.footer_text", str, "", "Footer printed on reports", max_length=200))
+define(
+    SettingDef(
+        "letterhead.raster_dpi",
+        int,
+        150,
+        "Resolution for picture letterheads (dots per inch)",
+        min_value=150,
+        max_value=200,
+    )
+)
+define(
+    SettingDef(
+        "print.default_mode",
+        str,
+        "print",
+        "What the Print button makes",
+        per_branch=True,
+        choices=(
+            ("print", "A PDF for pre-printed letterhead paper (no letterhead)"),
+            ("digital", "A PDF with the letterhead on it"),
+        ),
+    )
+)
+for _axis, _way in (("x", "right"), ("y", "down")):
+    define(
+        SettingDef(
+            f"print.offset_{_axis}_mm",
+            int,
+            0,
+            f"Printer offset {_way} (mm, negative for the other way)",
+            per_branch=True,
+            min_value=-10,
+            max_value=10,
+        )
+    )
 
 
 def _currency(key: str, default: str, label: str, **kw: Any) -> None:

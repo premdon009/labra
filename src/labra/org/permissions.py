@@ -46,6 +46,11 @@ PERMISSIONS: dict[str, Permission] = {
         Permission("test.route", "Send a test to an external lab or keep it in house", "branch"),
         Permission("extlab.view", "See external labs and their rates", "lab"),
         Permission("extlab.edit", "Add and change external labs and their rates", "lab"),
+        Permission("report.view", "See and print released reports", "branch"),
+        Permission("report.release", "Release reports", "branch"),
+        Permission("report.deliver", "Record a report as handed over or sent", "branch"),
+        Permission("letterhead.edit", "Set a branch's letterhead and margins", "branch"),
+        Permission("owner.reports", "See collection, dues and outsourcing figures", "branch"),
     ]
 }
 
@@ -69,11 +74,13 @@ _FRONT_DESK = frozenset(
         "bill.view",
         "payment.take",
         "sample.collect",
+        "report.view",
+        "report.deliver",
     }
 )
-# Approving a range and verifying a result are clinical sign-offs (ISO 15189), so they
-# belong to the signatory alone.
-_CLINICAL = frozenset({"range.approve", "result.verify"})
+# Approving a range, verifying a result and releasing the report are clinical sign-offs
+# (ISO 15189), so they belong to the signatory alone.
+_CLINICAL = frozenset({"range.approve", "result.verify", "report.release"})
 # Work done at the bench. The administrator sets the lab up but doesn't do it.
 _BENCH = frozenset({"result.enter", "sample.receive"})
 _EXTERNAL_LABS = frozenset({"test.route", "extlab.view"})
@@ -88,7 +95,7 @@ SYSTEM_ROLES: dict[str, SystemRole] = {
             _EVERY_BRANCH_ROLE
             | _FRONT_DESK
             | _EXTERNAL_LABS
-            | {"setting.view", "setting.edit_branch", "bill.cancel"},
+            | {"setting.view", "setting.edit_branch", "bill.cancel", "owner.reports"},
         ),
         SystemRole("front_desk", "Front desk", _EVERY_BRANCH_ROLE | _FRONT_DESK),
         SystemRole(
@@ -96,7 +103,15 @@ SYSTEM_ROLES: dict[str, SystemRole] = {
             "Phlebotomist",
             _EVERY_BRANCH_ROLE | {"sample.collect", "sample.receive"},
         ),
-        SystemRole("technician", "Technician", _EVERY_BRANCH_ROLE | _BENCH | _EXTERNAL_LABS),
-        SystemRole("signatory", "Signatory", _EVERY_BRANCH_ROLE | _CLINICAL | {"result.enter"}),
+        SystemRole(
+            "technician",
+            "Technician",
+            _EVERY_BRANCH_ROLE | _BENCH | _EXTERNAL_LABS | {"report.view"},
+        ),
+        SystemRole(
+            "signatory",
+            "Signatory",
+            _EVERY_BRANCH_ROLE | _CLINICAL | {"result.enter", "report.view"},
+        ),
     ]
 }

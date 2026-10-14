@@ -147,6 +147,7 @@ source_modules = [
     "labra.extlabs",
     "labra.results",
     "labra.printing",
+    "labra.reports",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
@@ -167,6 +168,8 @@ forbidden_modules = [
     "labra.billing",
     "labra.extlabs",
     "labra.results",
+    "labra.printing",
+    "labra.reports",
     "labra.web",
 ]
 
@@ -196,6 +199,18 @@ name = "The front desk doesn't depend on external labs"
 type = "forbidden"
 source_modules = ["labra.patients", "labra.visits", "labra.billing"]
 forbidden_modules = ["labra.extlabs"]
+
+[[tool.importlinter.contracts]]
+name = "Reports sit on top: the front desk, external labs and the bench don't depend on them"
+type = "forbidden"
+source_modules = [
+    "labra.patients",
+    "labra.visits",
+    "labra.billing",
+    "labra.extlabs",
+    "labra.results",
+]
+forbidden_modules = ["labra.reports"]
 
 [[tool.importlinter.contracts]]
 name = "PDF, image and QR libraries are used only in the printing package"

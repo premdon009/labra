@@ -29,6 +29,8 @@ from labra.core.models import (
 from labra.extlabs.models import ExternalLab, ExternalLabRate
 from labra.org.models import AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.patients.models import Patient, Referrer
+from labra.printing.models import LetterheadLayout
+from labra.reports.models import Report, ReportDelivery, ReportPrint, ReportTest
 from labra.results.models import (
     CriticalNotification,
     ExternalDocument,
@@ -57,6 +59,7 @@ __all__ = [
     "ExternalDocumentTest",
     "ExternalLab",
     "ExternalLabRate",
+    "LetterheadLayout",
     "LocalCredential",
     "LoginAttempt",
     "NumberSeries",
@@ -72,6 +75,10 @@ __all__ = [
     "ReferenceRange",
     "Referrer",
     "Refund",
+    "Report",
+    "ReportDelivery",
+    "ReportPrint",
+    "ReportTest",
     "Result",
     "ResultRevision",
     "Role",

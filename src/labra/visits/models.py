@@ -27,6 +27,7 @@ ORDER_TEST_STATUSES = (
 )
 ROUTES = ("in_house", "external")
 SAMPLE_STATUSES = ("pending", "collected", "received", "rejected", "redraw", "cancelled")
+REPORT_MODES = ("combined", "separate")
 
 
 class Visit(TrackedMixin, Base):
@@ -37,6 +38,9 @@ class Visit(TrackedMixin, Base):
     __table_args__ = (
         CheckConstraint("collection_mode in ('walk_in', 'home')", name="collection_mode"),
         CheckConstraint("status in ('open', 'completed', 'cancelled')", name="status"),
+        CheckConstraint(
+            "report_mode is null or report_mode in ('combined', 'separate')", name="report_mode"
+        ),
         Index("ix_visit_branch_visited", "branch_id", text("visited_at DESC")),
     )
 
@@ -54,6 +58,8 @@ class Visit(TrackedMixin, Base):
     extra: Mapped[dict[str, Any]] = mapped_column(Json, default=dict, server_default=EMPTY_JSON)
     origin_device_id: Mapped[str | None] = mapped_column(String(40))
     client_ref: Mapped[uuid.UUID] = mapped_column(unique=True)
+    # How outside results are reported; null follows the report.default_mode setting.
+    report_mode: Mapped[str | None] = mapped_column(String(10))
 
 
 class OrderItem(TrackedMixin, Base):
@@ -132,6 +138,8 @@ class OrderTest(TrackedMixin, Base):
     route_reason: Mapped[str] = mapped_column(String(200), default="", server_default="")
     routed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
     routed_at: Mapped[datetime | None]
+    # The method printed on the report; null means the test's default method.
+    method_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("test_method.id"))
 
 
 class Sample(TrackedMixin, Base):
@@ -159,3 +167,5 @@ class Sample(TrackedMixin, Base):
     # Scanned in at the lab that performs the tests, when that is a different branch.
     received_at: Mapped[datetime | None]
     received_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
+    # Printed above the panels this sample's tests appear in, e.g. "Mildly haemolysed".
+    remarks: Mapped[str] = mapped_column(String(300), default="", server_default="")

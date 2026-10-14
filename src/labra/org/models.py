@@ -20,6 +20,8 @@ class Branch(TrackedMixin, Base):
     phone: Mapped[str] = mapped_column(String(15), default="")
     email: Mapped[str] = mapped_column(String(120), default="")
     gstin: Mapped[str] = mapped_column(String(15), default="")
+    # Printed on reports only when every test on the report is in the accreditation scope.
+    nabl_cert_no: Mapped[str] = mapped_column(String(40), default="", server_default="")
     is_active: Mapped[bool] = mapped_column(default=True)
 
 
@@ -36,6 +38,10 @@ class AppUser(TrackedMixin, Base):
     can_login: Mapped[bool] = mapped_column(default=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     last_login_at: Mapped[datetime | None]
+    # Printed under a signatory's name on the reports they release.
+    qualification: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    council_reg_no: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    signature_file_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("stored_file.id"))
 
 
 class Role(TrackedMixin, Base):
