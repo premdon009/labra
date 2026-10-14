@@ -47,7 +47,8 @@ a Python package used in one module.
 - every `LABRA_*` name under "Selected by" is a setting in `labra.core.config.Settings` or a
   variable in a Compose file;
 - every Compose service, profile, override file and image, and every vendored asset, is named in
-  a row;
+  a row; Compose services are read in block style at any indentation, and services written in
+  flow style (`{…}`) are refused, since the gate would not see them;
 - each row's proof exists: the test function or script, an open tracker row, or the ADR;
 - Postgres-only code (`sqlalchemy.dialects` imports, `func.similarity`, `pg_advisory_*`,
   `hashtextextended`, `func.array_to_string`, `func.unnest`, `distinct_on`, `.op("%")`) sits only

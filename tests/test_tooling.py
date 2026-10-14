@@ -369,3 +369,46 @@ def test_new_compose_service_needs_a_row(tmp_path: Path) -> None:
         "compose.yaml:12: Compose service 'cache' has no row in docs/dev/services.md",
         "compose.yaml:13: image 'valkey' has no row in docs/dev/services.md",
     ]
+
+
+@pytest.mark.item("W20")
+def test_compose_read_in_any_block_layout() -> None:
+    mod = _script("check_services")
+    facts = mod.Facts()
+    text = (
+        "services:\n"
+        "    # the database\n"
+        '    "db":\n'
+        '        image: "docker.io/library/postgres:18"  # pinned in the real file\n'
+        "        profiles:\n"
+        "        - extra\n"
+        "        - 'more'\n"
+        "    cache:\n"
+        "        image: ${CACHE_IMAGE:-docker.io/library/valkey:9}\n"
+        "        profiles: [ 'warm', cold ]\n"
+        "volumes:\n"
+        "    pgdata:\n"
+    )
+    mod.compose_facts(text, "compose.yaml", facts)
+    assert [(f.name, f.where) for f in facts.services] == [
+        ("db", "compose.yaml:3"),
+        ("cache", "compose.yaml:8"),
+    ]
+    assert [f.name for f in facts.images] == ["postgres", "valkey"]
+    assert [f.name for f in facts.profiles] == ["extra", "more", "warm", "cold"]
+    assert facts.problems == []
+
+
+@pytest.mark.item("W20")
+@pytest.mark.parametrize(
+    ("text", "line"),
+    [
+        ("services: {db: {image: postgres}}\n", 1),
+        ("services:\n  db: {image: postgres}\n", 2),
+    ],
+)
+def test_compose_flow_style_services_refused(text: str, line: int) -> None:
+    mod = _script("check_services")
+    facts = mod.Facts()
+    mod.compose_facts(text, "compose.yaml", facts)
+    assert facts.problems == [f"compose.yaml:{line}: {mod.FLOW_STYLE}"]

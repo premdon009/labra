@@ -35,6 +35,8 @@ CODE_RE = re.compile(r"`([^`]+)`")
 TOKEN_SPLIT = re.compile(r"[\s,:]+")
 LABRA_VAR_RE = re.compile(r"\bLABRA_[A-Z0-9_]*[A-Z0-9]\b")
 COMPOSE_VAR_RE = re.compile(r"\$\{(LABRA_[A-Z0-9_]+)")
+COMMENT_RE = re.compile(r"(?:^|\s+)#.*$")
+FLOW_STYLE = "services must be written in block style, one key per line, for the gate to read"
 DEFAULT_RE = re.compile(r"\$\{[A-Z0-9_]+:-([^}]+)\}")
 TRACKER_ID_RE = re.compile(r"\b(?:W|M|X|LT)\d{2}(?:\.\d+)?\b")
 ADR_LINK_RE = re.compile(r"\]\(([^)]*adr/\d{4}-[^)]+\.md)\)")
@@ -81,6 +83,7 @@ class Facts:
     images: list[Fact] = field(default_factory=list)
     vendored: list[Fact] = field(default_factory=list)
     tracker: dict[str, str] = field(default_factory=dict)  # ID -> status
+    problems: list[str] = field(default_factory=list)  # files the gate can't read
 
 
 # Reading the register
@@ -163,28 +166,52 @@ def image_name(ref: str) -> str:
     return last.split(":")[0]
 
 
+def _scalar(value: str) -> str:
+    return value.strip().strip("\"'")
+
+
 def compose_facts(text: str, path: str, facts: Facts) -> None:
+    """Services, profiles and images in a Compose file. The standard library has no YAML
+    parser, so this reads block style line by line, at any indentation; a service written in
+    flow style (`{…}`) would go unseen, so it is refused instead."""
     facts.compose_vars |= set(COMPOSE_VAR_RE.findall(text))
     section = ""
-    in_profiles = False
-    for n, line in enumerate(text.splitlines(), 1):
+    service_indent: int | None = None
+    profiles_indent: int | None = None
+    for n, raw in enumerate(text.splitlines(), 1):
         where = f"{path}:{n}"
-        if re.match(r"^[\w-]+:", line):
-            section = line.split(":")[0]
+        line = COMMENT_RE.sub("", raw).rstrip()
+        if not line.strip():
             continue
-        if section == "services" and (m := re.match(r"^  ([\w.-]+):\s*$", line)):
-            facts.services.append(Fact(m.group(1), where))
-        if m := re.match(r"^\s+image:\s+(\S+)", line):
-            facts.images.append(Fact(image_name(m.group(1)), where))
-        if m := re.match(r"^\s+profiles:\s*(.*)$", line):
-            inline = m.group(1).strip().strip("[]")
-            facts.profiles += [Fact(p.strip(), where) for p in inline.split(",") if p.strip()]
-            in_profiles = not inline
+        indent = len(line) - len(line.lstrip())
+        item = line.strip()
+        if profiles_indent is not None:
+            if indent >= profiles_indent and item.startswith("- "):
+                facts.profiles.append(Fact(_scalar(item[2:]), where))
+                continue
+            profiles_indent = None
+        key, _, value = item.partition(":")
+        key, value = _scalar(key), value.strip()
+        if indent == 0:
+            section, service_indent = key, None
+            if section == "services" and value:
+                facts.problems.append(f"{where}: {FLOW_STYLE}")
             continue
-        if in_profiles and (m := re.match(r"^\s+-\s+([\w.-]+)", line)):
-            facts.profiles.append(Fact(m.group(1), where))
-        else:
-            in_profiles = False
+        if section == "services":
+            service_indent = indent if service_indent is None else service_indent
+            if indent == service_indent:
+                facts.services.append(Fact(key, where))
+                if value.startswith("{"):
+                    facts.problems.append(f"{where}: {FLOW_STYLE}")
+                continue
+        if key == "image" and value:
+            facts.images.append(Fact(image_name(_scalar(value)), where))
+        elif key == "profiles":
+            if value:
+                inline = value.strip("[]").split(",")
+                facts.profiles += [Fact(_scalar(p), where) for p in inline if _scalar(p)]
+            else:
+                profiles_indent = indent
 
 
 def tracker_status(text: str) -> dict[str, str]:
@@ -343,6 +370,7 @@ def check(register: str, facts: Facts, sources: dict[str, str], root: Path) -> l
     rows, problems = parse_register(register)
     if not rows:
         return problems or [f"{REGISTER}: the register has no rows"]
+    problems += facts.problems
     problems += check_ports(rows, facts)
     problems += check_settings(rows, facts)
     problems += check_compose(rows, facts)
