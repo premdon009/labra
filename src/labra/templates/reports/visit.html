@@ -10,11 +10,12 @@
 <section aria-labelledby="h-versions">
   <h2 id="h-versions">Released versions</h2>
   <table class="table">
-    <thead><tr><th>Report</th><th>Released</th><th>By</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Report</th><th>Holds</th><th>Released</th><th>By</th><th>Status</th><th></th></tr></thead>
     <tbody>
       {% for report, released_by in versions %}
       <tr>
-        <td>{{ report.report_no }} v{{ report.version }}{% if report.is_partial %} <span class="badge-outline">Partial</span>{% endif %}</td>
+        <td>{{ report.report_no }} v{{ report.version }}{% if report.is_partial %} <span class="badge-outline">Partial</span>{% endif %}{% if report.amendment_reason %} <span class="badge-outline">Amended</span>{% endif %}</td>
+        <td>{{ kinds[report.kind] }}</td>
         <td>{{ report.released_at|local_time }}</td>
         <td>{{ released_by }}</td>
         <td>{% if report.status == 'released' %}Current{% else %}Superseded{% endif %}</td>
@@ -25,6 +26,26 @@
   </table>
 </section>
 {% endif %}
+{% if errors.get('release') %}<div class="alert-destructive" role="alert"><p>{{ errors.release }}</p></div>{% endif %}
+{% if planned.has_outside %}
+<section aria-labelledby="h-mode">
+  <h2 id="h-mode">Outside lab results</h2>
+  {% if planned.fixed %}
+  <p>{{ modes[planned.mode] }}. <span class="muted">This stays as it is now that a report is released.</span></p>
+  {% else %}
+  <form method="post" action="/reports/visits/{{ planned.visit.id }}/mode" class="stack">
+    {{ csrf(csrf_token) }}
+    <fieldset>
+      <legend>How this visit's outside results are reported</legend>
+      {% for value, label in modes.items() %}
+      <label><input type="radio" name="mode" value="{{ value }}"{% if value == planned.mode %} checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+    <div class="form-actions"><button type="submit" class="btn-outline">Save the choice</button></div>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
 <section aria-labelledby="h-release">
   {% if planned.new %}
   <h2 id="h-release">Release {{ planned.report_no }} v{{ planned.version }}</h2>
@@ -33,16 +54,21 @@
   <h2 id="h-release">Nothing new to release</h2>
   <p class="muted">Every test you can report is on the current version. A test signed off later is released as the next version.</p>
   {% endif %}
-  {% if errors.get('release') %}<div class="alert-destructive" role="alert"><p>{{ errors.release }}</p></div>{% endif %}
   {% if planned.problems %}
   <div class="alert-destructive" role="alert">
     <h3>This report can't be released yet</h3>
     <ul>{% for problem in planned.problems %}<li>{{ problem }}</li>{% endfor %}</ul>
   </div>
   {% endif %}
-  {% if planned.new %}
+  {% set fresh = planned.new | reject("in", planned.amended) | list %}
+  {% if fresh %}
   <h3>New on this version</h3>
-  <ul>{% for t in planned.new %}<li>{{ planned.names[t.id] }}</li>{% endfor %}</ul>
+  <ul>{% for t in fresh %}<li>{{ planned.names[t.id] }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if planned.amended %}
+  <h3>Corrected on this version</h3>
+  <p class="muted">This version is marked "Amended report" and prints why each test was reopened.</p>
+  <ul>{% for t in planned.amended %}<li>{{ planned.names[t.id] }}{% if planned.reasons.get(t.id) %} <span class="muted">· {{ planned.reasons[t.id] }}</span>{% endif %}</li>{% endfor %}</ul>
   {% endif %}
   {% if planned.carried %}
   <h3>Carried over from v{{ planned.current.version }}</h3>
@@ -57,7 +83,7 @@
   <form method="post" action="/reports/visits/{{ planned.visit.id }}/release" class="stack">
     {{ csrf(csrf_token) }}
     {% for t in planned.new %}<input type="hidden" name="tests" value="{{ t.id }}">{% endfor %}
-    <label class="label"><input class="input" type="checkbox" name="confirm" value="yes" {% if errors.get('confirm') %}aria-invalid="true"{% endif %}> Yes, release {{ planned.report_no }} v{{ planned.version }}{% if planned.pending %} as a partial report{% endif %}</label>
+    <label class="label"><input class="input" type="checkbox" name="confirm" value="yes" {% if errors.get('confirm') %}aria-invalid="true"{% endif %}> Yes, release {{ planned.report_no }} v{{ planned.version }}{% if planned.amended %} as an amended report{% endif %}{% if planned.pending %}{% if planned.amended %} and{% else %} as{% endif %} a partial report{% endif %}</label>
     {% if errors.get('confirm') %}<p class="field-error">{{ errors.confirm }}</p>{% endif %}
     <div class="form-actions">
       <button type="submit" class="btn">Release {{ planned.report_no }} v{{ planned.version }}</button>
@@ -65,6 +91,38 @@
   </form>
   {% endif %}
 </section>
+{% if planned.mode == 'separate' and planned.separately %}
+<section aria-labelledby="h-forward">
+  <h2 id="h-forward">Outside lab reports</h2>
+  <p class="muted">Each outside lab's PDF goes out as a report of its own: a cover page on your letterhead, then the lab's pages.</p>
+  {% for f in planned.forwards %}
+  {% set key = 'forward:' ~ f.document.id %}
+  <div class="card stack">
+    <h3>{{ f.lab_name }} <span class="muted">· received {{ f.document.received_at|local_time }}</span></h3>
+    <p>{% for t in f.tests %}{{ planned.names[t.id] }} <span class="muted">({{ statuses.get(t.status, t.status) }})</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% if f.current %}<p class="muted">On {{ f.current.report_no }} v{{ f.current.version }}.</p>{% endif %}
+    {% if f.waiting %}
+    <p class="muted">Released once every test on it is signed off; {{ f.waiting | length }} still to sign off.</p>
+    {% elif f.ready %}
+    <form method="post" action="/reports/visits/{{ planned.visit.id }}/forward/{{ f.document.id }}" class="stack">
+      {{ csrf(csrf_token) }}
+      <label class="label"><input class="input" type="checkbox" name="confirm" value="yes" {% if errors.get(key) %}aria-invalid="true"{% endif %}> Yes, release {% if f.current %}{{ f.current.report_no }} v{{ f.current.version + 1 }}{% if f.amended %} as an amended report{% endif %}{% else %}this lab's report under a new number{% endif %}</label>
+      {% if errors.get(key) %}<p class="field-error">{{ errors[key] }}</p>{% endif %}
+      <div class="form-actions"><button type="submit" class="btn">Release the {{ f.lab_name }} report</button></div>
+    </form>
+    {% else %}
+    <p class="muted">Released; nothing new since.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% set forwarded = planned.forwards | map(attribute="tests") | sum(start=[]) | map(attribute="id") | list %}
+  {% set waiting = planned.separately | rejectattr("id", "in", forwarded) | list %}
+  {% if waiting %}
+  <h3>Waiting for the outside lab's PDF</h3>
+  <ul>{% for t in waiting %}<li>{{ planned.names[t.id] }} <span class="muted">· {{ statuses.get(t.status, t.status) }}</span></li>{% endfor %}</ul>
+  {% endif %}
+</section>
+{% endif %}
 <form method="get" action="/reports/visits/{{ planned.visit.id }}/preview" target="_blank" class="stack" aria-labelledby="h-preview">
   <h2 id="h-preview">Preview</h2>
   <fieldset>

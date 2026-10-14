@@ -34,6 +34,7 @@ from labra.core.uploads import IMAGES, JPEG, PDF, PNG, SVG, WEBP, check_upload
 from labra.org.models import Branch
 from labra.org.service import stale
 from labra.printing import samples
+from labra.printing.attach import append_pages
 from labra.printing.images import optimise_raster
 from labra.printing.letterhead import (
     A5,
@@ -619,7 +620,7 @@ def render_report(
     """A patient report (`labra.reports.content.view`) on `layout`, the branch's report
     layout it was released with (`published` for a new one). Without a letterhead file it
     prints the built-in header the report was made with; A5 always does, inside its own
-    margins."""
+    margins. The outside labs' PDFs it names follow its last page."""
     if output not in OUTPUTS:
         raise NotFoundError()
     branch = db.get(Branch, branch_id)
@@ -627,10 +628,9 @@ def render_report(
         raise NotFoundError()
     spec = A5 if paper == "A5" else spec_of(layout)
     offset = printer_offset(db, branch.id) if output == "print" else (Decimal(0), Decimal(0))
-    return compose_report(
-        report,
-        spec,
-        output,
-        files=file_reader(db, store),
-        offset_mm=offset,
+    files = file_reader(db, store)
+    rendered = compose_report(report, spec, output, files=files, offset_mm=offset)
+    # Outside labs' own pages follow, as they sent them.
+    return append_pages(
+        rendered, [files(uuid.UUID(a["file_id"]))[1] for a in report["attachments"]]
     )

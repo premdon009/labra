@@ -25,6 +25,9 @@
 .report-ref { string-set: reportref content(); text-align: center; margin: 0 0 2mm; font-size: 0.9rem; }
 .banner { border: 1pt solid #000; padding: 1mm 2mm; font-weight: bold; text-align: center; margin: 0 0 2mm; }
 .selected { font-style: italic; margin: 0 0 2mm; }
+.amended { margin: 0 0 2mm; break-inside: avoid; }
+.amended .banner { margin: 0 0 1mm; }
+.amended p { margin: 0.5mm 0; }
 
 h2.department {
   font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.04em;
@@ -44,6 +47,7 @@ td.result { width: 14%; }
 td.result.flagged { font-weight: bold; }
 td.flag { width: 7%; font-weight: bold; }
 td.unit { width: 13%; }
+td.attached { font-style: italic; }
 .note { font-size: 0.85em; font-style: italic; }
 .tiers { font-size: 0.85rem; border: 0.5pt solid #000; padding: 1mm 2mm; margin: 0 0 1.5mm; break-inside: avoid; }
 .tiers p, .critical, .interpretation, .footnote, .pending { margin: 0.5mm 0; }

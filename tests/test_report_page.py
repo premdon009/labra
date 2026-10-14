@@ -86,6 +86,7 @@ def _content() -> dict:
             "name": f"Test {key}",
             "research": False,
             "outside": None,
+            "attached": None,
             "nabl": "MC-0000",
             "rows": [],
         } | extra

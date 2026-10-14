@@ -75,6 +75,7 @@ Every feature Labra has, and the manual page that explains it.
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Settings](admin/settings.md) |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Staff and roles](admin/users-and-roles.md) |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Entering results](lab/entering-results.md) |
+| M12 | Reports: combined/separate, signature image, release, amendments, QR | [Amended reports](reports/amended.md) |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Releasing reports](reports/releasing.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Branches](admin/branches.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Test catalog](admin/catalog.md) |

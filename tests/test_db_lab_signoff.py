@@ -264,7 +264,7 @@ def test_a_verified_test_is_reopened_with_a_reason_and_keeps_what_it_said(
     assert (reopened.note, reopened.by) == ("Typing slip in cholesterol", meera.user_id)
     logged = lab.scalars(select(AuditLog).where(AuditLog.action == "result.reopen")).one()
     assert logged.detail["reason"] == "Typing slip in cholesterol"
-    with pytest.raises(ConflictError, match="Only a verified test"):
+    with pytest.raises(ConflictError, match="Only a verified or released test"):
         signoff.reopen(lab, meera, ordered.id, ordered.row_version, "Again")
 
     _enter(lab, platform, ordered, TC=210)

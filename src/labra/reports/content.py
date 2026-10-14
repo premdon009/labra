@@ -6,7 +6,12 @@ footnote marks, what is still pending, and who signs. Release stores it, so ever
 (print, selected tests, A5) is drawn from the same values as the stored PDF.
 
 `view` turns a snapshot into what one output prints: only the chosen tests, and what
-depends on them (the NABL number, the outside-lab and research footnotes).
+depends on them (the NABL number, the outside-lab and research footnotes, the outside labs'
+PDFs added after the last page).
+
+An outside test with no typed values is reported by the lab's own PDF: its panel says so and
+the PDF's pages follow the report. A forwarded report (separate mode) is a cover page for one
+outside document: every test on it is reported that way.
 """
 
 import uuid
@@ -30,6 +35,7 @@ from labra.patients.models import Patient, Referrer
 from labra.printing.pdf import FILE
 from labra.printing.reportpage import barcode, qr
 from labra.printing.service import builtin_header
+from labra.results.models import ExternalDocument, ExternalDocumentTest
 from labra.results.worklist import Sheet, bands_of, load_sheet, range_text, shown, told_about
 from labra.visits.models import OrderTest, Sample, Visit
 
@@ -41,6 +47,8 @@ NOT_CALCULABLE = "Not calculable"
 OUTSIDE_MARK = "*"
 RESEARCH_MARK = "†"
 SEXES = {"F": "F", "M": "M", "O": "O"}
+TITLE = "Laboratory report"
+FORWARD_TITLE = "Outside laboratory report"
 
 
 def when(at: datetime | None) -> str:
@@ -130,14 +138,40 @@ def _rows(
     return rows, tiers, critical
 
 
-def _panel(db: Session, ordered: OrderTest, samples: dict[uuid.UUID, Sample]) -> dict[str, Any]:
+def documents_of(db: Session, ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, ExternalDocument]:
+    """The latest outside-lab PDF attached to each of these tests, where one is."""
+    if not ids:
+        return {}
+    latest: dict[uuid.UUID, ExternalDocument] = {}
+    for document, order_test_id in db.execute(
+        select(ExternalDocument, ExternalDocumentTest.order_test_id)
+        .join(
+            ExternalDocumentTest, ExternalDocumentTest.external_document_id == ExternalDocument.id
+        )
+        .where(ExternalDocumentTest.order_test_id.in_(ids))
+        .order_by(ExternalDocument.received_at, ExternalDocument.id)
+    ):
+        latest[order_test_id] = document
+    return latest
+
+
+def _panel(
+    db: Session,
+    ordered: OrderTest,
+    samples: dict[uuid.UUID, Sample],
+    document: ExternalDocument | None,
+    forward: bool,
+) -> dict[str, Any]:
     sheet = load_sheet(db, ordered.id)
     test = sheet.test
     sample = samples.get(ordered.sample_id) if ordered.sample_id else None
     specimen_id = (sample.specimen_type_id if sample else None) or test.specimen_type_id
     specimen = db.get(SpecimenType, specimen_id) if specimen_id else None
     department = db.get_one(Department, test.department_id)
-    rows, tiers, critical = _rows(db, sheet)
+    rows, tiers, critical = ([], [], []) if forward else _rows(db, sheet)
+    # Reported by the outside lab's own pages: on a forwarded report always, otherwise when
+    # nothing was typed from them.
+    attached = document is not None and (forward or not rows)
     outside: dict[str, str] | None = None
     nabl = ""
     if ordered.route == "external" and ordered.external_lab_id is not None:
@@ -161,6 +195,7 @@ def _panel(db: Session, ordered: OrderTest, samples: dict[uuid.UUID, Sample]) ->
         "method": _method(db, ordered),
         "research": test.research_use,
         "outside": outside,
+        "attached": str(document.id) if attached and document is not None else None,
         # The performing branch's NABL number when the test is in its scope; blank otherwise.
         "nabl": nabl,
         "rows": rows,
@@ -180,9 +215,14 @@ def snapshot(
     reported_at: datetime,
     report_no: str = "",
     version: int = 0,
+    forward: ExternalDocument | None = None,
+    separately: Sequence[OrderTest] = (),
+    amended: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Everything the report prints for `tests`, signed by `signatory`. `pending` are the
-    visit's tests not yet signed off, listed with their expected time."""
+    visit's tests not yet signed off, listed with their expected time. With `forward` the
+    report is the cover for that outside document; `separately` are the outside tests that
+    have a report of their own; `amended` says which version this one corrects, and why."""
     branch = db.get_one(Branch, visit.branch_id)
     patient = db.get_one(Patient, visit.patient_id)
     referrer = db.get(Referrer, visit.referrer_id) if visit.referrer_id else None
@@ -196,23 +236,50 @@ def snapshot(
         (s.collected_at for s in samples.values() if s.collected_at), default=visit.visited_at
     )
     received = max((s.received_at for s in samples.values() if s.received_at), default=None)
-    panels = sorted((_panel(db, t, samples) for t in tests), key=lambda p: p["sort"])
+    outside = [t.id for t in tests if t.route == "external"]
+    if forward is not None:
+        documents = dict.fromkeys(outside, forward)
+    else:
+        documents = documents_of(db, outside)
+    panels = sorted(
+        (_panel(db, t, samples, documents.get(t.id), forward is not None) for t in tests),
+        key=lambda p: p["sort"],
+    )
+    attachments: dict[str, dict[str, Any]] = {}
+    for panel in panels:
+        if panel["attached"] is None or panel["outside"] is None:
+            continue
+        document = documents[uuid.UUID(panel["order_test_id"])]
+        entry = attachments.setdefault(
+            panel["attached"],
+            {
+                "document_id": panel["attached"],
+                "file_id": str(document.file_id),
+                "sha256": document.sha256,
+                "lab": panel["outside"]["lab"],
+                "tests": [],
+            },
+        )
+        entry["tests"].append(panel["name"])
+    listed = [*pending, *separately]
     names = (
         {
             t.id: name
             for t, name in db.execute(
                 select(OrderTest, CatalogTest.name)
                 .join(CatalogTest, CatalogTest.id == OrderTest.test_id)
-                .where(OrderTest.id.in_([p.id for p in pending]))
+                .where(OrderTest.id.in_([t.id for t in listed]))
             )
         }
-        if pending
+        if listed
         else {}
     )
     return {
         "schema": SCHEMA,
         "report_no": report_no,
         "version": version,
+        "title": FORWARD_TITLE if forward is not None else TITLE,
+        "amended": amended,
         "header": builtin_header(db, branch),
         "patient": {
             "name": " ".join(part for part in (patient.title, patient.full_name) if part),
@@ -233,6 +300,9 @@ def snapshot(
             {"name": names[t.id], "expected": when(t.due_at)}
             for t in sorted(pending, key=lambda t: (t.due_at, names[t.id]))
         ],
+        "separately": sorted(names[t.id] for t in separately),
+        # Frozen with the report, so every later copy adds the same pages.
+        "attachments": list(attachments.values()),
         "signatory": {
             "name": signatory.full_name,
             "qualification": signatory.qualification,
@@ -268,6 +338,7 @@ def view(content: dict[str, Any], options: Options, *, preview: bool = False) ->
         if lab["accession"]:
             line += f", accession {lab['accession']}"
         outside.append(line)
+    chosen = {p.get("attached") for p in panels} - {None}
     numbers = {p["nabl"] for p in panels}
     # Printed only when every test on this copy is in the scope of a NABL-accredited branch.
     nabl = ", ".join(sorted(numbers)) if panels and "" not in numbers else ""
@@ -279,6 +350,8 @@ def view(content: dict[str, Any], options: Options, *, preview: bool = False) ->
         reference = f"Report {content['report_no']} v{content['version']}"
     return {
         "preview": preview,
+        "title": content.get("title", TITLE),
+        "amended": content.get("amended"),
         "reference": reference,
         "header": content["header"],
         "patient": content["patient"],
@@ -292,6 +365,8 @@ def view(content: dict[str, Any], options: Options, *, preview: bool = False) ->
         "partial": bool(content["pending"]),
         "pending": content["pending"],
         "outside": outside,
+        "separately": content.get("separately", []),
+        "attachments": [a for a in content.get("attachments", []) if a["document_id"] in chosen],
         "research": any(p["research"] for p in panels),
         "selected": (
             f"Selected tests only: {len(panels)} of {len(every)} on this report"

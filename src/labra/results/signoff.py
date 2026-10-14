@@ -24,6 +24,7 @@ from labra.results.models import CriticalNotification, OrderTestEvent, Result, V
 from labra.results.worklist import (
     CRITICAL,
     EDITABLE,
+    SIGNED_OFF,
     Sheet,
     has_document,
     load_sheet,
@@ -252,13 +253,14 @@ def reopen(
     now: datetime | None = None,
 ) -> None:
     """Take back a sign-off so a value can be corrected. The test waits for verification
-    again, and every value changed from here on is kept with this reason."""
+    again, and every value changed from here on is kept with this reason. A released test
+    can be reopened too; its next release is marked amended, with this reason."""
     sheet = _locked(db, order_test_id, row_version)
     ordered = sheet.ordered
     if not principal.can("result.verify", ordered.perform_branch_id):
         raise PermissionDeniedError()
-    if ordered.status != "verified":
-        raise ConflictError("Only a verified test can be reopened. Reload the page.")
+    if ordered.status not in SIGNED_OFF:
+        raise ConflictError("Only a verified or released test can be reopened. Reload the page.")
     reason = reason.strip()
     if not reason:
         raise ValidationFailedError({"test": "Say why the test is being reopened."})

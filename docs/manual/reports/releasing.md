@@ -52,6 +52,40 @@ Under **Preview**, choose:
 
 Press **Open the preview**. The PDF opens in a new tab. Nothing is saved or numbered.
 
+## Outside lab results
+
+When the visit has a test done by an outside lab, the screen shows **Outside lab results**
+with a choice of how that lab's work reaches the patient. Choose before the first release
+and press **Save the choice**; after the first release it stays as it is.
+
+- **One report with every test** (the lab's setting, unless changed in
+  [Settings](../admin/settings.md)). The outside test is on the same report as the rest.
+  If its values were typed in, they print like any other test. If only the outside lab's
+  PDF was attached, the test reads "See the attached report from …", and the PDF's pages
+  follow the last page of the report.
+- **This lab's own report, plus each outside lab's PDF as a report of its own**. The
+  report carries this lab's tests and lists the outside ones under "Reported separately
+  by the outside lab". Each outside PDF appears under **Outside lab reports**:
+    1. Once every test on that PDF is verified, tick **Yes, release this lab's report under
+       a new number** and press **Release the … report**.
+    2. It gets the next report number: a cover page headed **Outside laboratory report**
+       with the patient and the tests, then the outside lab's pages.
+    3. If the outside lab sends a corrected PDF later, a signatory reopens its tests with
+       a reason, then the corrected PDF is attached, the tests are verified again, and the
+       release makes it the next version of that number, marked amended.
+
+    A PDF still waiting for its tests to be verified says how many are left. A test whose
+    PDF hasn't come yet is listed under **Waiting for the outside lab's PDF**.
+
+Labra copies only the pages of an outside PDF. Links, scripts, forms and files attached
+inside it are left out, so the report opens the same everywhere.
+
+## Corrections
+
+To correct a released test, a signatory reopens it in the lab with a reason. The next
+release lists it under **Corrected on this version** and is marked amended. See [Amended
+reports](amended.md).
+
 ## Screenshot
 
 <!-- screenshot: reports-releasing.png (taken with the demo data) -->
@@ -118,12 +152,19 @@ The last page has a QR code beside the signature.
 - A5 always uses the plain header with the lab name and address, inside smaller margins.
   A4 uses the branch's published [letterhead](../admin/letterhead-and-margins.md). A
   released report keeps the letterhead it was released with.
+- **An outside PDF with a password can't be added.** The release says so; ask the outside
+  lab for a copy without a password, attach it to the tests, and release again. A PDF
+  that only stops printing or copying is fine.
+- The pages of an outside PDF keep their own look and page numbers; **Page x of y** at the
+  bottom counts this lab's pages only.
 - Tests done at a branch where you aren't a signatory are not on your report; they stay
   pending until a signatory there releases the next version.
 
 ## Related pages
 
+- [Amended reports](amended.md)
 - [Entering results](../lab/entering-results.md)
+- [Outsourcing](../lab/outsourcing.md)
 - [Letterhead and margins](../admin/letterhead-and-margins.md)
 - [Catalog](../admin/catalog.md)
 - [Settings](../admin/settings.md)

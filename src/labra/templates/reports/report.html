@@ -39,9 +39,15 @@
 </div>
 {% if measure %}<div id="head-end"></div>{% else %}
 
-<h1 class="doc-title">Laboratory report</h1>
+<h1 class="doc-title">{{ report.title }}</h1>
 <p class="report-ref">{{ report.reference }}</p>
 {% if report.preview %}<p class="banner">PREVIEW: not released, not for the patient</p>{% endif %}
+{% if report.amended %}
+<div class="amended">
+  <p class="banner">AMENDED REPORT: supersedes v{{ report.amended.supersedes }}</p>
+  {% for line in report.amended.lines %}<p>{{ line }}</p>{% endfor %}
+</div>
+{% endif %}
 {% if report.partial %}<p class="banner">PARTIAL REPORT: some tests are still pending (listed at the end)</p>{% endif %}
 {% if report.selected %}<p class="selected">{{ report.selected }}</p>{% endif %}
 
@@ -65,6 +71,9 @@
       <tr class="columns"><th>Test</th><th>Result</th><th>Flag</th><th>Unit</th>{% if report.show_reference %}<th>Bio. ref. interval</th>{% endif %}</tr>
     </thead>
     <tbody>
+    {% if panel.attached and not part %}
+      <tr><td class="attached" colspan="{{ columns }}">See the attached report from {{ panel.outside.lab }}.</td></tr>
+    {% endif %}
     {% for row in panel.rows[bounds[part]:bounds[part + 1]] %}
       <tr id="split:{{ panel.key }}:{{ bounds[part] + loop.index0 }}">
         <td class="name">{{ row.name }}{% if row.calc %} (calc.){% endif %}{% if row.note %}<div class="note">{{ row.note }}</div>{% endif %}</td>
@@ -96,7 +105,11 @@
   {% if report.pending %}
   <p class="pending"><strong>Pending:</strong> {% for item in report.pending %}{{ item.name }} (expected {{ item.expected }}){% if not loop.last %}; {% endif %}{% endfor %}</p>
   {% endif %}
+  {% if report.separately %}
+  <p class="pending"><strong>Reported separately by the outside lab:</strong> {{ report.separately | join("; ") }}</p>
+  {% endif %}
   {% for line in report.outside %}<p class="footnote">* {{ line }}</p>{% endfor %}
+  {% for item in report.attachments %}<p class="footnote">Attached after the last page: the report from {{ item.lab }} for {{ item.tests | join(", ") }}.</p>{% endfor %}
   {% if report.research %}<p class="footnote">† For research use only; not for diagnosis or treatment.</p>{% endif %}
   {% if report.footer_text %}<p class="footnote">{{ report.footer_text }}</p>{% endif %}
 </div>

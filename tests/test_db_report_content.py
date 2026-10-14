@@ -245,6 +245,8 @@ def test_an_outside_test_is_marked_with_its_lab_and_a_research_test_is_flagged(
         in flat
     )
     assert "† For research use only" in flat
+    # A value was typed from the outside lab's PDF, so the PDF isn't added.
+    assert "See the attached" not in flat and "Attached after the last page" not in flat
     assert "PARTIAL" not in flat
     assert "NABL certificate no." not in flat
 

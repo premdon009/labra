@@ -20,6 +20,18 @@ from labra.web.templating import page, render
 router = APIRouter(prefix="/reports")
 public = APIRouter()
 
+MODE_LABELS = {
+    "combined": "One report with every test; an outside lab's PDF follows it when no values"
+    " were typed from it",
+    "separate": "This lab's own report, plus each outside lab's PDF as a report of its own",
+}
+
+KIND_LABELS = {
+    "combined": "Every test",
+    "in_house": "This lab's tests",
+    "external_forward": "An outside lab's PDF",
+}
+
 DB = Annotated[Session, Depends(get_session)]
 Releaser = Annotated[Principal, Depends(require("report.release"))]
 Viewer = Annotated[Principal, Depends(require("report.view"))]
@@ -51,6 +63,8 @@ def _visit_page(
         "reports/visit.html",
         {
             "planned": service.plan(db, principal, visit_id),
+            "modes": MODE_LABELS,
+            "kinds": KIND_LABELS,
             "versions": service.versions(db, visit_id),
             "papers": PAPERS,
             "chosen": service.options(db),
@@ -85,6 +99,40 @@ def release_report(
     except ValidationFailedError as exc:
         db.rollback()
         return _visit_page(request, db, principal, visit, exc.errors)
+    db.commit()
+    return RedirectResponse(f"/reports/visits/{visit}", status_code=303)
+
+
+@router.post("/visits/{visit_id}/forward/{document_id}")
+@page("reports/releasing", "reports/visit.html")
+def forward_report(
+    request: Request,
+    db: DB,
+    principal: Releaser,
+    visit_id: str,
+    document_id: str,
+    confirm: Annotated[str, Form()] = "",
+) -> Response:
+    """Release an outside lab's PDF as a report of its own (separate mode)."""
+    visit = as_uuid(visit_id)
+    store = get_platform().filestore
+    try:
+        release.forward(db, store, principal, visit, as_uuid(document_id), confirm == "yes")
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _visit_page(request, db, principal, visit, exc.errors)
+    db.commit()
+    return RedirectResponse(f"/reports/visits/{visit}", status_code=303)
+
+
+@router.post("/visits/{visit_id}/mode")
+@page("reports/releasing", "reports/visit.html")
+def report_mode(
+    db: DB, principal: Releaser, visit_id: str, mode: Annotated[str, Form()] = ""
+) -> Response:
+    """One report with every test, or the outside labs' PDFs as reports of their own."""
+    visit = as_uuid(visit_id)
+    service.set_mode(db, principal, visit, mode)
     db.commit()
     return RedirectResponse(f"/reports/visits/{visit}", status_code=303)
 

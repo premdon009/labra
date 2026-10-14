@@ -42,8 +42,10 @@ Only a signatory sees these buttons.
 1. Open the visit from the worklist. The line under each test says how many values are
    critical, high, low, abnormal and missing.
 2. Read the values, then press **Verify**.
-3. To correct a verified test, type the reason in **Reason for reopening** and press
-   **Reopen**. Correct the value, submit the test and verify it again.
+3. To correct a verified or released test, type the reason in **Reason for reopening**
+   and press **Reopen**. Correct the value, submit the test and verify it again. A
+   released test then goes out on the next version of its report, marked amended with
+   your reason. See [Amended reports](../reports/amended.md).
 4. To see the report these tests make, press **Report** at the top. See [Releasing
    reports](../reports/releasing.md).
 
@@ -89,8 +91,8 @@ Only a signatory sees these buttons.
   lab**. Submit it again.
 - A critical value can't be submitted or verified until you record who was informed. See
   [Critical values](critical-values.md).
-- A test that is verified can't be changed. A signatory must reopen it first. Labra keeps
-  each value as it was before the correction, with the reason.
+- A test that is verified or released can't be changed. A signatory must reopen it first.
+  Labra keeps each value as it was before the correction, with the reason.
 - An administrator can't verify. Verifying needs the signatory role.
 - Each outside lab in **Done at** shows what it charges, the margin left from what the
   patient paid for the test, and its turnaround time in hours. The cheapest lab is first.
@@ -117,6 +119,7 @@ Only a signatory sees these buttons.
 
 - [Lab worklist](worklist.md)
 - [Releasing reports](../reports/releasing.md)
+- [Amended reports](../reports/amended.md)
 - [Critical values](critical-values.md)
 - [Outsourcing](outsourcing.md)
 - [Calculated values](calculated-values.md)

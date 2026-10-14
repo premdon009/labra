@@ -64,6 +64,7 @@ def _panel(key: str, name: str, rows: list[dict[str, Any]], **extra: Any) -> dic
         "method": "",
         "research": False,
         "outside": None,
+        "attached": None,
         "rows": rows,
         "tiers": [],
         "critical": [],
@@ -75,6 +76,8 @@ def _report(name: str, referrer: str, departments: list[dict[str, Any]]) -> dict
     """A made-up report in the shape `labra.reports.content.view` gives the template."""
     return {
         "preview": False,
+        "title": "Laboratory report",
+        "amended": None,
         "reference": "Report B2/R/2627/000123 v1",
         "header": {
             "name": "Sample Diagnostics",
@@ -97,6 +100,8 @@ def _report(name: str, referrer: str, departments: list[dict[str, Any]]) -> dict
         "partial": False,
         "pending": [],
         "outside": [],
+        "separately": [],
+        "attachments": [],
         "research": False,
         "selected": "",
         "signatory": {

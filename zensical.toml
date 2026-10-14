@@ -52,6 +52,7 @@ nav = [
     ] },
     { "Reports" = [
       "manual/reports/releasing.md",
+      "manual/reports/amended.md",
     ] },
   ] },
   { "Developers" = [

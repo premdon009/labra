@@ -105,8 +105,10 @@ def test_a_release_numbers_stores_and_marks_the_tests_released(
     assert entry.action == "report.release"
     assert entry.detail == {
         "visit_id": str(visit.id),
+        "kind": "combined",
         "version": 1,
         "tests": ["hb", "lipid"],
+        "amended": [],
         "carried": 0,
         "partial": True,
     }
@@ -137,6 +139,8 @@ def test_the_next_release_is_a_new_version_carrying_every_test(
     assert first.status == "superseded"
     assert (second.report_no, second.version, second.status) == (first.report_no, 2, "released")
     assert second.supersedes_report_id == first.id and not second.is_partial
+    # More tests, nothing corrected: not an amendment.
+    assert second.amendment_reason == "" and second.content["amended"] is None
     assert len(lab.scalars(select(ReportTest).where(ReportTest.report_id == second.id)).all()) == 3
     assert service.current(lab, visit.id) == second
     assert [r.version for r, _ in service.versions(lab, visit.id)] == [2, 1]

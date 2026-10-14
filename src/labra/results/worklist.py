@@ -791,7 +791,7 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
         rows=rows(db, sheet, can_type),
         can_submit=ordered.status == "in_lab" and enters and not waiting_to_go,
         can_verify=ordered.status == "resulted" and verifies,
-        can_reopen=ordered.status == "verified" and verifies,
+        can_reopen=ordered.status in SIGNED_OFF and verifies,
         choices=route_choices(db, principal, sheet),
         lab_name=lab_name,
         external_cost=ordered.external_cost if margin is not None else None,

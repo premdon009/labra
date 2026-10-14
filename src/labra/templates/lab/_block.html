@@ -27,6 +27,7 @@
     <label for="reopen-{{ block.order_test_id }}">Reason for reopening</label>
     <input class="input" type="text" id="reopen-{{ block.order_test_id }}" name="reason" maxlength="300" required autocomplete="off" form="{{ act }}">
     <button type="submit" class="btn-sm-outline" form="{{ act }}" formaction="/lab/tests/{{ block.order_test_id }}/reopen">Reopen</button>
+    {% if block.status == 'released' %}<p class="muted">This test is on a released report. Its next release is marked amended, with this reason printed on it.</p>{% endif %}
   </div>
   {% endif %}
 </div>
