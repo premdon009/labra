@@ -1,0 +1,5 @@
+<nav class="form-actions" aria-label="Owner reports">
+  {% for path, label in [('/owner/daily', 'Daily figures'), ('/owner/dues', 'Dues'), ('/owner/pending', 'Pending tests'), ('/owner/outsourcing', 'Outsourcing')] %}
+  <a class="{{ 'btn' if request.url.path == path else 'btn-outline' }}" href="{{ path }}" {% if request.url.path == path %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>

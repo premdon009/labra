@@ -49,8 +49,8 @@ works here**. Their name stays on the records they made.
 
 | Role | What it allows |
 |---|---|
-| Administrator | Everything, at every branch: branches, staff, settings, audit log |
-| Branch manager | Everything front desk can do, plus cancel bills, see the branch and its settings, and change the per-branch settings |
+| Administrator | Everything, at every branch: branches, staff, settings, audit log, owner figures |
+| Branch manager | Everything front desk can do, plus cancel bills, see the branch and its settings, change the per-branch settings, and see the branch's owner figures |
 | Front desk | Find and register patients, keep the referrer list, book visits, print labels, mark samples as collected, see bills and take payments |
 | Phlebotomist | Mark samples as collected |
 | Technician | Work at the branch |

@@ -82,6 +82,8 @@ Every feature Labra has, and the manual page that explains it.
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Staff and roles](admin/users-and-roles.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Entering results](lab/entering-results.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Releasing reports](reports/releasing.md) |
+| M13 | Reports for the owner | [Daily figures](owner/daily-collection.md) |
+| M13 | Reports for the owner | [Dues, pending tests and outsourcing](owner/dues-pending-outsourcing.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |

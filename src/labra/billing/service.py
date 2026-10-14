@@ -410,10 +410,13 @@ def bill_page(
     return page_of(db, stmt.order_by(Bill.bill_date.desc(), Bill.issued_at.desc(), Bill.id), page)
 
 
-def dues_page(db: Session, principal: Principal, page: int) -> Page[Bill]:
-    """Bills with money still to collect, the oldest first."""
+def dues_page(
+    db: Session, principal: Principal, page: int, permission: str = "bill.view"
+) -> Page[Bill]:
+    """Bills with money still to collect at the branches where the user holds `permission`,
+    the oldest first."""
     stmt = select(Bill).where(
-        Bill.branch_id.in_(principal.branches_with("bill.view")), Bill.status == "open"
+        Bill.branch_id.in_(principal.branches_with(permission)), Bill.status == "open"
     )
     return page_of(db, stmt.order_by(Bill.bill_date, Bill.issued_at, Bill.id), page)
 

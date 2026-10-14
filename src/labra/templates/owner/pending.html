@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Pending tests{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Pending tests</h1></div>
+{% include "owner/_tabs.html" %}
+{% if branches|length > 1 %}
+<form method="get" action="/owner/pending" class="search-row">
+  {% include "owner/_branch.html" %}
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+{% endif %}
+<p class="muted">Tests not yet verified, the most overdue first.</p>
+<table class="table">
+  <thead><tr><th>Promised by</th><th>Visit</th><th>Patient</th><th>Test</th><th>Where it is</th><th>Done at</th></tr></thead>
+  <tbody>
+    {% for t in tests.items %}
+    <tr>
+      <td>{% if t.overdue %}<strong>{{ t.due_at|local_time }} · overdue</strong>{% else %}{{ t.due_at|local_time }}{% endif %}</td>
+      <td><a href="/frontdesk/visits/{{ t.visit_id }}">{{ t.visit_no }}</a></td>
+      <td>{{ t.patient }}</td>
+      <td>{{ t.test }}</td>
+      <td>{{ statuses[t.status] }}</td>
+      <td>{{ t.branch }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">Nothing is pending.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(tests, request) }}
+{% endblock %}

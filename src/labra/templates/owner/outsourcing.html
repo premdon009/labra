@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import money_head %}
+{% block title %}Outsourcing margin{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Outsourcing margin</h1></div>
+{% include "owner/_tabs.html" %}
+<form method="get" action="/owner/outsourcing" class="search-row">
+  <div class="field-row"><label class="label" for="f-from">From</label><input class="input" type="date" id="f-from" name="from" value="{{ start }}"></div>
+  <div class="field-row"><label class="label" for="f-to">To</label><input class="input" type="date" id="f-to" name="to" value="{{ end }}"></div>
+  {% include "owner/_branch.html" %}
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+<table class="table">
+  <thead><tr><th scope="col">Outside lab</th><th scope="col" class="num">Tests</th><th scope="col" class="num">{{ money_head('Cost', fmt) }}</th><th scope="col" class="num">{{ money_head('Charged', fmt) }}</th><th scope="col" class="num">{{ money_head('Margin', fmt) }}</th><th scope="col" class="num">Margin %</th></tr></thead>
+  <tbody>
+    {% for line in lines %}
+    <tr>
+      <th scope="row">{{ line.lab }}</th>
+      <td class="num">{{ line.figures.tests }}</td>
+      <td class="num">{{ line.figures.cost|money(fmt, column=True) }}</td>
+      <td class="num">{{ line.figures.revenue|money(fmt, column=True) }}</td>
+      <td class="num">{{ line.figures.margin|money(fmt, column=True) }}</td>
+      <td class="num">{{ line.figures.percent if line.figures.percent is not none else '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">No tests were sent out between these dates.</td></tr>
+    {% endfor %}
+  </tbody>
+  {% if lines %}
+  <tfoot>
+    <tr>
+      <th scope="row">All outside labs</th>
+      <td class="num"><strong>{{ total.tests }}</strong></td>
+      <td class="num"><strong>{{ total.cost|money(fmt, column=True) }}</strong></td>
+      <td class="num"><strong>{{ total.revenue|money(fmt, column=True) }}</strong></td>
+      <td class="num"><strong>{{ total.margin|money(fmt, column=True) }}</strong></td>
+      <td class="num"><strong>{{ total.percent if total.percent is not none else '' }}</strong></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+{% endblock %}

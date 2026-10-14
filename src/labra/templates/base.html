@@ -35,6 +35,9 @@
       {% if principal.branches_with('report.view') %}
       <a href="/reports" {% if request.url.path.startswith('/reports') %}aria-current="page"{% endif %}>Reports</a>
       {% endif %}
+      {% if principal.branches_with('owner.reports') %}
+      <a href="/owner/daily" {% if request.url.path.startswith('/owner') %}aria-current="page"{% endif %}>Owner figures</a>
+      {% endif %}
       {% if principal.can('result.enter', principal.branch_id) or principal.can('sample.receive', principal.branch_id) or principal.can('test.route', principal.branch_id) %}
       <span class="nav-group">Lab</span>
       {% endif %}

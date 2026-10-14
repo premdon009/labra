@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, money_head %}
+{% block title %}Dues{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Dues</h1></div>
+{% include "owner/_tabs.html" %}
+<p class="muted">Bills with money still to collect at your branches, the oldest first.</p>
+<table class="table">
+  <thead><tr><th>Bill number</th><th>Date</th><th>Branch</th><th>Patient</th><th class="num">{{ money_head('Net', fmt) }}</th><th class="num">{{ money_head('Paid', fmt) }}</th><th class="num">{{ money_head('Due', fmt) }}</th></tr></thead>
+  <tbody>
+    {% for b in bills.items %}
+    <tr>
+      <td><a href="/frontdesk/visits/{{ b.visit_id }}">{{ b.bill_no }}</a></td>
+      <td>{{ b.bill_date.strftime('%d %b %Y') }}</td>
+      <td>{{ names[b.branch_id] }}</td>
+      <td>{{ b.recipient_name }}</td>
+      <td class="num">{{ b.net|money(fmt, column=True) }}</td>
+      <td class="num">{{ b.paid|money(fmt, column=True) }}</td>
+      <td class="num">{{ (b.net - b.paid)|money(fmt, column=True) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Nothing is due. Every bill is paid.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{{ pager(bills, request) }}
+{% endblock %}

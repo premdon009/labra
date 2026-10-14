@@ -58,6 +58,10 @@ nav = [
       "manual/reports/print-vs-digital.md",
       "manual/reports/delivery.md",
     ] },
+    { "Owner" = [
+      "manual/owner/daily-collection.md",
+      "manual/owner/dues-pending-outsourcing.md",
+    ] },
   ] },
   { "Developers" = [
     "dev/setup.md",

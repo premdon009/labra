@@ -148,6 +148,7 @@ source_modules = [
     "labra.results",
     "labra.printing",
     "labra.reports",
+    "labra.owner",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
@@ -170,6 +171,7 @@ forbidden_modules = [
     "labra.results",
     "labra.printing",
     "labra.reports",
+    "labra.owner",
     "labra.web",
 ]
 
@@ -189,6 +191,12 @@ containers = [
     "labra.reports",
 ]
 layers = ["routes", "service", "models"]
+
+[[tool.importlinter.contracts]]
+name = "Owner figure layers (no tables of its own)"
+type = "layers"
+containers = ["labra.owner"]
+layers = ["routes", "service"]
 
 [[tool.importlinter.contracts]]
 name = "The front desk and external labs don't depend on the lab bench"
@@ -213,6 +221,20 @@ source_modules = [
     "labra.results",
 ]
 forbidden_modules = ["labra.reports"]
+
+[[tool.importlinter.contracts]]
+name = "The owner's figures sit on top: nothing else depends on them"
+type = "forbidden"
+source_modules = [
+    "labra.patients",
+    "labra.visits",
+    "labra.billing",
+    "labra.extlabs",
+    "labra.results",
+    "labra.printing",
+    "labra.reports",
+]
+forbidden_modules = ["labra.owner"]
 
 [[tool.importlinter.contracts]]
 name = "PDF, image and QR libraries are used only in the printing package"

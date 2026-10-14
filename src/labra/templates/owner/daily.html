@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import money_head %}
+{% block title %}Daily figures{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Daily figures <span class="muted">{{ d.day.strftime('%d %b %Y') }}</span></h1></div>
+{% include "owner/_tabs.html" %}
+<form method="get" action="/owner/daily" class="search-row">
+  <div class="field-row"><label class="label" for="f-date">Date</label><input class="input" type="date" id="f-date" name="date" value="{{ day }}"></div>
+  {% include "owner/_branch.html" %}
+  <button type="submit" class="btn-outline">Show</button>
+</form>
+
+<section aria-labelledby="h-collection">
+  <h2 id="h-collection">Collection</h2>
+  <table class="table">
+    <thead><tr><th scope="col">Branch</th>{% for m in d.modes %}<th scope="col" class="num">{{ money_head(modes[m], fmt) }}</th>{% endfor %}<th scope="col" class="num">{{ money_head('Refunds', fmt) }}</th><th scope="col" class="num">{{ money_head('Net', fmt) }}</th></tr></thead>
+    <tbody>
+      {% for c in d.collection %}
+      <tr><th scope="row">{{ c.branch }}</th>{% for m in d.modes %}<td class="num">{{ c.modes[m]|money(fmt, column=True) }}</td>{% endfor %}<td class="num">{{ c.refunds|money(fmt, column=True) }}</td><td class="num">{{ c.net|money(fmt, column=True) }}</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if d.collection|length > 1 %}
+    <tfoot>
+      <tr><th scope="row">{{ d.total.branch }}</th>{% for m in d.modes %}<td class="num"><strong>{{ d.total.modes[m]|money(fmt, column=True) }}</strong></td>{% endfor %}<td class="num"><strong>{{ d.total.refunds|money(fmt, column=True) }}</strong></td><td class="num"><strong>{{ d.total.net|money(fmt, column=True) }}</strong></td></tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</section>
+
+<section aria-labelledby="h-bills">
+  <h2 id="h-bills">Bills</h2>
+  <table class="table">
+    <tbody>
+      <tr><th scope="row">Bills issued</th><td class="num">{{ d.bills }}</td></tr>
+      <tr><th scope="row">Gross</th><td class="num">{{ d.gross|money(fmt) }}</td></tr>
+      <tr><th scope="row">Discount</th><td class="num">{{ d.discount|money(fmt) }}</td></tr>
+      <tr><th scope="row">Net</th><td class="num">{{ d.net|money(fmt) }}</td></tr>
+      <tr><th scope="row">Cancelled that day</th><td class="num">{{ d.cancelled }} · {{ d.cancelled_net|money(fmt) }}</td></tr>
+      <tr><th scope="row">Owed at the end of the day</th><td class="num">{{ d.dues_bills }} bill{{ '' if d.dues_bills == 1 else 's' }} · {{ d.dues|money(fmt) }} <a href="/owner/dues">See dues</a></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="h-out">
+  <h2 id="h-out">Sent to outside labs</h2>
+  <table class="table">
+    <tbody>
+      <tr><th scope="row">Tests sent</th><td class="num">{{ d.outsourced.tests }}</td></tr>
+      <tr><th scope="row">Cost</th><td class="num">{{ d.outsourced.cost|money(fmt) }}</td></tr>
+      <tr><th scope="row">Charged to patients</th><td class="num">{{ d.outsourced.revenue|money(fmt) }}</td></tr>
+      <tr><th scope="row">Margin</th><td class="num">{{ d.outsourced.margin|money(fmt) }}{% if d.outsourced.percent is not none %} ({{ d.outsourced.percent }}%){% endif %}</td></tr>
+    </tbody>
+  </table>
+  <p><a href="/owner/outsourcing">Margin by outside lab</a></p>
+</section>
+
+<section aria-labelledby="h-pending">
+  <h2 id="h-pending">Tests now</h2>
+  <p>{{ d.pending }} test{{ ' is' if d.pending == 1 else 's are' }} still being worked on{% if d.overdue %}, <strong>{{ d.overdue }} of them past their promised time</strong>{% endif %}. <a href="/owner/pending">See them</a></p>
+</section>
+{% endblock %}
