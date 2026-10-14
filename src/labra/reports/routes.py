@@ -10,13 +10,15 @@ from labra.auth.principal import Principal
 from labra.core.currency import load_format
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
+from labra.core.ids import lab_today
 from labra.core.lab_settings import get_value
 from labra.core.registry import get_platform
-from labra.reports import delivery, release, service, verify
+from labra.patients.age import age_text
+from labra.reports import delivery, history, release, service, verify
 from labra.reports.content import PAPERS
 from labra.web.documents import pdf_inline
-from labra.web.forms import as_uuid
-from labra.web.labels import TEST_STATUS_LABELS
+from labra.web.forms import as_uuid, page_no
+from labra.web.labels import SEX_LABELS, TEST_STATUS_LABELS
 from labra.web.templating import page, render
 
 router = APIRouter(prefix="/reports")
@@ -281,3 +283,21 @@ def check_page(request: Request, db: DB, token: str) -> Response:
     response.headers["cache-control"] = "no-store"
     response.headers["x-robots-tag"] = "noindex, nofollow"
     return response
+
+
+@router.get("/patients/{patient_id}", response_class=HTMLResponse)
+@page("frontdesk/patient-history", "reports/history.html")
+def patient_history(
+    request: Request, db: DB, principal: Viewer, patient_id: str, page: str = "1"
+) -> Response:
+    found = history.history(db, principal, as_uuid(patient_id), page_no(page))
+    return render(
+        request,
+        "reports/history.html",
+        {
+            "h": found,
+            "age": age_text(found.patient.dob, lab_today()),
+            "sexes": SEX_LABELS,
+            "statuses": TEST_STATUS_LABELS,
+        },
+    )

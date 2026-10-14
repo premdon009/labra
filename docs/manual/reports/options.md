@@ -40,9 +40,13 @@ which tests are on the copy.
 - A5 always uses the plain header with the lab name and address, inside smaller margins.
 - The method printed for each test is the one chosen on the result grid in the lab (see
   [Entering results](../lab/entering-results.md)); it can't be changed on a copy.
+- The barcode in the report's header holds the visit number. Scan it into **Phone, patient
+  or visit number, or name** on [Find patient](../frontdesk/find-patient.md) and Labra opens
+  that visit.
 
 ## Related pages
 
 - [Print or send](print-vs-digital.md)
 - [Releasing reports](releasing.md)
 - [Settings](../admin/settings.md)
+- [Find or register a patient](../frontdesk/find-patient.md)

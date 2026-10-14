@@ -6,9 +6,13 @@
   <h1>Find patient</h1>
   {% if can_edit %}<a class="btn" href="/frontdesk/patients/new">Register patient</a>{% endif %}
 </div>
-<form method="get" action="/frontdesk/patients" class="form-actions" role="search">
-  <label class="label" for="f-q">Phone, patient number or name</label>
-  <input class="input" type="search" id="f-q" name="q" value="{{ q }}" autofocus>
+<form method="get" action="/frontdesk/patients" class="search-row" role="search">
+  <div class="field-row"><label class="label" for="f-q">Phone, patient or visit number, or name</label>
+    <input class="input" type="search" id="f-q" name="q" value="{{ q }}" autofocus></div>
+  <div class="field-row"><label class="label" for="f-area">Address, city or PIN</label>
+    <input class="input" type="search" id="f-area" name="area" value="{{ area }}"></div>
+  <div class="field-row"><label class="label" for="f-from">Visited from</label><input class="input" type="date" id="f-from" name="visited_from" value="{{ visited_from }}"></div>
+  <div class="field-row"><label class="label" for="f-to">Visited to</label><input class="input" type="date" id="f-to" name="visited_to" value="{{ visited_to }}"></div>
   <button type="submit" class="btn-outline">Find</button>
 </form>
 <table class="table">
@@ -20,10 +24,10 @@
       <td>{{ (p.title ~ ' ' if p.title else '') ~ p.full_name }}</td>
       <td>{{ ages[p.id] }}{% if p.dob_is_estimated %} (about){% endif %} / {{ sexes[p.sex] }}</td>
       <td>{{ p.phone }}</td>
-      <td>{% if can_edit %}<a href="/frontdesk/patients/{{ p.id }}">Edit</a>{% endif %}</td>
+      <td>{% if can_edit %}<a href="/frontdesk/patients/{{ p.id }}">Edit</a>{% endif %}{% if can_edit and can_history %} · {% endif %}{% if can_history %}<a href="/reports/patients/{{ p.id }}">History</a>{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="5">{{ 'No patient matches that search.' if q else 'No patients yet.' }}</td></tr>
+    <tr><td colspan="5">{{ 'No patient matches that search.' if q or area or visited_from or visited_to else 'No patients yet.' }}</td></tr>
     {% endfor %}
   </tbody>
 </table>

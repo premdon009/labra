@@ -71,3 +71,4 @@ hand-over, for every version of the report number:
 - [Report options](options.md)
 - [Releasing reports](releasing.md)
 - [Dues and payments](../frontdesk/dues-and-payments.md)
+- [Patient history](../frontdesk/patient-history.md)

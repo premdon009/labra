@@ -31,10 +31,25 @@ def patients(
     db: DB,
     principal: Annotated[Principal, Depends(require("patient.view"))],
     q: str = "",
+    area: str = "",
+    visited_from: str = "",
+    visited_to: str = "",
     page: str = "1",
 ) -> Response:
+    # A visit number, as the barcode on a report scans it, opens that visit.
+    visit_id = service.visit_by_number(db, principal, q)
+    if visit_id is not None:
+        return RedirectResponse(f"/frontdesk/visits/{visit_id}", status_code=303)
     today = lab_today()
-    found = service.find_patients(db, principal, q, page_no(page))
+    found = service.find_patients(
+        db,
+        principal,
+        q,
+        page_no(page),
+        area=area,
+        visited_from=day(visited_from),
+        visited_to=day(visited_to),
+    )
     return render(
         request,
         "frontdesk/patients.html",
@@ -42,8 +57,12 @@ def patients(
             "patients": found,
             "ages": {p.id: age_text(p.dob, today) for p in found.items},
             "q": q,
+            "area": area,
+            "visited_from": visited_from,
+            "visited_to": visited_to,
             "sexes": SEX_LABELS,
             "can_edit": principal.can("patient.edit"),
+            "can_history": bool(principal.branches_with("report.view")),
         },
     )
 

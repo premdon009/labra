@@ -92,7 +92,10 @@ Every feature Labra has, and the manual page that explains it.
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
+| M19 | Patient history and cumulative results | [Find or register a patient](frontdesk/find-patient.md) |
+| M19 | Patient history and cumulative results | [Patient history](frontdesk/patient-history.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Settings](admin/settings.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Find or register a patient](frontdesk/find-patient.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Entering results](lab/entering-results.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Handing over reports](reports/delivery.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Report options](reports/options.md) |

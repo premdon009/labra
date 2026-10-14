@@ -37,6 +37,7 @@ nav = [
     { "Front desk" = [
       "manual/frontdesk/new-visit.md",
       "manual/frontdesk/find-patient.md",
+      "manual/frontdesk/patient-history.md",
       "manual/frontdesk/referrers.md",
       "manual/frontdesk/labels.md",
       "manual/frontdesk/bills-and-receipts.md",

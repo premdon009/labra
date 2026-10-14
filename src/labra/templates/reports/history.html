@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}History · {{ h.patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>History <span class="muted">{{ h.patient.full_name }} · {{ h.patient.patient_no }} · {{ age }} / {{ sexes[h.patient.sex] }}</span></h1>
+</div>
+
+<section aria-labelledby="h-results">
+  <h2 id="h-results">Results side by side</h2>
+  {% if h.rows %}
+  <div class="table-scroll">
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Test</th><th scope="col">Unit</th>
+        {% for line in h.visits.items %}<th scope="col" class="num">{{ line.visit.visited_at|local_time("%d %b %Y") }}<br><span class="muted">{{ line.visit.visit_no }}</span></th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in h.rows %}
+      <tr>
+        <th scope="row">{{ row.test }}{% if row.parameter != row.test %}: {{ row.parameter }}{% endif %}</th>
+        <td>{{ row.unit }}</td>
+        {% for cell in row.cells %}
+        <td class="num">{% if cell %}{% if cell.flag %}<strong>{{ cell.value }} {{ cell.flag }}</strong>{% else %}{{ cell.value }}{% endif %}{% endif %}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p>No verified results on these visits yet.</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="h-visits">
+  <h2 id="h-visits">Visits</h2>
+  <table class="table">
+    <thead><tr><th>Visit</th><th>Date</th><th>Branch</th><th>Tests</th><th>Reports</th></tr></thead>
+    <tbody>
+      {% for line in h.visits.items %}
+      <tr>
+        <td>{{ line.visit.visit_no }}</td>
+        <td>{{ line.visit.visited_at|local_time("%d %b %Y") }}</td>
+        <td>{{ line.branch }}</td>
+        <td>{% for name, status in line.tests %}{{ name }} <span class="muted">({{ statuses[status] }})</span>{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+        <td>{% for report in line.reports %}<a href="/reports/{{ report.id }}">{{ report.report_no }} v{{ report.version }}</a>{% if report.status != 'released' %} <span class="muted">superseded</span>{% endif %}{% if not loop.last %}<br>{% endif %}{% else %}<span class="muted">None yet</span>{% endfor %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No visits you can see.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {{ pager(h.visits, request) }}
+</section>
+{% endblock %}

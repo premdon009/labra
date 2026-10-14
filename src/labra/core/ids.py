@@ -27,3 +27,8 @@ def utcnow() -> datetime:
 def lab_today() -> date:
     """Today's date in India: financial years and daily numbers turn over at IST midnight."""
     return datetime.now(IST).date()
+
+
+def day_start(day: date) -> datetime:
+    """IST midnight at the start of `day`: a lab day runs from one to the next."""
+    return datetime.combine(day, datetime.min.time(), tzinfo=IST)

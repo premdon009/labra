@@ -8,7 +8,7 @@ branch's patient.
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ from labra.auth.principal import Principal
 from labra.core import audit
 from labra.core.dialect import similar, similarity
 from labra.core.errors import NotFoundError, PermissionDeniedError, ValidationFailedError
-from labra.core.ids import lab_today
+from labra.core.ids import day_start, lab_today
 from labra.core.numbering import next_number
 from labra.core.paging import Page, page_of
 from labra.org.models import Branch
@@ -136,11 +136,54 @@ def _visible(principal: Principal) -> ColumnElement[bool]:
     )
 
 
-def find_patients(db: Session, principal: Principal, q: str, page: int) -> Page[Patient]:
+def visit_by_number(db: Session, principal: Principal, q: str) -> uuid.UUID | None:
+    """The visit whose number is exactly `q`, as the report barcode scans it, when it is at a
+    branch where the user can see visits."""
+    q = q.strip().upper()
+    if "/" not in q:
+        return None
+    return db.scalar(
+        select(Visit.id).where(
+            Visit.visit_no == q, Visit.branch_id.in_(principal.branches_with("visit.view"))
+        )
+    )
+
+
+def find_patients(
+    db: Session,
+    principal: Principal,
+    q: str,
+    page: int,
+    *,
+    area: str = "",
+    visited_from: date | None = None,
+    visited_to: date | None = None,
+) -> Page[Patient]:
     """By phone (or its first digits), patient number, or name, spelling variants included.
-    With nothing typed, the newest registrations come first."""
+    `area` narrows to an address, city or PIN code containing it; the dates to patients
+    who visited one of the user's branches between them. With nothing typed, the newest
+    registrations come first."""
     q = " ".join(q.split())
     stmt = select(Patient).where(_visible(principal))
+    area = " ".join(area.split())
+    if area:
+        stmt = stmt.where(
+            or_(
+                Patient.address.icontains(area, autoescape=True),
+                Patient.city.icontains(area, autoescape=True),
+                Patient.pincode.startswith(area, autoescape=True),
+            )
+        )
+    if visited_from is not None or visited_to is not None:
+        visited = [
+            Visit.patient_id == Patient.id,
+            Visit.branch_id.in_(principal.branches_with("patient.view")),
+        ]
+        if visited_from is not None:
+            visited.append(Visit.visited_at >= day_start(visited_from))
+        if visited_to is not None:
+            visited.append(Visit.visited_at < day_start(visited_to + timedelta(days=1)))
+        stmt = stmt.where(exists().where(*visited))
     if not q:
         stmt = stmt.order_by(Patient.created_at.desc(), Patient.id)
     elif q.isdigit():
