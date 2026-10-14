@@ -29,6 +29,7 @@ Every feature, work item and checklist item has a **permanent ID**. The one plac
    - an ID used in docs or commits but missing here
    - a `done` row without a date and PR
    - an old ID that was removed or renumbered
+   - a status row or progress line in any other doc (statuses live only in `docs/TRACKER.md`)
 
    It also rewrites the progress line and the checklist counts, so nobody counts by hand.
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.

@@ -27,12 +27,13 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
    - an ID used in docs or commits but missing here
    - a `done` row without a date and PR
    - an old ID that was removed or renumbered
+   - a status row or progress line in any other doc (statuses live only in `docs/TRACKER.md`)
 
    It also rewrites the progress line and the checklist counts, so nobody counts by hand.
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 11/22 · Minimal 32/42 · After pilot (P2) 1/10 · Checklist gate P 28/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 12/22 · Minimal 32/42 · After pilot (P2) 1/10 · Checklist gate P 28/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -62,7 +63,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W19 | Edge alternatives: nginx for Caddy, Tailscale/Headscale and NetBird profiles for Cloudflare Tunnel, WireGuard documented (§19.2) | P | doing | nginx 16/16 checks; tunnel logins need real keys; CI matrix unrun |
 | ~~W20~~ | ~~Service swap register, gate and database seam: `docs/dev/services.md` lists every replaceable part (database server and driver, identity, files, errors, heartbeats, mail, logs, metrics, health, web proxy, remote access, container runtime, image builder, backups, PDF engine, UI assets, barcode, money formatting) with its default, alternatives, the setting that selects it and the test that proves the swap, or a tracker row or ADR; `scripts/check_services.py` fails when a port, entry point, setting, Compose service or vendored asset has no row, a row has no proof, or Postgres-only code sits outside `labra.core.dialect`; PostgreSQL family supported, second engine X40, second driver X44 (ADR-0008, §17.6, §19.2)~~ | P2 | done | 2026-10-14 · 34004e4 |
 | ~~W21~~ | ~~Minimum release age: no dependency version younger than 7 days (uv `exclude-newer`), `scripts/audit_deps.py --check` fails on a younger Python package, Action, image or vendored file unless an Age exceptions row names a published advisory (§19.1)~~ | P | done | 2026-10-14 · a5a1e67 |
-| W22 | One status copy: plan §0 keeps the ID scheme and rules, its stale status tables and progress line are removed, and `scripts/check_tracker.py` fails on a status row or progress line in any doc other than `docs/TRACKER.md` | P | doing | |
+| ~~W22~~ | ~~One status copy: plan §0 keeps the ID scheme and rules, its stale status tables and progress line are removed, and `scripts/check_tracker.py` fails on a status row or progress line in any doc other than `docs/TRACKER.md`~~ | P | done | 2026-10-14 · d119e52 |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

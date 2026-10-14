@@ -8,7 +8,8 @@
 Rules: IDs are unique; statuses are known; `done` rows are struck through with a date
 and a PR or commit; `blocked`/`dropped` rows give a reason; every ID used in docs,
 tests or branch commits exists; no ID that exists on master has been removed; every
-commit on the branch carries an ID.
+commit on the branch carries an ID; no other doc keeps a copy of the status rows or the
+progress line.
 """
 
 from __future__ import annotations
@@ -151,6 +152,31 @@ def check_references(known: set[str]) -> list[str]:
     return sorted(set(problems))
 
 
+def status_copies(rel: str, text: str) -> list[str]:
+    """Status rows or a progress line outside TRACKER.md: a second copy only goes stale."""
+    problems = [
+        f"{rel}:{r.line}: {r.id} has a status row; statuses live only in TRACKER.md"
+        for r in parse_tracker(text)
+        if r.status in STATUSES
+    ]
+    for m in PROGRESS_RE.finditer(text):
+        n = text.count("\n", 0, m.start()) + 1
+        problems.append(f"{rel}:{n}: progress line; it lives only in TRACKER.md")
+    return problems
+
+
+def check_copies() -> list[str]:
+    problems = []
+    for pattern in SCANNED:
+        for path in sorted(ROOT.glob(pattern)):
+            rel = path.relative_to(ROOT).as_posix()
+            if rel.startswith(NOT_SCANNED) or path == TRACKER or path.suffix != ".md":
+                continue
+            if path.is_file():
+                problems += status_copies(rel, path.read_text(encoding="utf-8"))
+    return sorted(set(problems))
+
+
 def check_history(known: set[str]) -> list[str]:
     base = base_ref()
     if base is None:
@@ -265,7 +291,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.tag:
         problems = check_tag(args.tag, rows, checks)
     else:
-        problems = check_rows(rows, checks) + check_references(known) + check_history(known)
+        problems = (
+            check_rows(rows, checks)
+            + check_references(known)
+            + check_copies()
+            + check_history(known)
+        )
         fresh = rewrite_counts(tracker_text, rows, checks)
         if fresh != tracker_text:
             if args.write:

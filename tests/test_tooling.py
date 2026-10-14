@@ -107,6 +107,37 @@ def test_tracker_problems_found() -> None:
     assert "R01" not in problems
 
 
+PLAN_WITH_A_COPY = """\
+## 0. Master tracker
+**Progress** (maintained by the script): Work 0/15 · Minimal 0/33
+
+| ID | Item | Gate | Status | Done (date · PR) |
+|---|---|---|---|---|
+| M01 | Login and roles | P | todo | |
+| ~~W01~~ | ~~Repo scaffold~~ | P | done | 2026-10-09 · abc1234 |
+
+| ID | Area | Feature | Where |
+|---|---|---|---|
+| M07 | Billing | Bill of supply | Row 7 |
+"""
+
+
+@pytest.mark.item("W22")
+def test_status_copy_outside_the_tracker_is_refused() -> None:
+    tracker = _script("check_tracker")
+    problems = tracker.status_copies("docs/design/plan.md", PLAN_WITH_A_COPY)
+    assert problems == [
+        "docs/design/plan.md:6: M01 has a status row; statuses live only in TRACKER.md",
+        "docs/design/plan.md:7: W01 has a status row; statuses live only in TRACKER.md",
+        "docs/design/plan.md:2: progress line; it lives only in TRACKER.md",
+    ]
+
+
+@pytest.mark.item("W22")
+def test_repo_docs_keep_no_status_copy() -> None:
+    assert _script("check_tracker").check_copies() == []
+
+
 @pytest.mark.item("W08.1")
 @pytest.mark.parametrize(
     ("subject", "ok"),
