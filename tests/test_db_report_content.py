@@ -39,6 +39,12 @@ MM = 72 / 25.4
 def lab(db: Session, platform: Platform) -> Session:
     """The demo cast and starter catalog, lipid and haemoglobin ranges approved."""
     seed(db, platform.identity, SEED_DAY, with_catalog=True)
+    return _ready(db, platform)
+
+
+def _ready(db: Session, platform: Platform) -> Session:
+    """On a seeded database: lipid and haemoglobin ranges approved, prices for haemoglobin
+    and TSH, and the signatory's qualification and registration number."""
     _approve(db, platform, "lipid")
     _approve(db, platform, "hb")
     anil = as_user(db, platform, "anil")

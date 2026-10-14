@@ -50,7 +50,9 @@ Another CI system sets `LABRA_CI_LOGS` to a directory outside the checkout and c
 ## Tests and Docker
 Tests that need Postgres are marked `db` and start a `postgres:18` container through testcontainers. When Docker isn't reachable they're **skipped with a reason**, and the gate reports the test stage as `WARN`, never `PASS`.
 
-One test, marked `e2e`, drives the front desk in a real browser with the keyboard. Install its browser once with `uv run playwright install chromium`. Without it the test is skipped with the reason "no browser for e2e tests" and the test stage is `WARN`.
+The tests marked `e2e` drive a working day in a real browser with the keyboard: the front desk, the lab bench, and the report from release to hand-over and the owner's figures. Install the browser once with `uv run playwright install chromium`. Without it the test is skipped with the reason "no browser for e2e tests" and the test stage is `WARN`.
+
+`tests/test_db_pdf_snapshots.py` keeps the words of a 3-page report and of a bill, with their positions, in `tests/goldens/`. After a deliberate change to a PDF template or its CSS, write them again with `LABRA_WRITE_GOLDENS=1 uv run pytest tests/test_db_pdf_snapshots.py` and review the JSON diff before committing it.
 
 On Windows with WSL: turn on *Settings ▸ Resources ▸ WSL integration* in Docker Desktop for your distribution, so `docker` inside WSL talks to the Docker Desktop engine.
 
