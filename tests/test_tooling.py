@@ -637,3 +637,39 @@ def test_pytest_summary_starts_a_history(tmp_path: Path) -> None:
         "run\tcommit\ttest\toutcome",
         "20261007T090000Z\tunknown\t*\trun",
     ]
+
+
+@pytest.mark.item("W08")
+def test_ci_local_prunes_same_second_runs_in_start_order(tmp_path: Path) -> None:
+    same = [
+        tmp_path / "20200101T000000Z",
+        *(tmp_path / f"20200101T000000Z-{n}" for n in range(2, 13)),
+    ]
+    for run in same:
+        run.mkdir()
+    done = _gate(tmp_path, "--only", "services", "--quiet")
+    assert done.returncode == 0, done.stdout + done.stderr
+    left = {p.name for p in tmp_path.iterdir()}
+    assert len(left) == 10
+    assert {p.name for p in same[-9:]} <= left
+
+
+@pytest.mark.item("W08")
+def test_flaky_report_orders_same_second_runs_by_suffix(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    runs = ["20261001T090000Z", *(f"20261001T090000Z-{n}" for n in range(2, 11))]
+    rows = [f"{run}\taaa1111\t*\trun" for run in runs]
+    rows += [f"{run}\taaa1111\ttests/test_a.py::test_clock\tflaky" for run in runs[-2:]]
+    history = tmp_path / "history.tsv"
+    history.write_text("run\tcommit\ttest\toutcome\n" + "\n".join(rows) + "\n")
+    assert _script("flaky_report").main(["--history", str(history), "--last", "2"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "2 runs, 20261001T090000Z-9 to 20261001T090000Z-10",
+        "2 flaky / 0 failed / 2 runs  tests/test_a.py::test_clock"
+        "  last: 20261001T090000Z-10 aaa1111",
+    ]
+    assert _script("pytest_summary").recent_flaky(history, "tests/test_a.py::test_clock", 2) == (
+        2,
+        2,
+    )

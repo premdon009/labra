@@ -23,16 +23,22 @@ class Tally:
     last_commit: str = ""
 
 
+def run_order(run: str) -> tuple[str, int]:
+    """Sort key for run IDs: start time, then the same-second suffix as a number (-10 after -9)."""
+    stamp, _, n = run.partition("-")
+    return stamp, int(n) if n.isdigit() else 0
+
+
 def tally(lines: list[str], last: int | None = None) -> tuple[list[str], dict[str, Tally]]:
     """Return the runs counted, oldest first, and a tally per test over those runs."""
     rows = [line.split("\t") for line in lines if line and not line.startswith("run\t")]
     rows = [row for row in rows if len(row) == 4]
-    runs = sorted({run for run, _, _, outcome in rows if outcome == "run"})
+    runs = sorted({run for run, _, _, outcome in rows if outcome == "run"}, key=run_order)
     if last is not None:
         runs = runs[-last:] if last > 0 else []
     counted = set(runs)
     tests: dict[str, Tally] = {}
-    for run, commit, test, outcome in sorted(rows):
+    for run, commit, test, outcome in sorted(rows, key=lambda row: run_order(row[0])):
         if run not in counted or outcome not in ("flaky", "failed"):
             continue
         t = tests.setdefault(test, Tally())

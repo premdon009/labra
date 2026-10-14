@@ -65,11 +65,17 @@ def record(history: Path, run: str, commit: str, failed: list[str], flaky: list[
         out.writelines("\t".join(row) + "\n" for row in rows)
 
 
+def run_order(run: str) -> tuple[str, int]:
+    """Sort key for run IDs: start time, then the same-second suffix as a number (-10 after -9)."""
+    stamp, _, n = run.partition("-")
+    return stamp, int(n) if n.isdigit() else 0
+
+
 def recent_flaky(history: Path, test: str, runs: int = RECENT_RUNS) -> tuple[int, int]:
     """How many of the last `runs` recorded runs had `test` flaky, and how many runs that is."""
     rows = [line.rstrip("\n").split("\t") for line in history.read_text().splitlines()[1:]]
     rows = [row for row in rows if len(row) == 4]
-    recent = sorted({row[0] for row in rows if row[3] == "run"})[-runs:]
+    recent = sorted({row[0] for row in rows if row[3] == "run"}, key=run_order)[-runs:]
     times = {row[0] for row in rows if row[2] == test and row[3] == "flaky"} & set(recent)
     return len(times), len(recent)
 

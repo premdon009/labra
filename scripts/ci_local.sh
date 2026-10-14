@@ -55,7 +55,8 @@ prune_runs() {
   for d in "$LOGS_ROOT"/$stamp "$LOGS_ROOT"/$stamp-*; do
     [[ -d $d ]] && runs+=("${d##*/}")
   done
-  mapfile -t runs < <(printf '%s\n' "${runs[@]}" | LC_ALL=C sort -r)
+  # Newest first: by start time, then by the same-second suffix as a number (-10 after -9).
+  mapfile -t runs < <(printf '%s\n' "${runs[@]}" | LC_ALL=C sort -t- -k1,1r -k2,2nr)
   for i in "${runs[@]}"; do
     [[ -e $LOGS_ROOT/$i/failed ]] && { keep_failed=$i; break; }
   done
