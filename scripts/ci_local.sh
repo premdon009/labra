@@ -12,8 +12,9 @@
 # (a tool or Docker is missing) and is never counted as a pass. Exit 1 on any FAIL.
 #
 # Every run keeps its logs in ${LABRA_CI_LOGS:-.ci/runs}/<UTC time>/: one <stage>.log per
-# stage, the test output (pytest.txt), a JUnit XML report (junit.xml), coverage.json and
-# summary.txt. The newest 10 runs are kept, and the newest failed run is never removed.
+# stage, the test output (pytest.txt), a JUnit XML report (junit.xml), coverage.json,
+# summary.txt, and the failed and flaky tests (failed-tests.txt, flaky.txt). The newest 10
+# runs are kept, and the newest failed run is never removed.
 # Another CI system points LABRA_CI_LOGS at its artifact directory and collects it.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -26,7 +27,7 @@ while (($#)); do
     --fast) fast=1; shift ;;
     --dry-run) dry=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -105,12 +106,15 @@ stage_services() {
 stage_tests() {
   local out="$RUN_DIR/pytest.txt"
   # Coverage floors are checked by check_coverage.py, so a skipped database run can
-  # report them as unchecked instead of failed.
-  uv run pytest -q -rfEs --junitxml="$RUN_DIR/junit.xml" \
+  # report them as unchecked instead of failed. A failed test is re-run once: if it then
+  # passes it is flaky, and the stage still fails, naming it.
+  uv run pytest -q -rfEsR --reruns 1 --junitxml="$RUN_DIR/junit.xml" \
     --cov --cov-fail-under=0 --cov-report=term \
     --cov-report=json:"$RUN_DIR/coverage.json" | tee "$out"
-  local rc=${PIPESTATUS[0]}
-  ((rc != 0)) && return 1
+  local rc=${PIPESTATUS[0]} named
+  uv run python scripts/pytest_summary.py "$out" "$RUN_DIR" | tee "$RUN_DIR/failed-tests.txt"
+  named=${PIPESTATUS[0]}
+  ((rc != 0 || named != 0)) && return 1
   if grep -q "SKIPPED.*no Postgres for tests" "$out"; then
     uv run python scripts/check_coverage.py "$RUN_DIR/coverage.json"
     echo "WARN: database tests were skipped (no container runtime and no LABRA_TEST_DATABASE_URL);" \
@@ -192,10 +196,10 @@ summary() {
     printf '%-10s %-6s %s\n' "$s" "${RESULT[$s]}" "${t:+${t}s}"
   done
   printf '\n%d passed, %d failed, %d unchecked (WARN), %d skipped\n' "$pass" "$fail" "$warn" "$skip"
-  if [[ ${RESULT[tests]} == FAIL && -s $RUN_DIR/pytest.txt ]]; then
+  if [[ ${RESULT[tests]} == FAIL ]]; then
     echo
-    echo "Failed tests:"
-    grep -E '^(FAILED|ERROR) ' "$RUN_DIR/pytest.txt" || echo "  (none named; see tests.log)"
+    if [[ -s $RUN_DIR/failed-tests.txt ]]; then cat "$RUN_DIR/failed-tests.txt"
+    else echo "No test named as failed; see tests.log."; fi
   fi
 }
 

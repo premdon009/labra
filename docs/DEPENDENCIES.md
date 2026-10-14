@@ -42,6 +42,7 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.13.1 · 2026-09-23 | 18 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |
 | `pytest` | dev | P | MIT | 9.1.1 | 9.1.1 · 2026-06-19 | 6 | Active | team | tests | — | 2026-10-09 |
 | `pytest-cov` | dev | P | MIT | 7.1.0 | 7.1.0 · 2026-03-21 | 1 | Stable | team | coverage (EC-H01) | coverage run · low | 2026-10-09 |
+| `pytest-rerunfailures` | dev | P | MPL-2.0 | 16.7 | 16.7 · 2026-09-17 | 7 | Active | team | re-runs a failed test once in the gate, to tell flaky from broken (W08) | gate re-run logic · low | 2026-10-14 |
 | `testcontainers` | dev | P | Apache-2.0 | 4.15.0 | 4.15.0 · 2026-07-24 | 9 | Active | company | real Postgres in tests | a Compose test service · low | 2026-10-09 |
 | `ruff` | dev | P | MIT | 0.16.10 | 0.17.0 · 2026-10-09 | 49 | Active | company | lint and format | — | 2026-10-09 |
 | `pyright` | dev | P | MIT | 1.1.414 | 1.1.414 · 2026-09-10 | 8 | Active | company | type checks; ty is pre-1.0, re-check at gate 1 | ty · low | 2026-10-09 |

@@ -455,3 +455,72 @@ def test_ci_local_prunes_old_runs_but_keeps_the_newest_failed(tmp_path: Path) ->
     assert left[1:10] == [p.name for p in old[-9:]]
     assert left[10] > "2026"
     assert left[11:] == ["history.tsv"]
+
+
+PYTEST_CLEAN = """\
+..........                                                               [100%]
+10 passed in 0.50s
+"""
+PYTEST_RERUNS = """\
+..R..R.F.RE                                                              [100%]
+=================================== FAILURES ===================================
+_________________________________ test_broken __________________________________
+E       assert 1 == 2
+=========================== rerun test summary info ============================
+RERUN tests/test_a.py::test_flaky
+PASSED tests/test_a.py::test_flaky
+RERUN tests/test_a.py::test_broken
+FAILED tests/test_a.py::test_broken
+RERUN tests/test_b.py::test_setup[one - two]
+ERROR tests/test_b.py::test_setup[one - two]
+=========================== short test summary info ============================
+FAILED tests/test_a.py::test_broken - assert 1 == 2
+ERROR tests/test_b.py::test_setup[one - two]
+SKIPPED [1] tests/test_c.py:4: no Postgres for tests
+2 failed, 6 passed, 1 skipped, 3 rerun in 0.90s
+"""
+PYTEST_FLAKY = """\
+..R.                                                                     [100%]
+=========================== rerun test summary info ============================
+RERUN tests/test_a.py::test_flaky
+PASSED tests/test_a.py::test_flaky
+4 passed, 1 rerun in 0.30s
+"""
+
+
+@pytest.mark.item("W08")
+@pytest.mark.parametrize(
+    ("output", "rc", "lines", "flaky"),
+    [
+        (PYTEST_CLEAN, 0, [], None),
+        (
+            PYTEST_RERUNS,
+            1,
+            [
+                "failed: tests/test_a.py::test_broken",
+                "failed: tests/test_b.py::test_setup[one - two]",
+                "flaky (passed on re-run): tests/test_a.py::test_flaky",
+            ],
+            "tests/test_a.py::test_flaky\n",
+        ),
+        (
+            PYTEST_FLAKY,
+            1,
+            ["flaky (passed on re-run): tests/test_a.py::test_flaky"],
+            "tests/test_a.py::test_flaky\n",
+        ),
+    ],
+)
+def test_pytest_summary_names_failed_and_flaky_tests(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    output: str,
+    rc: int,
+    lines: list[str],
+    flaky: str | None,
+) -> None:
+    (tmp_path / "pytest.txt").write_text(output)
+    assert _script("pytest_summary").main([str(tmp_path / "pytest.txt"), str(tmp_path)]) == rc
+    assert capsys.readouterr().out.splitlines() == lines
+    flaky_txt = tmp_path / "flaky.txt"
+    assert (flaky_txt.read_text() if flaky_txt.exists() else None) == flaky

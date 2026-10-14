@@ -31,11 +31,15 @@ Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the director
 | File | What it holds |
 |---|---|
 | `<stage>.log` | everything the stage printed |
-| `summary.txt` | the stage table, and the failed tests when the tests stage failed |
-| `pytest.txt` | the test output, with the failed, errored and skipped tests named at the end |
-| `junit.xml` | the test results as JUnit XML, which GitLab, Forgejo, Jenkins, Allure, IDEs and most CI systems read |
+| `summary.txt` | the stage table, and the failed and flaky tests when the tests stage failed |
+| `pytest.txt` | the test output, with the failed, errored, skipped and re-run tests named at the end |
+| `failed-tests.txt` | one line per failed or flaky test |
+| `flaky.txt` | the flaky tests' IDs, one per line (only when there are some) |
+| `junit.xml` | the test results as JUnit XML, which GitLab, Forgejo, Jenkins, Allure, IDEs and most CI systems read; a re-run test is listed twice |
 | `coverage.json` | coverage per file |
 | `failed` | an empty marker: some stage failed |
+
+The gate re-runs a failed test once. A test that fails both times fails the gate as before. A test that passes on its re-run is **flaky**: it still fails the gate, labelled `flaky (passed on re-run)` and listed in `flaky.txt`. Fix it; don't re-run the gate until it goes green. A plain `uv run pytest` doesn't re-run anything.
 
 The newest 10 runs are kept, and so is the newest failed run, however old, so an intermittent failure can be found after a green run. `.ci/` is ignored by git and by the gate's own scans.
 
