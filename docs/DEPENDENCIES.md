@@ -6,8 +6,9 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 
 - `scripts/audit_deps.py --check` (in `scripts/ci_local.sh` and pre-commit) fails when a
   dependency has no row, a row has nothing behind it, a licence is outside the allowlist, an
-  Action isn't pinned by commit SHA, an image has no digest, or a vendored file doesn't match
-  its recorded SHA-256. It needs no network.
+  Action isn't pinned by commit SHA, an image has no digest, a vendored file doesn't match
+  its recorded SHA-256, or a pinned version breaks the minimum release age below. It needs no
+  network.
 - `scripts/audit_deps.py --refresh` rewrites the **Pinned**, **Latest · date** and
   **Rel. 12m** columns from `uv.lock` and PyPI, and prints status changes for a person to
   confirm. A weekly workflow runs it. Without network it reports WARN, never a pass.
@@ -16,6 +17,18 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 PostgreSQL, PSF-2.0. Exceptions: LGPL-3.0 for psycopg only (imported unmodified, ADR-0002);
 MPL-2.0 for tools that are never shipped; GPL programs only as separate commands, never
 imported.
+
+**Minimum release age: 7 days.** No version is pinned until it has been public for 7 days, so a
+broken or malicious release is usually found and pulled before Labra takes it. The only exception
+is a fix for a published advisory, recorded under [Age exceptions](#age-exceptions).
+- Python: `pyproject.toml` sets `[tool.uv] exclude-newer = "7 days"`, so `uv lock`, `uv add` and
+  `uv lock --upgrade-package <name>` only pick releases old enough. `--check` reads each
+  package's upload time from `uv.lock`.
+- Actions, images and vendored files: the **Pinned** cell holds the version and its release
+  date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created date of
+  an image's digest, and the npm publish date of a vendored file. Update the date whenever the
+  SHA, digest or version changes. An Action's `# vX.Y.Z` comment must match its row.
+- CLI tools and services aren't pinned by the repository. Install a release at least 7 days old.
 
 **Status:** Active (release in the last 6 months) · Stable (no release for 6–24 months but
 done) · Watch · Replace. A Replace row needs an ADR and a tracker row before the next release.
@@ -53,24 +66,24 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.169.0 · 2026-10-11 | 134 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
 | `playwright` | dev | P | Apache-2.0 | 1.63.0 | 1.63.0 · 2026-09-15 | 8 | Active | company | the front-desk browser test (keys, 1366×768); browsers installed separately | Selenium · medium | 2026-10-12 |
 | `hatchling` | build | P | MIT | — | — | — | Active | team | builds the wheel | setuptools · low | 2026-10-09 |
-| `htmx.org` | vendored | P | 0BSD | 4.0.0 | 4.0.0 · 2026-08-28 | — | Active | single maintainer (long-standing) | server-driven pages without a JS build | plain fetch · medium | 2026-10-09 |
-| `@alpinejs/csp` | vendored | P | MIT | 3.17.4 | 3.17.4 · 2026-09-21 | — | Active | team | small UI state; the CSP build needs no `unsafe-eval` | plain JS · low | 2026-10-09 |
-| `basecoat-css` | vendored | P | MIT | 1.0.2 | 1.0.2 | 3 | Watch | single maintainer, young | consistent components without a JS framework; vendored, so a stop can't break the app | own CSS · medium | 2026-10-09 |
-| `postgres` | image | P | PostgreSQL | 18 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030 | — | 2026-10-09 |
-| `caddy` | image | P | Apache-2.0 | 2 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx, tested · low | 2026-10-09 |
-| `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale, NetBird or WireGuard · medium | 2026-10-09 |
-| `nginx` | image | P | BSD-2-Clause | 1.30 | 1.30 | — | Active | company | proxy alternative to Caddy (`deploy/nginx/`, ADR-0009) | Caddy · low | 2026-10-09 |
-| `tailscale/tailscale` | image | P | BSD-3-Clause | v1.102.5 | v1.102.5 | — | Active | company | branch access over a tailnet, or self-hosted Headscale (`tailscale` profile) | NetBird or WireGuard · low | 2026-10-09 |
-| `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
-| `python` | image | P | PSF-2.0 | 3.14-slim | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
-| `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
-| `actions/checkout` | action | P | MIT | v5.1.0 | — | — | Active | company | CI checkout | — | 2026-10-09 |
-| `actions/upload-artifact` | action | P | MIT | v7.0.1 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
-| `astral-sh/setup-uv` | action | P | MIT | v7.6.0 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
-| `docker/setup-qemu-action` | action | P | Apache-2.0 | v3.7.0 | — | — | Active | company | arm64 image builds (W11) | — | 2026-10-09 |
-| `docker/setup-buildx-action` | action | P | Apache-2.0 | v3.12.0 | — | — | Active | company | multi-arch image builds (W11) | — | 2026-10-09 |
-| `docker/login-action` | action | P | Apache-2.0 | v3.7.0 | — | — | Active | company | push release images to GHCR (W12) | — | 2026-10-09 |
-| `docker/build-push-action` | action | P | Apache-2.0 | v6.19.2 | — | — | Active | company | build and push release images (W12) | — | 2026-10-09 |
+| `htmx.org` | vendored | P | 0BSD | 4.0.0 · 2026-08-28 | 4.0.0 · 2026-08-28 | — | Active | single maintainer (long-standing) | server-driven pages without a JS build | plain fetch · medium | 2026-10-09 |
+| `@alpinejs/csp` | vendored | P | MIT | 3.17.4 · 2026-09-21 | 3.17.4 · 2026-09-21 | — | Active | team | small UI state; the CSP build needs no `unsafe-eval` | plain JS · low | 2026-10-09 |
+| `basecoat-css` | vendored | P | MIT | 1.0.2 · 2026-07-06 | 1.0.2 | 3 | Watch | single maintainer, young | consistent components without a JS framework; vendored, so a stop can't break the app | own CSS · medium | 2026-10-09 |
+| `postgres` | image | P | PostgreSQL | 18 · 2026-10-06 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030 | — | 2026-10-09 |
+| `caddy` | image | P | Apache-2.0 | 2 · 2026-10-05 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx, tested · low | 2026-10-09 |
+| `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 · 2026-10-05 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale, NetBird or WireGuard · medium | 2026-10-09 |
+| `nginx` | image | P | BSD-2-Clause | 1.30 · 2026-10-06 | 1.30 | — | Active | company | proxy alternative to Caddy (`deploy/nginx/`, ADR-0009) | Caddy · low | 2026-10-09 |
+| `tailscale/tailscale` | image | P | BSD-3-Clause | v1.102.5 · 2026-09-21 | v1.102.5 | — | Active | company | branch access over a tailnet, or self-hosted Headscale (`tailscale` profile) | NetBird or WireGuard · low | 2026-10-09 |
+| `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 · 2026-10-01 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
+| `python` | image | P | PSF-2.0 | 3.14-slim · 2026-10-06 | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
+| `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
+| `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |
+| `actions/upload-artifact` | action | P | MIT | v7.0.1 · 2026-04-10 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
+| `astral-sh/setup-uv` | action | P | MIT | v7.6.0 · 2026-03-16 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
+| `docker/setup-qemu-action` | action | P | Apache-2.0 | v3.7.0 · 2025-11-05 | — | — | Active | company | arm64 image builds (W11) | — | 2026-10-09 |
+| `docker/setup-buildx-action` | action | P | Apache-2.0 | v3.12.0 · 2025-12-16 | — | — | Active | company | multi-arch image builds (W11) | — | 2026-10-09 |
+| `docker/login-action` | action | P | Apache-2.0 | v3.7.0 · 2026-01-27 | — | — | Active | company | push release images to GHCR (W12) | — | 2026-10-09 |
+| `docker/build-push-action` | action | P | Apache-2.0 | v6.19.2 · 2026-02-12 | — | — | Active | company | build and push release images (W12) | — | 2026-10-09 |
 | `uv` | CLI | P | MIT OR Apache-2.0 | 0.12 | 0.12.18 | many | Active | company | Python, virtualenv and lock file | pip + pip-tools · low | 2026-10-09 |
 | `gitleaks` | CLI | P | MIT | — | — | — | Active | company | secret scan (`scripts/check_secrets.sh`) | trufflehog · low | 2026-10-09 |
 | `osv-scanner` | CLI | P | Apache-2.0 | — | — | — | Active | company | vulnerability scan of `uv.lock` and images | grype · low | 2026-10-09 |
@@ -83,9 +96,19 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `nerdctl` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | runs the stack on containerd (Tier 2); `nerdctl-full` tarball pinned by SHA-256 | Docker · low | 2026-10-09 |
 | `containerd` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | the container engine under Docker and nerdctl | — | 2026-10-09 |
 | `incus` | CLI | P | Apache-2.0 | 6 | 6.23 | — | Active | foundation | system containers that run the stack with Podman inside (Tier 2); LXD is AGPL-3.0 since 2023 | LXD or a VM · low | 2026-10-09 |
-| `kaniko` | CLI | P | Apache-2.0 | v1.28.5 | v1.28.5 | — | Watch | team | image builds without a daemon, in CI on a cluster; the original project was archived 2025-06-03, this is the osscontainertools fork, run as an image pinned by digest | Buildah · low | 2026-10-09 |
+| `kaniko` | CLI | P | Apache-2.0 | v1.28.5 · 2026-09-20 | v1.28.5 | — | Watch | team | image builds without a daemon, in CI on a cluster; the original project was archived 2025-06-03, this is the osscontainertools fork, run as an image pinned by digest | Buildah · low | 2026-10-09 |
 | `GitHub` | service | P | — | — | — | — | Active | company | code, CI, issues, container registry, docs hosting | Codeberg / Forgejo · medium | 2026-10-09 |
 | `Cloudflare Tunnel` | service | P | — | — | — | — | Active | company | the tunnel cloudflared connects to | Tailscale · medium | 2026-10-09 |
 | `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
 | `NetBird` | service | P | — | — | — | — | Active | company | control plane for the `netbird` profile; self-hostable (AGPL-3.0, run as a separate service) | Tailscale or WireGuard · low | 2026-10-09 |
 | `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups (`LABRA_HEARTBEAT=http`); self-hostable | Uptime Kuma · low | 2026-10-09 |
+
+## Age exceptions
+
+A version younger than 7 days is pinned only when it fixes a published advisory and can't wait.
+Each one gets a row here, and a Python package also gets an entry in `pyproject.toml`
+`[tool.uv] exclude-newer-package`, set to a time just after that release. `--refresh` says when
+an exception is no longer needed; then drop its row and the entry.
+
+| Component | Version | Advisory | Why it can't wait | Added |
+|---|---|---|---|---|

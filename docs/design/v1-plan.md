@@ -1875,6 +1875,8 @@ Each row has these columns:
 | Alternative + exit cost | person | Playwright print-to-PDF (Chromium, +300 MB) · medium |
 | Last reviewed | person | 2026-10-08 |
 
+**Minimum release age (owner decision 2026-10-14, W21):** no pinned version younger than 7 days. uv's `exclude-newer = "7 days"` keeps `uv lock` to such releases; `audit_deps.py --check` refuses a younger Python package (upload time in `uv.lock`) or Action, image or vendored file (release date in its Pinned cell). The only exception is a fix for a published advisory (GHSA, CVE or PYSEC ID), recorded in the register's Age exceptions table and, for Python, in `exclude-newer-package`.
+
 **Status rules**, applied by the script and confirmed by a person:
 - **Active:** a release in the last 6 months.
 - **Stable:** no release for 6–24 months, but the repo still has commits *and* the job is done because the spec is frozen (QR codes, Code 128, TOTP).

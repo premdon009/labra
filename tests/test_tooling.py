@@ -1,9 +1,12 @@
 """The command line and the repository gate scripts."""
 
+import hashlib
 import importlib.util
+import json
 import os
 import subprocess
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 
@@ -210,6 +213,181 @@ def test_action_pinning(line: str, pinned: bool) -> None:
     m = audit.USES_RE.match(line)
     assert m is not None
     assert bool(audit.SHA_RE.match(m.group(1).partition("@")[2])) is pinned
+
+
+NOW = datetime(2026, 10, 14, 12, 0, tzinfo=UTC)
+
+AGE_REGISTER = """\
+| Component | Kind | Gate | Licence | Pinned | Latest · date |
+|---|---|---|---|---|---|
+| `alpha` | runtime | P | MIT | 1.0 | 1.0 |
+| `actions/old` | action | P | MIT | v1.0.0 · 2026-09-01 | — |
+| `actions/new` | action | P | MIT | v2.0.0 · 2026-10-10 | — |
+| `actions/undated` | action | P | MIT | v3.0.0 | — |
+| `kaniko` | CLI | P | Apache-2.0 | v1.0 · 2026-10-12 | — |
+
+## Age exceptions
+
+| Component | Version | Advisory | Why it can't wait | Added |
+|---|---|---|---|---|
+"""
+
+
+def _locked(name: str, version: str, *uploads: datetime | None) -> dict:
+    files = [{"url": "x"} if u is None else {"upload-time": f"{u:%Y-%m-%dT%H:%M:%S.%f}Z"}
+             for u in uploads]  # fmt: skip
+    return {"name": name, "version": version, "source": {"registry": "https://pypi.org/simple"},
+            "sdist": files[0], "wheels": files[1:]}  # fmt: skip
+
+
+def _age_problems(
+    register: str, packages: dict[str, dict], exempt: frozenset[str] | set[str] = frozenset()
+) -> list[str]:
+    audit = _script("audit_deps")
+    rows, exceptions = audit.parse_register(register), audit.parse_exceptions(register)
+    return audit.check_age(rows, exceptions, packages, set(exempt), NOW)
+
+
+@pytest.mark.item("W21")
+def test_age_python_packages_from_their_lock_upload_time() -> None:
+    packages = {
+        "old": _locked("old", "1.0", NOW - timedelta(days=8), NOW - timedelta(days=1)),
+        "young": _locked("young", "2.0", NOW - timedelta(days=6)),
+        "unknown": _locked("unknown", "3.0", None),
+        "labra": {"name": "labra", "version": "0.1.0", "source": {"editable": "."}},
+    }
+    problems = [p for p in _age_problems(AGE_REGISTER, packages) if p.startswith("uv.lock")]
+    assert len(problems) == 2
+    assert problems[0] == "uv.lock: unknown 3.0 has no upload-time; re-lock with uv"
+    assert problems[1].startswith("uv.lock: young 2.0 was released 2026-10-08 12:00 UTC")
+    assert "allowed from 2026-10-15 12:00 UTC" in problems[1]
+
+
+@pytest.mark.item("W21")
+def test_age_dated_rows_count_from_the_end_of_their_day() -> None:
+    problems = _age_problems(AGE_REGISTER, {})
+    assert len(problems) == 3
+    # Released some time on 2026-10-10, so allowed once that day is 7 days behind.
+    assert problems[0].startswith("DEPENDENCIES.md:5: actions/new v2.0.0 was released 2026-10-10")
+    assert "allowed from 2026-10-18 00:00 UTC" in problems[0]
+    assert problems[1] == (
+        "DEPENDENCIES.md:6: actions/undated: Pinned needs the release date, "
+        "as `v3.0.0 · YYYY-MM-DD`"
+    )
+    # A CLI row needs no date, but a date it gives is checked.
+    assert problems[2].startswith("DEPENDENCIES.md:7: kaniko v1.0 was released 2026-10-12")
+    allowed = AGE_REGISTER + "| `kaniko` | v1.0 | CVE-2026-12345 | fix | 2026-10-14 |\n"
+    assert not any("kaniko" in p for p in _age_problems(allowed, {}))
+
+
+@pytest.mark.item("W21")
+def test_age_exception_needs_an_advisory_the_pinned_version_and_its_uv_entry() -> None:
+    young = {"young": _locked("young", "2.0", NOW - timedelta(days=1))}
+
+    def with_rows(*rows: str) -> str:
+        return AGE_REGISTER.replace("| `actions/new` |", "| `actions/skip` |") + "".join(rows)
+
+    good = with_rows(
+        "| `young` | 2.0 | GHSA-abcd-23fg-hj45 | remote code execution | 2026-10-14 |\n",
+        "| `actions/skip` | v2.0.0 | CVE-2026-12345 | token leak | 2026-10-14 |\n",
+    )
+    assert [p for p in _age_problems(good, young, {"young"}) if "actions/undated" not in p] == [
+        "DEPENDENCIES.md:7: kaniko v1.0 was released 2026-10-12, under 7 days ago; allowed from "
+        "2026-10-20 00:00 UTC, or sooner only with an Age exceptions row naming its advisory"
+    ]
+
+    bad = with_rows(
+        "| `young` | 2.0 | upstream says so | crash | 2026-10-14 |\n",
+        "| `actions/skip` | v1.9.0 | PYSEC-2026-7 | stale | 2026-10-01 |\n",
+    )
+    problems = _age_problems(bad, young)
+    assert (
+        "DEPENDENCIES.md:13: age exception young 2.0: advisory 'upstream says so' isn't a GHSA, "
+        "CVE or PYSEC ID" in problems
+    )
+    assert (
+        "DEPENDENCIES.md:14: age exception actions/skip v1.9.0: the pinned version is v2.0.0; "
+        "drop the row" in problems
+    )
+    assert "pyproject.toml: age exception young needs an exclude-newer-package entry" in problems
+    assert any(
+        p.startswith("DEPENDENCIES.md:5: actions/skip v2.0.0 was released") for p in problems
+    )
+
+    stray = _age_problems(AGE_REGISTER, young, {"young"})
+    assert "pyproject.toml: exclude-newer-package young has no Age exceptions row" in stray
+
+
+@pytest.mark.item("W21")
+def test_age_exception_noted_once_no_longer_needed() -> None:
+    audit = _script("audit_deps")
+    register = AGE_REGISTER + (
+        "| `old` | 1.0 | GHSA-abcd-23fg-hj45 | fix | 2026-10-01 |\n"
+        "| `actions/new` | v2.0.0 | CVE-2026-12345 | fix | 2026-10-10 |\n"
+    )
+    packages = {"old": _locked("old", "1.0", NOW - timedelta(days=13))}
+    notes = audit.unneeded_exceptions(
+        audit.parse_register(register), audit.parse_exceptions(register), packages, NOW
+    )
+    assert notes == [
+        "age exception for old 1.0 is no longer needed; drop its row and any "
+        "exclude-newer-package entry"
+    ]
+
+
+@pytest.mark.item("W21")
+def test_exception_rows_are_not_register_rows() -> None:
+    audit = _script("audit_deps")
+    register = AGE_REGISTER + "| `alpha` | 1.1 | CVE-2026-12345 | fix | 2026-10-14 |\n"
+    assert [r.name for r in audit.parse_register(register)] == [
+        "alpha", "actions/old", "actions/new", "actions/undated", "kaniko"
+    ]  # fmt: skip
+    assert [(e.name, e.version) for e in audit.parse_exceptions(register)] == [("alpha", "1.1")]
+    assert audit.parse_register(register)[1].version == "v1.0.0"
+    assert audit.parse_register(register)[1].released == "2026-09-01"
+
+
+@pytest.mark.item("W21")
+@pytest.mark.parametrize(
+    ("comment", "ok"), [(" # v1.0.0", True), (" # v1.1.0", False), ("", False)]
+)
+def test_action_comment_names_the_row_version(
+    comment: str, ok: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The date in the row belongs to that version, so a new SHA must change the row too.
+    audit = _script("audit_deps")
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    sha = "a" * 40
+    (workflows / "ci.yml").write_text(f"    steps:\n      - uses: actions/old@{sha}{comment}\n")
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "WORKFLOWS", workflows)
+    rows = [r for r in audit.parse_register(AGE_REGISTER) if r.name == "actions/old"]
+    problems = audit.check_actions(rows)
+    assert (problems == []) is ok
+    if not ok:
+        assert problems == [
+            ".github/workflows/ci.yml:2: actions/old needs the comment `# v1.0.0`, the version "
+            "its row pins; update the row's version and date when the SHA changes"
+        ]
+
+
+@pytest.mark.item("W21")
+def test_dated_vendored_row_matches_its_manifest_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    asset = b"/* synthetic */\n"
+    (tmp_path / "lib.js").write_bytes(asset)
+    manifest = {"lib.js": {"package": "lib", "version": "1.2.0",
+                           "sha256": hashlib.sha256(asset).hexdigest()}}  # fmt: skip
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    monkeypatch.setattr(audit, "VENDOR", tmp_path)
+    row = "| `lib` | vendored | P | MIT | {} | — |\n"
+    assert audit.check_vendored(audit.parse_register(row.format("1.2.0 · 2026-09-01"))) == []
+    assert audit.check_vendored(audit.parse_register(row.format("1.1.0 · 2026-09-01"))) == [
+        "DEPENDENCIES.md:1: lib pinned 1.1.0, manifest has 1.2.0"
+    ]
 
 
 @pytest.mark.item("W20")

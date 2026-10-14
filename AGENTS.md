@@ -15,7 +15,7 @@ Open-source software (MIT) for small Indian diagnostic lab chains: patients, vis
 3. **Secrets come from the environment only.** Never commit `.env*`, keys, passwords or tokens. Never read `.env*`, `data/` or backups while working.
 4. **Every change ships its tests and its manual page update in the same PR.** An item isn't done until code, tests and docs are merged together.
 5. **No AI attribution trailers** (`Co-Authored-By: <AI>`) in commits or PRs.
-6. **No new dependency without a row** in [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+6. **No new dependency without a row** in [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md), **and no version released less than 7 days ago** unless it fixes a published advisory (an Age exceptions row there).
 7. **Platform services go through ports.** Domain code uses identity, files, errors, heartbeats, mail and metrics only through `labra.core.ports` or the standard endpoints, never an adapter or vendor library directly ([ADR-0008](docs/adr/0008-platform-ports.md)). Authorisation stays in core.
 8. **No personal footprint** in committed files: no home paths, usernames or machine hostnames. Write `~/…` or a placeholder.
 

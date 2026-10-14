@@ -11,6 +11,10 @@
 - a workflow `uses:` isn't pinned by a 40-character commit SHA
 - an image in compose.yaml or the Dockerfile has no digest
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
+- a pinned version is younger than MIN_AGE (uv.lock upload time, or the date in the Pinned
+  cell of an Action, image or vendored row) and no Age exceptions row names its advisory
+- an Age exceptions row has no GHSA, CVE or PYSEC ID, or names a version no longer pinned, or
+  the Python exceptions and pyproject's exclude-newer-package entries don't match
 """
 
 from __future__ import annotations
@@ -25,7 +29,7 @@ import tomllib
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,6 +53,13 @@ COPYLEFT = re.compile(r"\b(A?GPL|LGPL|SSPL|EUPL|General Public)", re.IGNORECASE)
 USES_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_RE = re.compile(r"^\s*(?:image:|FROM)\s+(?:--platform=\S+\s+)?([^\s#]+)", re.IGNORECASE)
+NAME_CELL_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
+
+# Minimum release age: no pinned version younger than this, unless it fixes a published advisory.
+MIN_AGE = timedelta(days=7)
+DATED_KINDS = {"action", "image", "vendored"}
+ADVISORY_RE = re.compile(r"^(GHSA(-[0-9a-z]{4}){3}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
+EXCEPTIONS_HEADING = "## Age exceptions"
 
 
 @dataclass
@@ -59,6 +70,23 @@ class Row:
     pinned: str
     line: int
 
+    @property
+    def version(self) -> str:
+        return self.pinned.partition(" · ")[0]
+
+    @property
+    def released(self) -> str:
+        """The pinned release's date, from a Pinned cell written `<version> · <YYYY-MM-DD>`."""
+        return self.pinned.partition(" · ")[2]
+
+
+@dataclass
+class AgeException:
+    name: str
+    version: str
+    advisory: str
+    line: int
+
 
 def norm(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
@@ -67,12 +95,27 @@ def norm(name: str) -> str:
 def parse_register(text: str) -> list[Row]:
     rows = []
     for n, line in enumerate(text.splitlines(), 1):
-        m = re.match(r"^\|\s*`([^`]+)`\s*\|", line)
+        if line.strip() == EXCEPTIONS_HEADING:
+            break
+        m = NAME_CELL_RE.match(line)
         if not m:
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         rows.append(Row(m.group(1), cells[1], cells[3], cells[4], n))
     return rows
+
+
+def parse_exceptions(text: str) -> list[AgeException]:
+    """The rows of the Age exceptions table, below the register."""
+    found = []
+    below = False
+    for n, line in enumerate(text.splitlines(), 1):
+        below = below or line.strip() == EXCEPTIONS_HEADING
+        m = NAME_CELL_RE.match(line)
+        if below and m:
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            found.append(AgeException(m.group(1), cells[1], cells[2], n))
+    return found
 
 
 def licence_problem(row: Row) -> str | None:
@@ -166,9 +209,9 @@ def check_python(rows: list[Row]) -> list[str]:
             problems.append(
                 f"DEPENDENCIES.md:{row.line}: {row.name} isn't in uv.lock; drop the row"
             )
-        elif locked["version"] != row.pinned:
+        elif locked["version"] != row.version:
             problems.append(
-                f"DEPENDENCIES.md:{row.line}: {row.name} pinned {row.pinned}, uv.lock has "
+                f"DEPENDENCIES.md:{row.line}: {row.name} pinned {row.version}, uv.lock has "
                 f"{locked['version']}; run scripts/audit_deps.py --refresh"
             )
     for name in sorted(runtime_closure(packages)):
@@ -182,7 +225,7 @@ def check_python(rows: list[Row]) -> list[str]:
 
 
 def check_actions(rows: list[Row]) -> list[str]:
-    known = {r.name for r in rows if r.kind == "action"}
+    known = {r.name: r for r in rows if r.kind == "action"}
     used: set[str] = set()
     problems = []
     for wf in sorted(WORKFLOWS.glob("*.y*ml")):
@@ -196,8 +239,17 @@ def check_actions(rows: list[Row]) -> list[str]:
             where = f"{wf.relative_to(ROOT)}:{n}"
             if not SHA_RE.match(ref):
                 problems.append(f"{where}: {m.group(1)} isn't pinned by a 40-character SHA")
-            if repo not in known:
+            row = known.get(repo)
+            if row is None:
                 problems.append(f"{where}: action {repo} has no row in docs/DEPENDENCIES.md")
+                continue
+            # The comment names the SHA's release, so a new SHA can't keep the row's old date.
+            comment = re.match(r"\s*#\s*(\S+)", line[m.end() :])
+            if not comment or comment.group(1) != row.version:
+                problems.append(
+                    f"{where}: {repo} needs the comment `# {row.version}`, the version its row "
+                    f"pins; update the row's version and date when the SHA changes"
+                )
     problems += [
         f"DEPENDENCIES.md:{r.line}: action {r.name} isn't used in any workflow; drop the row"
         for r in rows
@@ -272,9 +324,9 @@ def check_vendored(rows: list[Row]) -> list[str]:
         row = known.get(entry["package"])
         if row is None:
             problems.append(f"vendor/{filename}: {entry['package']} has no register row")
-        elif row.pinned != entry["version"]:
+        elif row.version != entry["version"]:
             problems.append(
-                f"DEPENDENCIES.md:{row.line}: {row.name} pinned {row.pinned}, "
+                f"DEPENDENCIES.md:{row.line}: {row.name} pinned {row.version}, "
                 f"manifest has {entry['version']}"
             )
     listed = {e["package"] for e in manifest.values()}
@@ -288,7 +340,117 @@ def check_vendored(rows: list[Row]) -> list[str]:
     return problems
 
 
-def check(rows: list[Row]) -> list[str]:
+# Minimum release age
+
+
+def exempt_packages() -> set[str]:
+    """Packages that pyproject's [tool.uv] exclude-newer-package lets past the age limit."""
+    py = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    return {norm(n) for n in py.get("tool", {}).get("uv", {}).get("exclude-newer-package", {})}
+
+
+def uploaded(package: dict) -> datetime | None:
+    """When a locked version was published: the earliest upload of its files."""
+    files = [package.get("sdist", {}), *package.get("wheels", [])]
+    stamps = [datetime.fromisoformat(f["upload-time"]) for f in files if "upload-time" in f]
+    return min(stamps) if stamps else None
+
+
+def day_end(day: str) -> datetime | None:
+    """A Pinned date counts from the end of its day, since the release could be any time in it."""
+    try:
+        return datetime.combine(date.fromisoformat(day) + timedelta(days=1), time(), UTC)
+    except ValueError:
+        return None
+
+
+def too_young(where: str, what: str, released: str, since: datetime, now: datetime) -> str | None:
+    if now - since >= MIN_AGE:
+        return None
+    return (
+        f"{where}{what} was released {released}, under {MIN_AGE.days} days ago; allowed from "
+        f"{since + MIN_AGE:%Y-%m-%d %H:%M} UTC, or sooner only with an Age exceptions row "
+        f"naming its advisory"
+    )
+
+
+def check_age(
+    rows: list[Row],
+    exceptions: list[AgeException],
+    packages: dict[str, dict],
+    exempt: set[str],
+    now: datetime,
+) -> list[str]:
+    allowed = {(norm(e.name), e.version) for e in exceptions}
+    other = {norm(r.name): r for r in rows if r.kind not in PYTHON_KINDS}
+    problems = []
+    for e in exceptions:
+        where = f"DEPENDENCIES.md:{e.line}: age exception {e.name} {e.version}"
+        if not ADVISORY_RE.match(e.advisory):
+            problems.append(f"{where}: advisory {e.advisory!r} isn't a GHSA, CVE or PYSEC ID")
+        name = norm(e.name)
+        pinned = packages[name]["version"] if name in packages else None
+        if pinned is None and name in other:
+            pinned = other[name].version
+        if pinned != e.version:
+            problems.append(f"{where}: the pinned version is {pinned or 'none'}; drop the row")
+    python = {norm(e.name) for e in exceptions if norm(e.name) in packages}
+    problems += [
+        f"pyproject.toml: exclude-newer-package {name} has no Age exceptions row"
+        for name in sorted(exempt - python)
+    ]
+    problems += [
+        f"pyproject.toml: age exception {name} needs an exclude-newer-package entry"
+        for name in sorted(python - exempt)
+    ]
+    for name, package in sorted(packages.items()):
+        if "registry" not in package.get("source", {}):
+            continue
+        version = package["version"]
+        since = uploaded(package)
+        if since is None:
+            problems.append(f"uv.lock: {name} {version} has no upload-time; re-lock with uv")
+        elif (name, version) not in allowed:
+            released = f"{since:%Y-%m-%d %H:%M} UTC"
+            problems.append(too_young("uv.lock: ", f"{name} {version}", released, since, now))
+    for r in rows:
+        if not r.released:
+            if r.kind in DATED_KINDS:
+                problems.append(
+                    f"DEPENDENCIES.md:{r.line}: {r.name}: Pinned needs the release date, "
+                    f"as `{r.version} · YYYY-MM-DD`"
+                )
+            continue
+        since = day_end(r.released)
+        if since is None:
+            problems.append(f"DEPENDENCIES.md:{r.line}: {r.name}: {r.released} isn't YYYY-MM-DD")
+        elif (norm(r.name), r.version) not in allowed:
+            where = f"DEPENDENCIES.md:{r.line}: "
+            problems.append(too_young(where, f"{r.name} {r.version}", r.released, since, now))
+    return [p for p in problems if p]
+
+
+def unneeded_exceptions(
+    rows: list[Row], exceptions: list[AgeException], packages: dict[str, dict], now: datetime
+) -> list[str]:
+    """Age exceptions whose version has since reached the minimum age."""
+    dated = {norm(r.name): r for r in rows if r.released}
+    notes = []
+    for e in exceptions:
+        name = norm(e.name)
+        if name in packages:
+            since = uploaded(packages[name])
+        else:
+            since = day_end(dated[name].released) if name in dated else None
+        if since and now - since >= MIN_AGE:
+            notes.append(
+                f"age exception for {e.name} {e.version} is no longer needed; drop its row "
+                f"and any exclude-newer-package entry"
+            )
+    return notes
+
+
+def check(rows: list[Row], exceptions: list[AgeException] | None = None) -> list[str]:
     problems = []
     seen: set[str] = set()
     for r in rows:
@@ -304,6 +466,7 @@ def check(rows: list[Row]) -> list[str]:
         + check_actions(rows)
         + check_images(rows)
         + check_vendored(rows)
+        + check_age(rows, exceptions or [], lock_packages(), exempt_packages(), datetime.now(UTC))
     )
 
 
@@ -362,6 +525,7 @@ def refresh(text: str) -> tuple[str, list[str], bool]:
         if hint and cells[7] not in hint:
             notes.append(f"{row.name}: status {cells[7]}, rules suggest {hint} (latest {when})")
         lines[row.line - 1] = "| " + " | ".join(cells) + " |"
+    notes += unneeded_exceptions(parse_register(text), parse_exceptions(text), packages, now)
     return "\n".join(lines) + "\n", notes, reached
 
 
@@ -385,7 +549,7 @@ def main() -> int:
             return 2
         return 0
 
-    problems = check(parse_register(text))
+    problems = check(parse_register(text), parse_exceptions(text))
     for p in problems:
         print(p)
     if not problems:
