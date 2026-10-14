@@ -383,7 +383,7 @@ The owner shared the manual of a commercial desktop lab product popular with sma
 | M05, M11 | Results | Calculated values, dropdown results, H/L flags, department order | Already rows 5 and 11 | **Minimal** |
 | X15 | Results | **Culture & sensitivity**: organism, colony count, antibiotic panel, S / I / R with zone size (mm) | New tables `organism`, `antibiotic`, `antibiotic_panel(_item)`, `culture_result`, `culture_sensitivity`; report section per isolate | Next expansion **#1** (pull into minimal if culture is done in-house) |
 | M19 | Results | **Cumulative patient history** across visits; fuzzy name search | Row 19 | **Minimal** |
-| M20 | Reports | Print selected tests only; with/without reference column; A4/A5 | Row 20 (+ `letterhead_layout.doc_kind` adds `report_a5`) | **Minimal** |
+| M20 | Reports | Print selected tests only; with/without reference column; A4/A5 | Row 20 (A5 uses the built-in header, §7.2) | **Minimal** |
 | M17 | Reports | With / without header PDF | Already §7.2 (digital vs print PDF) | **Minimal** |
 | M18 | Reports | Footer note (printed) + internal note (not printed) | Row 18 | **Minimal** |
 | X16 | Reports | **Special layouts** for CBC (with analyser histograms), thyroid, HbA1c, etc., including analyser name | `test.report_template_id` override | Next expansion |
@@ -786,7 +786,7 @@ With full sample tracking off (the default), `sample.status` plus `order_test.st
 | `external_document` | visit_id, external_lab_id, file_id, sha256, received_via (`upload`/`email`), email_message_id, received_at, match_status (`matched`/`unmatched`) |
 | `external_document_test` | external_document_id, order_test_id |
 | `verification` | order_test_id, level (1, or 2 if configured), verified_by, verified_at, note |
-| `report` | report_no, visit_id, version, kind (`combined`/`in_house`/`external_forward`), status (`draft`/`released`/`amended`/`withdrawn`), released_by (signatory), released_at, file_id, sha256, supersedes_report_id, amendment_reason, verify_token |
+| `report` | report_no, visit_id, version (report_no + version unique), kind (`combined`/`in_house`/`external_forward`), external_document_id (for `external_forward`), status (`released`/`superseded`; a row exists only once released, and the only change allowed is `released` → `superseded`), is_partial, released_by (signatory), released_at, file_id, sha256 (the stored digital PDF), content (JSONB snapshot of everything the PDF shows, frozen at release), letterhead_layout_id, supersedes_report_id, amendment_reason, verify_token |
 | `report_test` | report_id, order_test_id |
 | `report_signature` | report_id, method, signer_user_id, cert_subject/serial/issuer/valid_to, signed_at, tsa_time, signed_file_id, sha256 (§7.1) |
 
@@ -1090,6 +1090,9 @@ Rules:
 - **Print guidance shown on screen:** "Print the PDF at **Actual size / 100%**, not *Fit to page*; printer margins: none." Scaling is the main cause of misalignment.
 - **Draft vs published:** changes go live only on **Publish**. Each publish creates a new `letterhead_layout` version. Old reports keep the layout they were released with, so reprints of a released report still match.
 - **Defaults** if no letterhead is uploaded: Labra prints its own simple header from `branch` details (name, address, NABL no, GSTIN), so it works on day 1.
+- **Bill reprints:** a bill has no layout column. A reprint uses the `bill_a4` layout that was published when the bill was issued, found by time, so `bill_guard` needs no change.
+- **A5 reports** use the built-in header and fixed margins. There is no A5 letterhead in the minimal version (LT17).
+- **Outside results in combined mode:** an outside result that has only a PDF is listed on the report with "see attached", and its pages are appended after the report.
 
 **Table `letterhead_layout`:**
 | Column | Meaning |
@@ -1475,7 +1478,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 | **2** | Catalog, prices, admin screens | M05, M05.1, M05.2, M06, M14, M24 (cross-checked against Appendix A; disputed ranges left unapproved for the pathologist) | B03, K02, F02 | `admin/catalog`, `admin/reference-ranges`, `admin/methods`, `admin/prices`, `admin/starter-catalog` |
 | **3** | Front desk | M03, M04, M18, M07, M07.1, M23, M08 (M18.1 is gate P2 and waits) | B01, B04, B07, C01, F03, J01, J02; the bill and front-desk parts of B05 and J03, which close in Run 5 with released reports | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
 | **4** | Lab | M09, M10, M11, M11.1, M11.2, M11.3, M07.4, the outsourcing timeline of M21 (delivery tracking closes in Run 5), the `test.sent_out` and `test.performed` events of M26 | C02; the upload part of A07; the results part of F01 | `lab/worklist`, `lab/receiving-samples`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `admin/external-labs` |
-| **5** | Reports + owner | M17, M17.1, M12, M12.1, M20, M20.1, M19, M13 | A06, K03, H03 (full-day Playwright + PDF snapshots) | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins` |
+| **5** | Reports + owner | M17, M12, M12.1, M20, M19, M13, the delivery tracking of M21, the `report.released` event and both exports of M26 (M17.1 and M20.1 are gate P2 and wait) | A06, K03, H03 (full-day Playwright + PDF snapshots); the SVG and image part of A07; the report parts of B05 and J03 | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins`, `admin/data-export` |
 | **6** | Install, backups, pilot prep | M16, W06, W07, **M25.3**, then W09 (the pilot week itself, after the run) | A11, A12, D01–D03, D06, D07, E02, E04, F01 (laptop budgets), G03, H05, L01–L03 | `admin/backups-and-restore`, `troubleshooting/*`, runbooks (`docs/runbooks/`), `install/laptop.md`, manual PDF, "A day at the lab" (§1e) |
 
 **New sub-items:** Run 1 splits M25 into M25.1, M25.2 and M25.3, following the §0 dotted-ID rule. Each is added to `docs/TRACKER.md` in the same commit:

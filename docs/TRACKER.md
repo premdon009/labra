@@ -81,9 +81,9 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M11.1~~ | ~~Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d)~~ | P | done | 2026-10-13 · 2c9bb8a |
 | ~~M11.2~~ | ~~Absurd-value guard and Friedewald/formula validity checks (§1d)~~ | P | done | 2026-10-13 · 2c9bb8a |
 | ~~M11.3~~ | ~~Samples from another branch are scanned in at the lab before they appear on the worklist~~ | P | done | 2026-10-13 · 2c9bb8a |
-| M12 | Reports: combined/separate, signature image, release, amendments, QR | P | todo | |
-| M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | todo | |
-| M13 | Reports for the owner | P | todo | |
+| M12 | Reports: combined/separate, signature image, release, amendments, QR | P | doing | |
+| M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | doing | |
+| M13 | Reports for the owner | P | doing | |
 | ~~M07.1~~ | ~~Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27~~ | P | done | 2026-10-13 · 5c5912e |
 | ~~M07.2~~ | ~~UPI reference must have a digit in it; the audit log records a new visit before its bill~~ | P | done | 2026-10-13 · 6bdf904 |
 | ~~M07.3~~ | ~~A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills~~ | P | done | 2026-10-13 · ba826bb |
@@ -94,13 +94,13 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M14.2~~ | ~~A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
-| M17 | Letterhead and margin calibration (§7.2) | P | todo | |
+| M17 | Letterhead and margin calibration (§7.2) | P | doing | |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
 | ~~M18~~ | ~~Fast front desk: one-screen visit~~ | P | done | 2026-10-13 · 21d84e9 |
 | M18.1 | Keyboard shortcuts and `?` overlay (§1c); the shortcuts themselves ship in M18, the overlay waits | P2 | todo | |
 | ~~M18.2~~ | ~~Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date~~ | P | done | 2026-10-13 · 6bdf904 |
-| M19 | Patient history and cumulative results | P | todo | |
-| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | P | todo | |
+| M19 | Patient history and cumulative results | P | doing | |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | P | doing | |
 | M21 | Delivery tracking and outsourcing timeline | P | doing | outsourcing timeline done 2026-10-13; delivery tracking in Run 5 |
 | M22 | Lab status board (TV) | P2 | todo | |
 | ~~M23~~ | ~~Currency display settings (§8)~~ | P | done | 2026-10-13 · 4b99be5 |

@@ -16,7 +16,7 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 **Licence allowlist:** MIT, MIT-CMU, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, 0BSD,
 PostgreSQL, PSF-2.0. Exceptions: LGPL-3.0 for psycopg only (imported unmodified, ADR-0002);
 MPL-2.0 for tools that are never shipped; GPL programs only as separate commands, never
-imported.
+imported; OFL-1.1 for vendored font files only (never code).
 
 **Minimum release age: 7 days.** No version is pinned until it has been public for 7 days, so a
 broken or malicious release is usually found and pulled before Labra takes it. The only exception
