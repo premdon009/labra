@@ -14,8 +14,8 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [x] **P** `EC-A03` Session cookies `HttpOnly`, `Secure`, `SameSite=Lax`; idle timeout (default 30 min, setting) and absolute timeout (12 h); "log out all sessions" for admins
 - [x] **P** `EC-A04` CSRF tokens on every form and HTMX POST
 - [x] **P** `EC-A05` Role check on **every** route by default (deny unless allowed) + branch scoping in the service layer; tests prove a front-desk user of branch B2 can't open branch B3's patient *(CI)*
-- [ ] **P** `EC-A06` Security headers via Caddy: CSP (no inline scripts except nonce, no `unsafe-eval`: so Alpine's **CSP build** and htmx with `allowEval` off, §19.3), HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`. The app sets the CSP and the other headers itself (`web/middleware.py`), so they hold behind Caddy, nginx or none; the proxy adds HSTS, and `scripts/stack_smoke.sh` checks the policy through it. htmx 4 has no `allowEval` switch: it evaluates only `hx-on`, `js:` values and trigger filters, which no template uses (a test scans them), and the CSP refuses eval anyway
-- [ ] **P** `EC-A07` Upload safety: type sniffed (not trusted from the filename), size cap, SVG sanitised, PDFs never executed, files served with `Content-Disposition` and a safe content type
+- [x] **P** `EC-A06` Security headers via Caddy: CSP (no inline scripts except nonce, no `unsafe-eval`: so Alpine's **CSP build** and htmx with `allowEval` off, §19.3), HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`. The app sets the CSP and the other headers itself (`web/middleware.py`), so they hold behind Caddy, nginx or none; the proxy adds HSTS, and `scripts/stack_smoke.sh` checks the policy through it. htmx 4 has no `allowEval` switch: it evaluates only `hx-on`, `js:` values and trigger filters, which no template uses (a test scans them), and the CSP refuses eval anyway
+- [x] **P** `EC-A07` Upload safety: type sniffed (not trusted from the filename), size cap, SVG sanitised, PDFs never executed, files served with `Content-Disposition` and a safe content type
 - [ ] **P** `EC-A08` Jinja autoescape on; report/bill templates rendered in the **sandboxed** Jinja environment
 - [x] **P** `EC-A09` All SQL through SQLAlchemy parameters; no string-built SQL *(CI: ruff `S608`)*
 - [x] **P** `EC-A10` Secrets only from env / `.env` (mode 600) / Docker secrets; never in the database, logs, CLI args or Git *(CI: gitleaks)*
@@ -31,7 +31,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [x] **P** `EC-B02` Gapless, unique document numbers under concurrency (row lock on `number_series`); test with 20 parallel bills *(CI)*
 - [x] **P** `EC-B03` Optimistic locking (`row_version`) on edits; a stale edit shows "changed by X, reload"
 - [x] **P** `EC-B04` Database constraints, not just app checks: foreign keys, `CHECK` (amount ≥ 0, paid ≤ net), unique keys, `NOT NULL`
-- [ ] **P** `EC-B05` Released reports and issued bills are immutable; corrections only as amendment / credit note / cancellation with reason *(CI test)*
+- [x] **P** `EC-B05` Released reports and issued bills are immutable; corrections only as amendment / credit note / cancellation with reason *(CI test)*
 - [ ] **P** `EC-B06` Append-only audit log with a hash chain; a nightly job verifies the chain and alerts on a break
 - [x] **P** `EC-B07` Idempotent form submits (a double click doesn't create 2 bills: `client_ref` unique)
 - [ ] **1** `EC-B08` Daily reconciliation report: payments vs bills vs day close; mismatches flagged
@@ -83,7 +83,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## H. Code quality and testing
 - [x] **P** `EC-H01` Every change ships a test; coverage report in CI (target ≥ 80% on `service.py` modules) *(CI)*
 - [ ] **P** `EC-H02` ruff (lint + format), pyright strict on `service` and `billing`, pytest against real Postgres (testcontainers) *(CI)*
-- [ ] **P** `EC-H03` One Playwright end-to-end test of the full day; PDF snapshot tests for report and bill *(CI)*
+- [x] **P** `EC-H03` One Playwright end-to-end test of the full day; PDF snapshot tests for report and bill *(CI)*
 - [x] **P** `EC-H04` Single local gate script = same as CI (`scripts/ci_local.sh`)
 - [ ] **P** `EC-H05` Branch protection on `main`: CI must pass, PR required
 - [ ] **1** `EC-H06` Mutation testing on the money module (mutmut), occasional
@@ -101,14 +101,14 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## J. Usability and accessibility
 - [x] **P** `EC-J01` Keyboard-first front desk (barcode scanner + Enter flows, shortcuts for new patient / bill / print)
 - [x] **P** `EC-J02` Works in Chrome/Edge on a 1366×768 screen (common on branch PCs)
-- [ ] **P** `EC-J03` Clear empty, loading and error states (Basecoat components); confirmation for cancel/refund/release
+- [x] **P** `EC-J03` Clear empty, loading and error states (Basecoat components); confirmation for cancel/refund/release
 - [ ] **1** `EC-J04` WCAG 2.2 AA on main screens (contrast, focus, labels)
 - [ ] **1** `EC-J05` UI translations (Babel) with at least one regional language
 
 ## K. Configuration and customisation safety
 - [x] **P** `EC-K01` Settings typed and validated (Pydantic); invalid values refused with a message
 - [x] **P** `EC-K02` Settings changes, price changes and template publishes are audited and versioned (who, when, before/after)
-- [ ] **P** `EC-K03` Draft → preview → publish for templates and letterheads; old documents keep their version
+- [x] **P** `EC-K03` Draft → preview → publish for templates and letterheads; old documents keep their version
 - [ ] **1** `EC-K04` Settings export/import (JSON) for moving to a new server or copying a branch setup
 - [ ] **1** `EC-K05` Plugin API documented and versioned; a broken plugin is disabled with a warning, not a crash
 

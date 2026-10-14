@@ -30,6 +30,19 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Outsourcing screen: send-out sheet, mark sent with the outside lab's number, result PDF upload and download, and a timeline for each test.
 - `test.sent_out` and `test.performed` events in the outbox.
 - A service swap register in the developer docs: every replaceable part with the setting that selects it and the test that proves the swap, kept complete by a gate.
+- Report and bill PDFs made on the server with vendored Noto fonts (₹ and Devanagari), no network fetches, and a sanitiser for uploaded SVGs.
+- Letterheads per branch for reports and bills: upload (SVG, PDF or image, optimised), margins and signature area, a live preview, a calibration page, a printer offset, and draft then publish with old documents keeping their version.
+- The bill of supply as a PDF on the bill letterhead, digital and print.
+- Report layout with the ISO 15189 items on every page, panels that do not split, "(continued)" headings, A4 and A5, and an optional reference column.
+- Report release by the signatory with a confirm screen, partial reports with a pending list, versions that supersede, and a block while a range is unapproved.
+- A QR code on each report and a public page that shows only whether a report version is current.
+- Reopening a released test and an amended version with a banner; outside PDFs attached to the report or forwarded with a cover page.
+- Report copies to download or print, selected tests only, a hand-over log, and a tick before printing or handing over with money due.
+- Patient history with results side by side, address and visit-date filters, and a scanned visit number that opens the visit.
+- Owner figures: daily collection by branch and mode, bills, cancellations, dues, outsourcing margin, and pending and overdue tests.
+- `labra export accounting` and `labra export all` (CSV and Parquet with a schema description), for administrators only and audited.
+- `report.released` events in the outbox.
+- Tests for the security headers and a scan of the templates for inline code; a browser test of releasing, printing and handing over; snapshot tests for the report and bill PDFs.
 
 ### Changed
 - Package and comment preset forms take tests by typed code instead of listing every test.

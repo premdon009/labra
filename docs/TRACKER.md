@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 12/22 · Minimal 32/42 · After pilot (P2) 1/10 · Checklist gate P 28/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 12/22 · Minimal 40/42 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -83,9 +83,9 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M11.1~~ | ~~Result grid: keyboard entry, server-computed flags, colour states (screen only) (§1d)~~ | P | done | 2026-10-13 · 2c9bb8a |
 | ~~M11.2~~ | ~~Absurd-value guard and Friedewald/formula validity checks (§1d)~~ | P | done | 2026-10-13 · 2c9bb8a |
 | ~~M11.3~~ | ~~Samples from another branch are scanned in at the lab before they appear on the worklist~~ | P | done | 2026-10-13 · 2c9bb8a |
-| M12 | Reports: combined/separate, signature image, release, amendments, QR | P | doing | |
-| M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | P | doing | |
-| M13 | Reports for the owner | P | doing | |
+| ~~M12~~ | ~~Reports: combined/separate, signature image, release, amendments, QR~~ | P | done | 2026-10-14 · b9c9860 |
+| ~~M12.1~~ | ~~Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0)~~ | P | done | 2026-10-14 · 7fd5366 |
+| ~~M13~~ | ~~Reports for the owner~~ | P | done | 2026-10-14 · 7863dc8 |
 | ~~M07.1~~ | ~~Bill of supply Rule 49 field check; 16-character number-format validation (§8). Rule 46 (tax invoice) comes with X27~~ | P | done | 2026-10-13 · 5c5912e |
 | ~~M07.2~~ | ~~UPI reference must have a digit in it; the audit log records a new visit before its bill~~ | P | done | 2026-10-13 · 6bdf904 |
 | ~~M07.3~~ | ~~A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills~~ | P | done | 2026-10-13 · ba826bb |
@@ -96,14 +96,14 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M14.2~~ | ~~A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
 | M16 | Backups: Google Drive + USB via restic | P | todo | |
-| M17 | Letterhead and margin calibration (§7.2) | P | doing | |
+| ~~M17~~ | ~~Letterhead and margin calibration (§7.2)~~ | P | done | 2026-10-14 · cd556ef |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
 | ~~M18~~ | ~~Fast front desk: one-screen visit~~ | P | done | 2026-10-13 · 21d84e9 |
 | M18.1 | Keyboard shortcuts and `?` overlay (§1c); the shortcuts themselves ship in M18, the overlay waits | P2 | todo | |
 | ~~M18.2~~ | ~~Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date~~ | P | done | 2026-10-13 · 6bdf904 |
-| M19 | Patient history and cumulative results | P | doing | |
-| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | P | doing | |
-| M21 | Delivery tracking and outsourcing timeline | P | doing | outsourcing timeline done 2026-10-13; delivery tracking in Run 5 |
+| ~~M19~~ | ~~Patient history and cumulative results~~ | P | done | 2026-10-14 · fa44780 |
+| ~~M20~~ | ~~Report options: selected tests, reference column, A4/A5, methods, barcode~~ | P | done | 2026-10-14 · fa44780 |
+| ~~M21~~ | ~~Delivery tracking and outsourcing timeline~~ | P | done | 2026-10-14 · df01219 (outsourcing timeline 2026-10-13) |
 | M22 | Lab status board (TV) | P2 | todo | |
 | ~~M23~~ | ~~Currency display settings (§8)~~ | P | done | 2026-10-13 · 4b99be5 |
 | ~~M23.1~~ | ~~Admin price headings use the currency symbol from settings~~ | P | done | 2026-10-13 · 9123107 |
@@ -113,7 +113,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
 | M25.3 | In-app `?` help and printable manual PDF | P2 | todo | |
-| M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | P | doing | `test.sent_out` and `test.performed` events done 2026-10-13; exports in Run 5 |
+| ~~M26~~ | ~~Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17)~~ | P | done | 2026-10-14 · 0585060 (outsourcing events 2026-10-13) |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
 
 ## Next expansion (0.x, after the pilot)
@@ -200,17 +200,17 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 ## Enterprise checklist (counts only; tick the items in §14a)
 | Section | IDs | Gate P | Gate 1 | Gate L |
 |---|---|---|---|---|
-| A Security | EC-A01–A16 | 7/12 | 0/3 | 0/1 |
-| B Data integrity and money | EC-B01–B08 | 5/7 | 0/1 | — |
+| A Security | EC-A01–A16 | 9/12 | 0/3 | 0/1 |
+| B Data integrity and money | EC-B01–B08 | 6/7 | 0/1 | — |
 | C Privacy and compliance | EC-C01–C09 | 3/5 | 0/3 | 0/1 |
 | D Reliability, backup, DR | EC-D01–D09 | 1/7 | 0/1 | 0/1 |
 | E Observability and support | EC-E01–E06 | 1/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 1/3 | 0/1 | — |
 | G Upgrades and migrations | EC-G01–G06 | 1/4 | 0/2 | — |
-| H Code quality and testing | EC-H01–H07 | 2/5 | 0/2 | — |
+| H Code quality and testing | EC-H01–H07 | 3/5 | 0/2 | — |
 | I Supply chain | EC-I01–I07 | 3/5 | 0/2 | — |
-| J Usability | EC-J01–J05 | 2/3 | 0/2 | — |
-| K Configuration safety | EC-K01–K05 | 2/3 | 0/2 | — |
+| J Usability | EC-J01–J05 | 3/3 | 0/2 | — |
+| K Configuration safety | EC-K01–K05 | 3/3 | 0/2 | — |
 | L Documentation | EC-L01–L05 | 0/3 | 0/2 | — |
 | O Open-source health | EC-O01–O08 | — | 0/8 | — |
 
