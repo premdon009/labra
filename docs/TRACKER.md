@@ -60,7 +60,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W17 | Container runtimes: same image and Compose file on Docker, Podman and Podman Desktop, containerd (nerdctl) and Incus; `scripts/stack_smoke.sh`, `scripts/compare_runtimes.sh`, tests on any Postgres, ADR-0009 (§19.2) | P | doing | verified in nested labs; CI matrix unrun; Incus full stack and Podman Desktop need a real host |
 | W18 | Image builders: Docker BuildKit, Podman, Buildah and Kaniko (fork) build the same image; `scripts/build_image.sh`, `scripts/check_image.sh` (§19.2) | P | doing | all four checked locally; CI matrix unrun |
 | W19 | Edge alternatives: nginx for Caddy, Tailscale/Headscale and NetBird profiles for Cloudflare Tunnel, WireGuard documented (§19.2) | P | doing | nginx 16/16 checks; tunnel logins need real keys; CI matrix unrun |
-| W20 | Service swap register and gate: one table of every replaceable part (database, logs, metrics, errors, identity, mail, files, backups, web proxy, remote access, container runtime, PDF engine, UI assets) with its port or open protocol, built-in default, alternative, the setting that selects it and the test that proves the swap; `scripts/check_services.py` fails when a part has no row, a row names no test, or a vendor library is imported outside its adapter (ADR-0008, §17.6, §19.2) | P2 | todo | |
+| W20 | Service swap register, gate and database seam: `docs/dev/services.md` lists every replaceable part (database server and driver, identity, files, errors, heartbeats, mail, logs, metrics, health, web proxy, remote access, container runtime, image builder, backups, PDF engine, UI assets, barcode, money formatting) with its default, alternatives, the setting that selects it and the test that proves the swap, or a tracker row or ADR; `scripts/check_services.py` fails when a port, entry point, setting, Compose service or vendored asset has no row, a row has no proof, or Postgres-only code sits outside `labra.core.dialect`; PostgreSQL family supported, second engine X40, second driver X44 (ADR-0008, §17.6, §19.2) | P2 | doing | |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
@@ -155,6 +155,11 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | X37 | Outsourcing: mark every waiting test of one outside lab as sent in one step | | todo | |
 | X38 | Outsourcing: record a result as received from the outside lab before its PDF is in hand | | todo | |
 | X39 | Audit row each time an outside lab's result PDF is downloaded | | todo | |
+| X40 | Second database engine (MariaDB first) on top of the `labra.core.dialect` seam, with its own migrations for the append-only and money guards | only for an install that can't run PostgreSQL | todo | |
+| X41 | S3-compatible file store adapter for the `FileStore` port, optional extra `labra[s3]` (ADR-0008, §17.6) | when files outgrow the server's disk, or a group runs object storage | todo | |
+| X42 | Sign-in through any OIDC provider, mapped to `app_user` by issuer and subject, one local break-glass admin kept; widens the `IdentityProvider` port (ADR-0008) | when a group with its own identity provider asks | todo | |
+| X43 | Error reports to GlitchTip or Sentry by DSN, names and phones scrubbed, optional extra `labra[sentry]` (ADR-0008, EC-C03) | if the maintainer can't be at the lab during the pilot | todo | |
+| X44 | Prove a second PostgreSQL driver (pg8000): dev dependency with its register row, one migrate-and-round-trip test | if psycopg's licence or wheels become a problem | todo | |
 
 ## Later (1.x / 2.x)
 | ID | Item | Release | Status | Done (date · PR) |
