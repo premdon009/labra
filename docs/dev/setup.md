@@ -41,6 +41,8 @@ Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the director
 
 The gate re-runs a failed test once. A test that fails both times fails the gate as before. A test that passes on its re-run is **flaky**: it still fails the gate, labelled `flaky (passed on re-run)` and listed in `flaky.txt`. Fix it; don't re-run the gate until it goes green. A plain `uv run pytest` doesn't re-run anything.
 
+Each tests stage also appends to `.ci/runs/history.tsv`, which the pruning never removes: one row per run, and one per failed or flaky test, with the run and the commit (`-dirty` when the tree had changes). It's tab-separated, so a spreadsheet, `awk` or pandas read it as it is. `uv run python scripts/flaky_report.py` lists the tests that went wrong, the most flaky first (`--last 20` for the newest runs only); delete the file to start again. In CI the history starts fresh each run (X45).
+
 The newest 10 runs are kept, and so is the newest failed run, however old, so an intermittent failure can be found after a green run. `.ci/` is ignored by git and by the gate's own scans.
 
 Another CI system sets `LABRA_CI_LOGS` to a directory outside the checkout and collects it as an artifact; GitHub CI does this and uploads it when the gate fails.

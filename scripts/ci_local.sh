@@ -14,7 +14,8 @@
 # Every run keeps its logs in ${LABRA_CI_LOGS:-.ci/runs}/<UTC time>/: one <stage>.log per
 # stage, the test output (pytest.txt), a JUnit XML report (junit.xml), coverage.json,
 # summary.txt, and the failed and flaky tests (failed-tests.txt, flaky.txt). The newest 10
-# runs are kept, and the newest failed run is never removed.
+# runs are kept, and the newest failed run is never removed. Each tests stage also appends
+# to history.tsv there, which scripts/flaky_report.py reads.
 # Another CI system points LABRA_CI_LOGS at its artifact directory and collects it.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -27,7 +28,7 @@ while (($#)); do
     --fast) fast=1; shift ;;
     --dry-run) dry=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -111,8 +112,11 @@ stage_tests() {
   uv run pytest -q -rfEsR --reruns 1 --junitxml="$RUN_DIR/junit.xml" \
     --cov --cov-fail-under=0 --cov-report=term \
     --cov-report=json:"$RUN_DIR/coverage.json" | tee "$out"
-  local rc=${PIPESTATUS[0]} named
-  uv run python scripts/pytest_summary.py "$out" "$RUN_DIR" | tee "$RUN_DIR/failed-tests.txt"
+  local rc=${PIPESTATUS[0]} named commit
+  commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
+  [[ -n $(git status --porcelain 2>/dev/null) ]] && commit+=-dirty
+  uv run python scripts/pytest_summary.py "$out" "$RUN_DIR" --history "$LOGS_ROOT/history.tsv" \
+    --run "${RUN_DIR##*/}" --commit "$commit" | tee "$RUN_DIR/failed-tests.txt"
   named=${PIPESTATUS[0]}
   ((rc != 0 || named != 0)) && return 1
   if grep -q "SKIPPED.*no Postgres for tests" "$out"; then

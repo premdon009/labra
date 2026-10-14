@@ -160,6 +160,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | X42 | Sign-in through any OIDC provider, mapped to `app_user` by issuer and subject, one local break-glass admin kept; widens the `IdentityProvider` port (ADR-0008) | when a group with its own identity provider asks | todo | |
 | X43 | Error reports to GlitchTip or Sentry by DSN, names and phones scrubbed, optional extra `labra[sentry]` (ADR-0008, EC-C03) | if the maintainer can't be at the lab during the pilot | todo | |
 | X44 | Prove a second PostgreSQL driver (pg8000): dev dependency with its register row, one migrate-and-round-trip test | if psycopg's licence or wheels become a problem | todo | |
+| X45 | Carry the gate's flaky and failed test history between CI runs (an Actions cache or a results branch), so `scripts/flaky_report.py` covers CI as well as local runs | if CI shows flaky tests the local history misses | todo | |
 
 ## Later (1.x / 2.x)
 | ID | Item | Release | Status | Done (date · PR) |

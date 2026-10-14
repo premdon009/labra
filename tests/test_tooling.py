@@ -524,3 +524,116 @@ def test_pytest_summary_names_failed_and_flaky_tests(
     assert capsys.readouterr().out.splitlines() == lines
     flaky_txt = tmp_path / "flaky.txt"
     assert (flaky_txt.read_text() if flaky_txt.exists() else None) == flaky
+
+
+HISTORY = """\
+run\tcommit\ttest\toutcome
+20261001T090000Z\taaa1111\t*\trun
+20261001T090000Z\taaa1111\ttests/test_a.py::test_slow\tfailed
+20261002T090000Z\tbbb2222\t*\trun
+20261002T090000Z\tbbb2222\ttests/test_a.py::test_clock\tflaky
+20261003T090000Z\tccc3333-dirty\t*\trun
+20261003T090000Z\tccc3333-dirty\ttests/test_a.py::test_clock\tflaky
+20261003T090000Z\tccc3333-dirty\ttests/test_b.py::test_order\tflaky
+20261004T090000Z\tddd4444\t*\trun
+"""
+
+
+@pytest.mark.item("W08")
+@pytest.mark.parametrize(
+    ("history", "args", "lines"),
+    [
+        (
+            HISTORY,
+            [],
+            [
+                "4 runs, 20261001T090000Z to 20261004T090000Z",
+                "2 flaky / 0 failed / 4 runs  tests/test_a.py::test_clock"
+                "  last: 20261003T090000Z ccc3333-dirty",
+                "1 flaky / 0 failed / 4 runs  tests/test_b.py::test_order"
+                "  last: 20261003T090000Z ccc3333-dirty",
+                "0 flaky / 1 failed / 4 runs  tests/test_a.py::test_slow"
+                "  last: 20261001T090000Z aaa1111",
+            ],
+        ),
+        (
+            HISTORY,
+            ["--last", "2"],
+            [
+                "2 runs, 20261003T090000Z to 20261004T090000Z",
+                "1 flaky / 0 failed / 2 runs  tests/test_a.py::test_clock"
+                "  last: 20261003T090000Z ccc3333-dirty",
+                "1 flaky / 0 failed / 2 runs  tests/test_b.py::test_order"
+                "  last: 20261003T090000Z ccc3333-dirty",
+            ],
+        ),
+        (
+            HISTORY.split("20261002")[0],
+            ["--last", "1"],
+            [
+                "1 run, 20261001T090000Z to 20261001T090000Z",
+                "0 flaky / 1 failed / 1 run  tests/test_a.py::test_slow"
+                "  last: 20261001T090000Z aaa1111",
+            ],
+        ),
+        (
+            HISTORY.split("20261001T090000Z\taaa1111\ttests")[0],
+            [],
+            ["1 run, 20261001T090000Z to 20261001T090000Z", "no test was flaky or failed"],
+        ),
+        ("", [], ["no runs recorded"]),
+        (None, [], ["no runs recorded"]),
+    ],
+)
+def test_flaky_report_counts_per_test(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    history: str | None,
+    args: list[str],
+    lines: list[str],
+) -> None:
+    path = tmp_path / "history.tsv"
+    if history is not None:
+        path.write_text(history)
+    assert _script("flaky_report").main(["--history", str(path), *args]) == 0
+    assert capsys.readouterr().out.splitlines() == lines
+
+
+@pytest.mark.item("W08")
+def test_pytest_summary_appends_to_the_history(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mod = _script("pytest_summary")
+    history = tmp_path / "history.tsv"
+    history.write_text(HISTORY)
+    (tmp_path / "pytest.txt").write_text(PYTEST_CLEAN)
+    pytest_txt = tmp_path / "pytest.txt"
+    common = [str(pytest_txt), str(tmp_path), "--history", str(history), "--commit", "eee5555"]
+    pytest_txt.write_text(PYTEST_CLEAN)
+    assert mod.main([*common, "--run", "20261005T090000Z"]) == 0
+    pytest_txt.write_text(PYTEST_RERUNS.replace("test_flaky", "test_clock"))
+    assert mod.main([*common, "--run", "20261006T090000Z"]) == 1
+    assert history.read_text().splitlines()[-5:] == [
+        "20261005T090000Z\teee5555\t*\trun",
+        "20261006T090000Z\teee5555\t*\trun",
+        "20261006T090000Z\teee5555\ttests/test_a.py::test_broken\tfailed",
+        "20261006T090000Z\teee5555\ttests/test_b.py::test_setup[one - two]\tfailed",
+        "20261006T090000Z\teee5555\ttests/test_a.py::test_clock\tflaky",
+    ]
+    assert "  flaky 3 times in the last 6 runs; see scripts/flaky_report.py" in (
+        capsys.readouterr().out.splitlines()
+    )
+
+
+@pytest.mark.item("W08")
+def test_pytest_summary_starts_a_history(tmp_path: Path) -> None:
+    (tmp_path / "pytest.txt").write_text(PYTEST_CLEAN)
+    run_dir, history = tmp_path / "20261007T090000Z", tmp_path / "history.tsv"
+    run_dir.mkdir()
+    _script("pytest_summary").main(
+        [str(tmp_path / "pytest.txt"), str(run_dir), "--history", str(history)]
+    )
+    assert history.read_text().splitlines() == [
+        "run\tcommit\ttest\toutcome",
+        "20261007T090000Z\tunknown\t*\trun",
+    ]
