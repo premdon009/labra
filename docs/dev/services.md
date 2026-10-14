@@ -11,7 +11,7 @@ part, what selects it, and the test or script that proves the swap works.
 
 | Service | Kind | Default | Alternatives | Selected by | Proof | Status |
 |---|---|---|---|---|---|---|
-| Database server | setting | PostgreSQL 18: the `db` service, `postgres` image | any PostgreSQL server the lab already runs, managed or not | `LABRA_DATABASE_URL` | `tests/test_tooling.py::test_check_config_refuses_other_databases`, `tests/test_dialect.py::test_similar_finds_spelling_variants` | swappable |
+| Database server | setting | PostgreSQL 18: the `db` service, `postgres` image | any PostgreSQL server the lab already runs, managed or not | `LABRA_DATABASE_URL` | `tests/test_tooling.py::test_check_config_refuses_other_databases`, `tests/test_db_dialect.py::test_similar_finds_spelling_variants` | swappable |
 | Database engine | setting | PostgreSQL, with Postgres-only code behind `labra.core.dialect` | MariaDB, then others | `LABRA_DATABASE_URL` | X40 | planned |
 | Database driver | setting | psycopg 3 (`postgresql+psycopg://…`) | pg8000 | `LABRA_DATABASE_URL` | X44 | planned |
 | Identity (`labra.identity`) | port | `local`: passwords hashed with argon2 | any OIDC provider (X42) | `LABRA_AUTH_PROVIDER` | `tests/test_platform.py::test_default_settings_build_every_builtin`, `tests/test_platform.py::test_unknown_adapter_fails_fast_with_choices` | swappable |
@@ -92,4 +92,4 @@ install needs an alternative, follow the same steps every time:
 
 A new kind of service, such as a new port, a Compose service or a vendored file, gets its own
 row in the same change; the gate fails until it has one. New Postgres-only queries go into
-`labra.core.dialect` as a named helper, with a test in `tests/test_dialect.py`.
+`labra.core.dialect` as a named helper, with a test in `tests/test_db_dialect.py`.

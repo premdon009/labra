@@ -13,7 +13,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-STAGES=(preflight hygiene lint types imports tests tracker manual docs audit stack)
+STAGES=(preflight hygiene lint types imports services tests tracker manual docs audit stack)
 only=() fast=0 dry=0 quiet=0
 while (($#)); do
   case "$1" in
@@ -66,6 +66,9 @@ stage_types() {
 }
 stage_imports() {
   uv run lint-imports || return 1
+}
+stage_services() {
+  uv run python scripts/check_services.py --check
 }
 stage_tests() {
   local out="$LOG_DIR/pytest.txt"

@@ -63,6 +63,12 @@ repos:
         language: system
         files: ^(src/labra/|docs/manual/)
         pass_filenames: false
+      - id: services
+        name: service swap register
+        entry: uv run python scripts/check_services.py --check
+        language: system
+        files: ^(src/labra/.*\.py|pyproject\.toml|compose\.yaml|deploy/.*/compose\..*\.yaml|docs/dev/services\.md|docs/TRACKER\.md|tests/.*\.py|src/labra/static/vendor/manifest\.json)$
+        pass_filenames: false
       - id: audit-deps
         name: dependency register
         entry: uv run python scripts/audit_deps.py --check

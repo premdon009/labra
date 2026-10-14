@@ -208,3 +208,164 @@ def test_action_pinning(line: str, pinned: bool) -> None:
     m = audit.USES_RE.match(line)
     assert m is not None
     assert bool(audit.SHA_RE.match(m.group(1).partition("@")[2])) is pinned
+
+
+@pytest.mark.item("W20")
+@pytest.mark.parametrize(
+    "url", ["sqlite:///labra.db", "mysql+pymysql://labra:hunter2@db.example/labra"]
+)
+def test_check_config_refuses_other_databases(
+    url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("LABRA_DATABASE_URL", url)
+    with pytest.raises(SystemExit) as bad:
+        main(["check-config"])
+    out = capsys.readouterr().out
+    assert bad.value.code == 2
+    assert "LABRA_DATABASE_URL must start with postgresql://" in out
+    assert "hunter2" not in out
+
+
+SAMPLE_REPO = {
+    "src/labra/core/ports.py": 'GROUPS = {"mailer": "labra.mailer"}\n',
+    "src/labra/core/config.py": (
+        "class Settings:\n    mailer: str = 'console'\n    url: str = ''\n"
+    ),
+    "src/labra/core/dialect.py": "from sqlalchemy.dialects.postgresql import JSONB\n",
+    "src/labra/migrations/versions/0001.py": "from sqlalchemy.dialects import postgresql\n",
+    "src/labra/billing/service.py": "# func.similarity is reached through the seam\nx = 1\n",
+    "pyproject.toml": (
+        '[project.entry-points."labra.mailer"]\n'
+        'console = "a:B"\nsmtp = "a:C"\n\n'
+        '[project.entry-points."other.group"]\nx = "a:D"\n'
+    ),
+    "compose.yaml": (
+        "name: labra\nservices:\n"
+        "  db:\n    image: docker.io/library/postgres:18@sha256:abc\n"
+        "  web:\n    image: ${LABRA_IMAGE:-ghcr.io/example/labra:0.1.0}\n"
+        "    environment:\n      LABRA_MAILER: ${LABRA_MAILER:-console}\n"
+        "  tunnel:\n    image: docker.io/cloudflare/cloudflared:2026.1\n"
+        "    profiles: [tunnel]\n"
+        "volumes:\n  pgdata:\n"
+    ),
+    "deploy/x/compose.x.yaml": "services:\n  proxy:\n    image: nginx:1.30\n",
+    "src/labra/static/vendor/manifest.json": '{"htmx.min.js": {"package": "htmx.org"}}',
+    "docs/TRACKER.md": (
+        "| ID | Item | Gate | Status | Done |\n|---|---|---|---|---|\n"
+        "| X40 | Second engine | — | todo | |\n"
+        "| ~~M16~~ | ~~Backups~~ | P | done | 2026-10-01 · abc1234 |\n"
+    ),
+    "docs/adr/0003-stack.md": "# Stack\n",
+    "tests/t.py": "def test_ok() -> None:\n    pass\n",
+    "bin/up.sh": "#!/bin/sh\n",
+}
+
+SAMPLE_REGISTER = """\
+# Services
+
+## Register
+
+| Service | Kind | Default | Alternatives | Selected by | Proof | Status |
+|---|---|---|---|---|---|---|
+| Database | setting | `db`, `postgres` | — | `LABRA_URL` | `tests/t.py::test_ok` | swappable |
+| Engine | setting | PostgreSQL | MariaDB | `LABRA_URL` | X40 | planned |
+| `labra.mailer` | port | `console` | `smtp` | `LABRA_MAILER` | `tests/t.py::test_ok` | swappable |
+| App | script | `labra` image, `web` | — | `LABRA_IMAGE` | `bin/up.sh` | swappable |
+| Proxy | compose | `proxy` | `deploy/x/compose.x.yaml`, `nginx` | — | `bin/up.sh` | swappable |
+| Remote | compose | `--profile tunnel`, `cloudflared` image | — | — | `bin/up.sh` | swappable |
+| UI | vendored | `htmx.org` | — | — | [ADR-0003](../adr/0003-stack.md) | fixed |
+
+Text after the table.
+"""
+
+
+def _services_problems(
+    tmp_path: Path, replace: tuple[str, str] = ("", ""), files: dict[str, str] | None = None
+) -> list[str]:
+    mod = _script("check_services")
+    for rel, text in {**SAMPLE_REPO, **(files or {})}.items():
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text)
+    old, new = replace
+    assert old in SAMPLE_REGISTER
+    register = SAMPLE_REGISTER.replace(old, new) if old else SAMPLE_REGISTER
+    (tmp_path / mod.REGISTER).parent.mkdir(parents=True)
+    (tmp_path / mod.REGISTER).write_text(register)
+    sources = {
+        p.relative_to(tmp_path).as_posix(): p.read_text()
+        for p in (tmp_path / "src" / "labra").rglob("*.py")
+    }
+    return mod.check(register, mod.gather(tmp_path), sources, tmp_path)
+
+
+@pytest.mark.item("W20")
+def test_service_register_passes() -> None:
+    assert _script("check_services").main(["--check"]) == 0
+
+
+@pytest.mark.item("W20")
+def test_sample_service_register_passes(tmp_path: Path) -> None:
+    assert _services_problems(tmp_path) == []
+
+
+@pytest.mark.item("W20")
+@pytest.mark.parametrize(
+    ("old", "new", "problem"),
+    [
+        ("| `labra.mailer` |", "| Mail |", "port group 'labra.mailer' has no row"),
+        ("`smtp`", "SMTP", "entry point 'labra.mailer:smtp' isn't named in its row"),
+        ("`LABRA_MAILER`", "`LABRA_MAILLER`", "LABRA_MAILLER is neither a setting"),
+        ("| `db`, `postgres` |", "| `postgres` |", "Compose service 'db' has no row"),
+        ("`--profile tunnel`", "the tunnel", "Compose profile 'tunnel' has no row"),
+        (
+            "`deploy/x/compose.x.yaml`",
+            "an override",
+            "Compose override 'deploy/x/compose.x.yaml' has no row",
+        ),
+        ("`cloudflared` image", "a tunnel image", "image 'cloudflared' has no row"),
+        ("| `htmx.org` |", "| htmx |", "vendored asset 'htmx.org' has no row"),
+        ("| port |", "| plugin |", "unknown kind 'plugin'"),
+        ("| fixed |", "| frozen |", "unknown status 'frozen'"),
+        ("::test_ok` | swappable |", "::test_gone` | swappable |", "no test test_gone"),
+        ("`bin/up.sh` | swappable |", "`bin/gone.sh` | swappable |", "doesn't exist"),
+        ("| `bin/up.sh` |", "| by hand |", "names the test or script that proves it"),
+        ("| X40 |", "| M16 |", "M16 is done; update the row"),
+        ("| X40 |", "| X39 |", "X39 isn't in docs/TRACKER.md"),
+        ("| X40 |", "| soon |", "a planned row names its tracker ID"),
+        ("(../adr/0003-stack.md)", "(../adr/0099-gone.md)", "0099-gone.md doesn't exist"),
+        ("| Proof |", "| Tests |", "columns must be"),
+    ],
+)
+def test_service_register_problems_found(tmp_path: Path, old: str, new: str, problem: str) -> None:
+    problems = _services_problems(tmp_path, (old, new))
+    assert any(problem in p for p in problems), problems
+
+
+@pytest.mark.item("W20")
+@pytest.mark.parametrize(
+    ("line", "what"),
+    [
+        ("from sqlalchemy.dialects.postgresql import JSONB", "a sqlalchemy.dialects import"),
+        ("import sqlalchemy.dialects.postgresql", "a sqlalchemy.dialects import"),
+        ("rank = func.similarity(Patient.name, q)", "a Postgres function"),
+        ("names = select(func.unnest(Test.aliases))", "a Postgres function"),
+        ('db.execute(text("select pg_advisory_xact_lock(1)"))', "a Postgres lock"),
+        ("stmt = stmt.ext(distinct_on(Result.parameter_id))", "DISTINCT ON"),
+        ('match = Patient.name.op("%")(q)', "the trigram % operator"),
+    ],
+)
+def test_postgres_only_code_outside_the_seam_found(tmp_path: Path, line: str, what: str) -> None:
+    problems = _services_problems(tmp_path, files={"src/labra/patients/service.py": line + "\n"})
+    assert problems == [f"src/labra/patients/service.py:1: {what}; use labra.core.dialect instead"]
+
+
+@pytest.mark.item("W20")
+def test_new_compose_service_needs_a_row(tmp_path: Path) -> None:
+    compose = SAMPLE_REPO["compose.yaml"].replace(
+        "volumes:", "  cache:\n    image: docker.io/library/valkey:9\nvolumes:"
+    )
+    problems = _services_problems(tmp_path, files={"compose.yaml": compose})
+    assert problems == [
+        "compose.yaml:12: Compose service 'cache' has no row in docs/dev/services.md",
+        "compose.yaml:13: image 'valkey' has no row in docs/dev/services.md",
+    ]

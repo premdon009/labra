@@ -47,7 +47,7 @@ scripts/          gates and operational scripts
 | Types | `uv run pyright` |
 | Pre-commit hooks (once per clone) | `uv run pre-commit install` |
 | Dependency register | `uv run python scripts/audit_deps.py --check` (or `--refresh`) |
-| Service swap register | [`docs/dev/services.md`](docs/dev/services.md) |
+| Service swap register ([`docs/dev/services.md`](docs/dev/services.md)) | `uv run python scripts/check_services.py --check` |
 | Run the stack | `docker compose up -d` ([running the stack](docs/dev/running-the-stack.md)) |
 | Release | [`docs/dev/releasing.md`](docs/dev/releasing.md) |
 

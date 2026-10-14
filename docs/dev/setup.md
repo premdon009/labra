@@ -23,7 +23,7 @@ scripts/ci_local.sh                       # all gates
 uv run labra serve                        # http://127.0.0.1:8000
 ```
 
-Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, lint, types, imports, tests, tracker, manual, docs, audit). `--dry-run` lists the stages without running them.
+Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, hygiene, lint, types, imports, services, tests, tracker, manual, docs, audit, stack). `--dry-run` lists the stages without running them.
 
 ## Tests and Docker
 Tests that need Postgres are marked `db` and start a `postgres:18` container through testcontainers. When Docker isn't reachable they're **skipped with a reason**, and the gate reports the test stage as `WARN`, never `PASS`.

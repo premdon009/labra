@@ -1,7 +1,11 @@
 """Ports and adapters: the registry, the config secret files, and one contract suite per port
 that every adapter (built-in or fake) must pass."""
 
+import io
+import json
+import logging
 import smtplib
+import sys
 from email.message import EmailMessage
 from pathlib import Path
 from typing import ClassVar
@@ -14,6 +18,7 @@ from labra.adapters.heartbeat import HttpHeartbeat, LogHeartbeat
 from labra.adapters.mailer import ConsoleMailer, SmtpMailer, build_message
 from labra.core.config import Settings
 from labra.core.errors import ConfigError, NotFoundError
+from labra.core.logging import configure_logging, get_logger
 from labra.core.ports import (
     ErrorReporter,
     FileStore,
@@ -215,3 +220,25 @@ def test_smtp_mailer_from_settings(tmp_path: Path) -> None:
     mailer = SmtpMailer.from_settings(settings)
     assert mailer.parts.port == 2465
     assert mailer.sender == settings.mail_from
+
+
+@pytest.mark.item("W20")
+@pytest.mark.parametrize("fmt", ["json", "console"])
+def test_log_format_json_or_console(fmt: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    out = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", out)
+    root = logging.getLogger()
+    handlers, level = root.handlers[:], root.level
+    try:
+        configure_logging(fmt, "INFO")
+        get_logger("labra.test").info("sample_ready", count=2)
+    finally:
+        root.handlers[:] = handlers
+        root.setLevel(level)
+    (line,) = out.getvalue().splitlines()
+    if fmt == "json":
+        assert json.loads(line) | {"event": "sample_ready", "count": 2} == json.loads(line)
+    else:
+        assert "sample_ready" in line
+        assert "count=2" in line
+        assert not line.startswith("{")
