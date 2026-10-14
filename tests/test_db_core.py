@@ -18,7 +18,7 @@ from labra.core.errors import ConfigError, NotFoundError, ValidationFailedError
 from labra.core.files import read_file, save_file
 from labra.core.migrate import current_revisions, head_revisions
 from labra.core.models import AuditLog, NumberSeries
-from labra.core.numbering import next_number
+from labra.core.numbering import next_number, upcoming
 from labra.core.registry import Platform
 from labra.org.models import AppUser, Branch
 from labra.seed import seed
@@ -123,6 +123,23 @@ def test_patient_series_does_not_reset_on_1_april(db: Session) -> None:
 def test_missing_series_refused(db: Session) -> None:
     with pytest.raises(NotFoundError):
         next_number(db, "refund", None, "B2", date(2026, 10, 9))
+    with pytest.raises(NotFoundError):
+        upcoming(db, "refund", None, "B2", date(2026, 10, 9))
+
+
+@pytest.mark.item("M12")
+def test_the_upcoming_number_is_shown_without_taking_it(db: Session) -> None:
+    _series(db, "report", "{BR}/R/{FY2}/{SEQ:6}", 2026)
+    _series(db, "patient", "{BR}/P/{SEQ:6}", 2026)
+    day = date(2027, 3, 31)
+    assert upcoming(db, "report", None, "B2", day) == "B2/R/2627/000001"
+    assert upcoming(db, "report", None, "B2", day) == "B2/R/2627/000001"
+    assert next_number(db, "report", None, "B2", day) == "B2/R/2627/000001"
+    assert upcoming(db, "report", None, "B2", day) == "B2/R/2627/000002"
+    # On 1 April a year format restarts; one without the year carries on.
+    assert upcoming(db, "report", None, "B2", date(2027, 4, 1)) == "B2/R/2728/000001"
+    next_number(db, "patient", None, "B2", day)
+    assert upcoming(db, "patient", None, "B2", date(2027, 4, 1)) == "B2/P/000002"
 
 
 @pytest.mark.item("W04")

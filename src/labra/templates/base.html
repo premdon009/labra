@@ -32,6 +32,9 @@
       {% if principal.can('sample.collect', principal.branch_id) %}
       <a href="/frontdesk/collect" {% if request.url.path.startswith('/frontdesk/collect') %}aria-current="page"{% endif %}>Collect samples</a>
       {% endif %}
+      {% if principal.branches_with('report.view') %}
+      <a href="/reports" {% if request.url.path.startswith('/reports') %}aria-current="page"{% endif %}>Reports</a>
+      {% endif %}
       {% if principal.can('result.enter', principal.branch_id) or principal.can('sample.receive', principal.branch_id) or principal.can('test.route', principal.branch_id) %}
       <span class="nav-group">Lab</span>
       {% endif %}

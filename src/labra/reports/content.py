@@ -28,7 +28,7 @@ from labra.org.models import AppUser, Branch
 from labra.patients.age import age_text
 from labra.patients.models import Patient, Referrer
 from labra.printing.pdf import FILE
-from labra.printing.reportpage import barcode
+from labra.printing.reportpage import barcode, qr
 from labra.printing.service import builtin_header
 from labra.results.worklist import Sheet, bands_of, load_sheet, range_text, shown, told_about
 from labra.visits.models import OrderTest, Sample, Visit
@@ -284,6 +284,8 @@ def view(content: dict[str, Any], options: Options, *, preview: bool = False) ->
         "patient": content["patient"],
         "visit": content["visit"],
         "barcode": barcode(content["visit"]["visit_no"]),
+        # Set at release; a preview has none.
+        "qr": qr(content["qr"]) if content.get("qr") else None,
         "nabl": nabl,
         "departments": departments,
         "show_reference": options.reference,

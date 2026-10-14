@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Report check{% endblock %}
+{% block content %}
+<div class="card">
+  <header><h1>{{ found.lab_name }}</h1></header>
+  <section>
+    <p>This report was issued by {{ found.lab_name }}.</p>
+    <dl>
+      <dt>Report</dt><dd>{{ found.report_no }}</dd>
+      <dt>Version</dt><dd>{{ found.version }}</dd>
+      <dt>Issued</dt><dd>{{ found.released_at|local_time }}</dd>
+      <dt>Status</dt><dd>{% if found.current %}Current: this is the latest version.{% else %}<strong>Superseded:</strong> a newer version of this report was issued. Ask the lab for it.{% endif %}</dd>
+    </dl>
+    <p class="muted">Compare the number and version with the paper you hold. This page shows nothing about the patient or the results.</p>
+  </section>
+</div>
+{% endblock %}

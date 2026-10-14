@@ -10,7 +10,7 @@ from typing import Any
 from labra.printing.letterhead import NO_RESERVE, PageSpec, compose
 from labra.printing.pdf import FileReader, Rendered
 from labra.printing.reportpage import TEMPLATE as REPORT
-from labra.printing.reportpage import barcode, compose_report
+from labra.printing.reportpage import barcode, compose_report, qr
 from labra.printing.templates import render_html
 
 
@@ -90,6 +90,7 @@ def _report(name: str, referrer: str, departments: list[dict[str, Any]]) -> dict
             "reported": "14 Oct 2026 15:00",
         },
         "barcode": barcode("B2/V/2627/000123"),
+        "qr": qr("Report B2/R/2627/000123 v1 0123456789abcdef"),
         "nabl": "",
         "departments": departments,
         "show_reference": True,

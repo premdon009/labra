@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Reports</h1></div>
+{% if releasing %}
+<h2>To release</h2>
+<table class="table">
+  <thead><tr><th>Patient</th><th>Visit</th><th>Signed off</th><th>Waiting since</th><th></th></tr></thead>
+  <tbody>
+    {% for item in to_release %}
+    <tr>
+      <td>{{ item.patient_name }}</td>
+      <td>{{ item.visit_no }}</td>
+      <td>{{ item.tests }} test{% if item.tests != 1 %}s{% endif %}</td>
+      <td>{{ item.since|local_time }}</td>
+      <td><a href="/reports/visits/{{ item.visit_id }}">Release</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Every signed-off test is on a released report.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+<h2>Released, not yet handed over</h2>
+<table class="table">
+  <thead><tr><th>Report</th><th>Patient</th><th>Visit</th><th>Released</th><th></th></tr></thead>
+  <tbody>
+    {% for item in released %}
+    <tr>
+      <td>{{ item.report_no }} v{{ item.version }}{% if item.is_partial %} <span class="badge-outline">Partial</span>{% endif %}</td>
+      <td>{{ item.patient_name }}</td>
+      <td>{{ item.visit_no }}</td>
+      <td>{{ item.released_at|local_time }}</td>
+      <td><a href="/reports/{{ item.report_id }}/pdf" target="_blank">Open the PDF</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">No released report is waiting to be handed over.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

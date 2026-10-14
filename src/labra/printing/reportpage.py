@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from decimal import ROUND_UP, Decimal
 from typing import Any
 
+import segno
+
 from labra.printing.letterhead import NO_RESERVE, PageSpec, Splits, compose_paged, page_css
 from labra.printing.pdf import ASSET, FileReader, Rendered, layout
 from labra.printing.templates import render_html
@@ -34,6 +36,29 @@ def barcode(text: str) -> dict[str, Any]:
         "modules": bars.modules,
         "runs": [list(run) for run in bars.runs],
         "width_mm": round(bars.modules * BARCODE_MODULE_MM, 2),
+    }
+
+
+def qr(text: str) -> dict[str, Any]:
+    """A QR code for the sign-off, drawn by the template as one SVG rectangle per run of dark
+    modules in a row; `size` counts modules without the quiet zone."""
+    matrix = segno.make(text, error="m", micro=False).matrix
+    runs = []
+    for y, row in enumerate(matrix):
+        x = 0
+        while x < len(row):
+            if row[x]:
+                start = x
+                while x < len(row) and row[x]:
+                    x += 1
+                runs.append([start, y, x - start])
+            else:
+                x += 1
+    return {
+        "text": text,
+        "link": text.startswith(("https://", "http://")),
+        "size": len(matrix),
+        "runs": runs,
     }
 
 

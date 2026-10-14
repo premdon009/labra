@@ -53,3 +53,8 @@ td.unit { width: 13%; }
 .footnote { font-size: 0.85rem; }
 .sign-off { break-inside: avoid; }
 .signature { max-height: 14mm; max-width: 50mm; display: block; margin-left: auto; }
+.sign-row { display: flex; align-items: flex-end; }
+.sign-row .signatory { margin-left: auto; }
+.qr { width: 22mm; text-align: center; font-size: 0.7rem; }
+.qr svg { width: 22mm; height: 22mm; display: block; }
+.qr p { margin: 0.5mm 0 0; }

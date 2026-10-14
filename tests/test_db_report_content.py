@@ -262,9 +262,9 @@ def test_only_a_signatory_where_the_tests_were_done_sees_the_report(
             )
     meera = as_user(lab, platform, "meera")
     with pytest.raises(NotFoundError):
-        reports.reportable(lab, meera, nothing_yet.id)
+        reports.plan(lab, meera, nothing_yet.id)
     with pytest.raises(NotFoundError):
-        reports.reportable(lab, meera, uuid.uuid4())
+        reports.plan(lab, meera, uuid.uuid4())
     lab.commit()
 
     sign_in(db_client, "meera")

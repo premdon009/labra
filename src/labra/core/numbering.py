@@ -109,6 +109,23 @@ def ensure_series(db: Session, branch_id: uuid.UUID, branch_code: str, today: da
     db.flush()
 
 
+def upcoming(
+    db: Session, doc_type: str, branch_id: uuid.UUID | None, branch_code: str, today: date
+) -> str:
+    """The number the series would issue next, for a confirmation screen. Nothing is locked
+    or taken, so another counter may take it first."""
+    series = db.scalar(
+        select(NumberSeries).where(
+            NumberSeries.doc_type == doc_type, NumberSeries.branch_id == branch_id
+        )
+    )
+    if series is None:
+        raise NotFoundError(f"No number series for {doc_type}.")
+    fy = financial_year(today)
+    restart = series.fin_year != fy and _YEAR.search(series.format)
+    return render(series.format, branch_code, fy, 1 if restart else series.next_value)
+
+
 def next_number(
     db: Session, doc_type: str, branch_id: uuid.UUID | None, branch_code: str, today: date
 ) -> str:

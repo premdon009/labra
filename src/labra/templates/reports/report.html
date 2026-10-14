@@ -102,11 +102,22 @@
 </div>
 <div class="sign-off">
   <div class="signature-area{% if guides %} guide-signature{% endif %}">
-    <div class="signatory">
-      {% if report.signatory.signature %}<img class="signature" src="{{ report.signatory.signature }}" alt="">{% endif %}
-      <div><strong>{{ report.signatory.name }}</strong></div>
-      {% if report.signatory.qualification %}<div>{{ report.signatory.qualification }}</div>{% endif %}
-      {% if report.signatory.council_reg_no %}<div>Reg. no. {{ report.signatory.council_reg_no }}</div>{% endif %}
+    <div class="sign-row">
+      {% if report.qr %}{% set side = report.qr.size + 8 %}
+      <div class="qr">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 {{ side }} {{ side }}" shape-rendering="crispEdges" role="img" aria-label="QR code">
+          <rect x="-4" y="-4" width="{{ side }}" height="{{ side }}" fill="#fff"/>
+          {% for x, y, w in report.qr.runs %}<rect x="{{ x }}" y="{{ y }}" width="{{ w }}" height="1"/>{% endfor %}
+        </svg>
+        <p>{% if report.qr.link %}Scan to check this report{% else %}Report number and check code{% endif %}</p>
+      </div>
+      {% endif %}
+      <div class="signatory">
+        {% if report.signatory.signature %}<img class="signature" src="{{ report.signatory.signature }}" alt="">{% endif %}
+        <div><strong>{{ report.signatory.name }}</strong></div>
+        {% if report.signatory.qualification %}<div>{{ report.signatory.qualification }}</div>{% endif %}
+        {% if report.signatory.council_reg_no %}<div>Reg. no. {{ report.signatory.council_reg_no }}</div>{% endif %}
+      </div>
     </div>
   </div>
   <p class="end">End of report</p>
