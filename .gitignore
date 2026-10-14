@@ -144,6 +144,9 @@ backups/
 *.dump
 site/
 
+# Local gate run logs (scripts/ci_local.sh)
+.ci/
+
 # Docker secrets for compose.yaml
 secrets/
 

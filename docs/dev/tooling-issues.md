@@ -6,6 +6,11 @@ items: [W08]
 
 Problems seen on development machines, and their fixes. Add an entry when something costs more than a few minutes.
 
+## A test failed once, then passed
+**Symptom:** the gate's tests stage failed, and a re-run is green.
+**Cause:** an intermittent test: timing, ordering, or state left by another test.
+**Fix:** the failed run's logs are kept. `grep -l '^FAILED' .ci/runs/*/pytest.txt` finds the run, and its `pytest.txt` names the test and shows the error. Fix the test; don't re-run until it's green.
+
 ## Docker unreachable from WSL
 **Symptom:** tests that need Postgres are skipped with "no Postgres for tests"; `docker ps` in WSL fails or runs a Windows-side shim.
 **Cause:** Docker Desktop is running, but WSL integration is off for this distribution.

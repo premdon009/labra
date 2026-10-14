@@ -64,6 +64,7 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `python` | image | P | PSF-2.0 | 3.14-slim | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
 | `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
 | `actions/checkout` | action | P | MIT | v5.1.0 | — | — | Active | company | CI checkout | — | 2026-10-09 |
+| `actions/upload-artifact` | action | P | MIT | v7.0.1 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
 | `astral-sh/setup-uv` | action | P | MIT | v7.6.0 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
 | `docker/setup-qemu-action` | action | P | Apache-2.0 | v3.7.0 | — | — | Active | company | arm64 image builds (W11) | — | 2026-10-09 |
 | `docker/setup-buildx-action` | action | P | Apache-2.0 | v3.12.0 | — | — | Active | company | multi-arch image builds (W11) | — | 2026-10-09 |

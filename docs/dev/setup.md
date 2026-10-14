@@ -25,6 +25,22 @@ uv run labra serve                        # http://127.0.0.1:8000
 
 Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, hygiene, lint, types, imports, services, tests, tracker, manual, docs, audit, stack). `--dry-run` lists the stages without running them.
 
+## Gate run logs
+Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the directory at the end as `Logs: …`:
+
+| File | What it holds |
+|---|---|
+| `<stage>.log` | everything the stage printed |
+| `summary.txt` | the stage table, and the failed tests when the tests stage failed |
+| `pytest.txt` | the test output, with the failed, errored and skipped tests named at the end |
+| `junit.xml` | the test results as JUnit XML, which GitLab, Forgejo, Jenkins, Allure, IDEs and most CI systems read |
+| `coverage.json` | coverage per file |
+| `failed` | an empty marker: some stage failed |
+
+The newest 10 runs are kept, and so is the newest failed run, however old, so an intermittent failure can be found after a green run. `.ci/` is ignored by git and by the gate's own scans.
+
+Another CI system sets `LABRA_CI_LOGS` to a directory outside the checkout and collects it as an artifact; GitHub CI does this and uploads it when the gate fails.
+
 ## Tests and Docker
 Tests that need Postgres are marked `db` and start a `postgres:18` container through testcontainers. When Docker isn't reachable they're **skipped with a reason**, and the gate reports the test stage as `WARN`, never `PASS`.
 

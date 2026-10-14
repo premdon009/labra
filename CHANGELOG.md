@@ -38,6 +38,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - A bill can't be cancelled once one of its tests is sent out or has a result.
 - A UPI reference that is already on another receipt is refused until the desk confirms that one payment covers both bills.
 - `labra check-config` and startup refuse a database URL that isn't PostgreSQL.
+- The local gate keeps the logs of its recent runs and a JUnit test report, and CI uploads them when it fails.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.

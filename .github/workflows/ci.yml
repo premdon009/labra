@@ -20,6 +20,15 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
       - run: uv run playwright install --with-deps chromium # for the browser test
       - run: scripts/ci_local.sh
+        env:
+          LABRA_CI_LOGS: ${{ runner.temp }}/ci-logs # outside the checkout, so the gate never scans it
+      # Each stage's log, pytest.txt and junit.xml, for finding what failed.
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-logs
+          path: ${{ runner.temp }}/ci-logs
+          retention-days: 14
 
   # Both architectures build on every change, so an arm64 mini PC never meets a broken image.
   image:

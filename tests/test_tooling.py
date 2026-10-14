@@ -1,6 +1,8 @@
 """The command line and the repository gate scripts."""
 
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -413,3 +415,43 @@ def test_compose_flow_style_services_refused(text: str, line: int) -> None:
     facts = mod.Facts()
     mod.compose_facts(text, "compose.yaml", facts)
     assert facts.problems == [f"compose.yaml:{line}: {mod.FLOW_STYLE}"]
+
+
+def _gate(logs: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "LABRA_CI_LOGS": str(logs)}
+    return subprocess.run(  # noqa: S603
+        [str(ROOT / "scripts" / "ci_local.sh"), *args],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.item("W08")
+def test_ci_local_keeps_run_logs(tmp_path: Path) -> None:
+    done = _gate(tmp_path, "--only", "services", "--quiet")
+    assert done.returncode == 0, done.stdout + done.stderr
+    (run,) = tmp_path.iterdir()
+    assert {p.name for p in run.iterdir()} == {"services.log", "summary.txt"}
+    assert "services   PASS" in (run / "summary.txt").read_text()
+    assert f"Logs: {run}" in done.stdout
+
+
+@pytest.mark.item("W08")
+def test_ci_local_prunes_old_runs_but_keeps_the_newest_failed(tmp_path: Path) -> None:
+    old_failed, older_failed = tmp_path / "20200101T000002Z", tmp_path / "20200101T000001Z"
+    for run in (older_failed, old_failed):
+        run.mkdir()
+        (run / "failed").touch()
+    old = [tmp_path / f"202001{day:02}T000000Z" for day in range(2, 13)]
+    for run in old:
+        run.mkdir()
+    (tmp_path / "history.tsv").touch()
+    done = _gate(tmp_path, "--only", "services", "--quiet")
+    assert done.returncode == 0, done.stdout + done.stderr
+    left = sorted(p.name for p in tmp_path.iterdir())
+    assert left[0] == old_failed.name
+    assert left[1:10] == [p.name for p in old[-9:]]
+    assert left[10] > "2026"
+    assert left[11:] == ["history.tsv"]
