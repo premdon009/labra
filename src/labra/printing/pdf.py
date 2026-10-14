@@ -84,13 +84,16 @@ def layout(
     *,
     files: FileReader | None = None,
     stylesheets: Sequence[str] = (),
+    css: Sequence[str] = (),
 ) -> tuple[Document, Fetcher]:
-    """Lay the HTML out into pages, with the vendored fonts and the base print CSS."""
+    """Lay the HTML out into pages, with the vendored fonts and the base print CSS, then the
+    named stylesheets, then the CSS given as text (page size and margins)."""
     fetcher = Fetcher(files=files)
     fonts = FontConfiguration()
     sheets = [
         CSS(url=url, url_fetcher=fetcher, font_config=fonts) for url in (BASE_CSS, *stylesheets)
     ]
+    sheets += [CSS(string=text, url_fetcher=fetcher, font_config=fonts) for text in css]
     document = HTML(string=html, url_fetcher=fetcher).render(stylesheets=sheets, font_config=fonts)
     return document, fetcher
 
@@ -100,8 +103,9 @@ def render_pdf(
     *,
     files: FileReader | None = None,
     stylesheets: Sequence[str] = (),
+    css: Sequence[str] = (),
 ) -> Rendered:
-    document, fetcher = layout(html, files=files, stylesheets=stylesheets)
+    document, fetcher = layout(html, files=files, stylesheets=stylesheets, css=css)
     pdf = document.write_pdf()
     if pdf is None:  # only when writing to a target
         raise RuntimeError("WeasyPrint returned no PDF bytes")

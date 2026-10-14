@@ -1,0 +1,8 @@
+{% if errors %}
+<p class="field-error" role="alert">The preview shows once every field holds an allowed value.</p>
+{% else %}
+<p class="muted">{{ total }} page{{ 's' if total != 1 }}{% if total > pages|length %}; the first {{ pages|length }} are shown{% endif %}. Blue: the content box. Red dashes: the signature area.</p>
+<div class="letterhead-pages">
+  {% for src in pages %}<img src="{{ src }}" alt="Preview of page {{ loop.index }}">{% endfor %}
+</div>
+{% endif %}

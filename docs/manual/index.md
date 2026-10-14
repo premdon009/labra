@@ -10,6 +10,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Signing in](getting-started/login.md) |
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
+| EC-A07 | Upload safety: type sniffed | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | EC-B05 | Released reports and issued bills are immutable | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | EC-B07 | Idempotent form submits | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
@@ -30,6 +31,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | EC-J02 | Works in Chrome/Edge on a 1366×768 screen | [New visit](frontdesk/new-visit.md) |
 | EC-J03 | Clear empty, loading and error states | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| EC-K03 | Draft → preview → publish for templates and letterheads | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |
@@ -75,6 +77,7 @@ Every feature Labra has, and the manual page that explains it.
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
 | M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | [Test catalog](admin/catalog.md) |
+| M17 | Letterhead and margin calibration (§7.2) | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Settings](admin/settings.md) |
 | M18 | Fast front desk: one-screen visit | [New visit](frontdesk/new-visit.md) |
 | M18 | Fast front desk: one-screen visit | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |

@@ -25,3 +25,6 @@ html {
   font-size: 10pt;
   color: #000;
 }
+body {
+  margin: 0;
+}

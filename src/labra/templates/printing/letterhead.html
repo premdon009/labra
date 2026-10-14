@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf, keys %}
+{% set current = editor.current %}
+{% set draft = editor.draft %}
+{% set row_version = draft.row_version if draft else 0 %}
+{% block title %}{{ editor.label }} letterhead · {{ editor.branch.code }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ editor.label }} letterhead · {{ editor.branch.code }} {{ editor.branch.name }}</h1></div>
+<p><a href="/admin/letterheads">Back to letterheads</a></p>
+
+<p>
+  {% if editor.published %}In use: version {{ editor.published.version }}, published {{ editor.published.published_at | local_time }}.{% else %}No version published yet: documents print the built-in header.{% endif %}
+  {% if draft %}<span class="badge">Draft open</span> Changes below are not used until you publish them.{% endif %}
+</p>
+{% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2>{% if errors.file %}<p>{{ errors.file }}</p>{% endif %}</div>{% endif %}
+{% if removed %}
+<div class="alert" role="status">
+  <h2>The SVG was cleaned before use</h2>
+  <p>Removed: {% for what, count in removed.items() %}{{ what }} ({{ count }}){{ ', ' if not loop.last }}{% endfor %}. Check the preview looks right.</p>
+</div>
+{% endif %}
+
+<section class="card">
+  <header><h2>Letterhead file</h2></header>
+  {% if current and current.file_type %}
+  <p>{{ file_labels[current.file_type] }}{% if current.raster_dpi %} at {{ current.raster_dpi }} dpi{% endif %}. Original {{ (current.original_bytes / 1024) | round(0) | int }} KB → used {{ (current.optimised_bytes / 1024) | round(0) | int }} KB.</p>
+  {% else %}
+  <p>No file: the built-in header (lab name, branch, address and phone) prints at the top of the content box.</p>
+  {% endif %}
+  <form method="post" action="{{ url }}/upload" enctype="multipart/form-data">
+    {{ csrf(csrf_token) }}
+    <input type="hidden" name="row_version" value="{{ row_version }}">
+    <div class="field-row">
+      <label class="label" for="f-file">Upload the whole A4 page</label>
+      <input class="input" type="file" id="f-file" name="file" accept=".svg,.pdf,.png,.jpg,.jpeg,.webp" {% if errors.file %}aria-invalid="true" aria-describedby="e-file"{% endif %}>
+      <p class="muted">SVG or PDF stays sharp at any size. PNG, JPEG or WebP pictures are resized to A4 and made smaller. Up to 20 MB.</p>
+      {% if errors.file %}<p class="field-error" id="e-file">{{ errors.file }}</p>{% endif %}
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-outline">Upload</button></div>
+  </form>
+  {% if current and current.file_type %}
+  <form method="post" action="{{ url }}/remove-file">
+    {{ csrf(csrf_token) }}
+    <input type="hidden" name="row_version" value="{{ row_version }}">
+    <button type="submit" class="btn-sm-outline">Use the built-in header instead</button>
+  </form>
+  {% endif %}
+</section>
+
+<form method="post" action="{{ url }}/draft" class="letterhead-editor">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="row_version" value="{{ row_version }}">
+  <section class="card">
+    <header><h2>Content box</h2></header>
+    <p class="muted">The space the report or bill is printed in, measured from the edges of the paper.</p>
+    <div class="form-grid">
+      {{ field('margin_top_mm', 'Top (mm)', values.margin_top_mm, errors, type='number') }}
+      {{ field('margin_bottom_mm', 'Bottom (mm)', values.margin_bottom_mm, errors, type='number') }}
+      {{ field('margin_left_mm', 'Left (mm)', values.margin_left_mm, errors, type='number') }}
+      {{ field('margin_right_mm', 'Right (mm)', values.margin_right_mm, errors, type='number') }}
+      {{ field('signature_area_mm', 'Signature area on the last page (mm)', values.signature_area_mm, errors, type='number') }}
+      {{ field('font_size_pt', 'Text size (pt)', values.font_size_pt, errors, type='number') }}
+    </div>
+    <fieldset>
+      <legend>Draw the letterhead on</legend>
+      <label class="label"><input type="radio" name="apply_on" value="all" {% if values.apply_on != 'first' %}checked{% endif %}> Every page</label>
+      <label class="label"><input type="radio" name="apply_on" value="first" {% if values.apply_on == 'first' %}checked{% endif %}> The first page only</label>
+    </fieldset>
+    <div class="form-actions">
+      <button type="submit" class="btn" {{ keys('alt+s') }}>Save draft</button>
+    </div>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <header><h2>Preview</h2></header>
+    <div class="field-row">
+      <label class="label" for="f-sample">Sample document</label>
+      <select class="select" id="f-sample" name="sample">
+        {% for code, label in editor.samples %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div id="letterhead-preview" hx-post="{{ url }}/preview"
+      hx-trigger="load, input changed delay:400ms from:closest form, change from:closest form"
+      hx-swap="innerHTML">
+      <p class="muted">Loading the preview…</p>
+    </div>
+  </section>
+</form>
+
+<section class="card">
+  <header><h2>Check on paper, then publish</h2></header>
+  <p>Open the calibration page and print it on the letterhead paper with the scale at <strong>Actual size / 100%</strong>, not "Fit to page". The corner marks should meet the printed frame and the 100 mm line should measure 100 mm. If everything is shifted, set the printer offset for this branch in <a href="/admin/settings">Settings</a>.</p>
+  <p><a class="btn-outline" href="{{ url }}/calibration" target="_blank" rel="noopener">Open the calibration page</a></p>
+  {% if draft %}
+  <div class="form-actions">
+    <form method="post" action="{{ url }}/publish">
+      {{ csrf(csrf_token) }}
+      <input type="hidden" name="row_version" value="{{ row_version }}">
+      <button type="submit" class="btn">Publish as version {{ (editor.published.version if editor.published else 0) + 1 }}</button>
+    </form>
+    <form method="post" action="{{ url }}/discard">
+      {{ csrf(csrf_token) }}
+      <input type="hidden" name="row_version" value="{{ row_version }}">
+      <button type="submit" class="btn-outline">Discard the draft</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "pdf/base.html" %}
+{% block title %}Sample bill{% endblock %}
+{% block content %}
+<h1 class="doc-title">Bill of supply</h1>
+<table class="patient">
+  <tr><th>Bill no.</th><td>{{ sample.bill_no }}</td><th>Patient</th><td>{{ sample.patient }}</td></tr>
+</table>
+<table class="results">
+  <thead><tr><th>Test</th><th class="num">Amount</th></tr></thead>
+  <tbody>
+  {% for line in sample.lines %}
+    <tr><td>{{ line.name }}</td><td class="num">{{ line.amount }}</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot><tr><th>Total</th><th class="num">{{ sample.total }}</th></tr></tfoot>
+</table>
+<div class="signature-area{% if guides %} guide-signature{% endif %}">
+  <div class="signatory">{{ sample.signatory }}</div>
+</div>
+{% endblock %}

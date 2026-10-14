@@ -66,6 +66,9 @@
       {% if principal.can('extlab.view') %}
       <a href="/admin/external-labs" {% if request.url.path.startswith('/admin/external-labs') %}aria-current="page"{% endif %}>External labs</a>
       {% endif %}
+      {% if principal.branches_with('letterhead.edit') %}
+      <a href="/admin/letterheads" {% if request.url.path.startswith('/admin/letterheads') %}aria-current="page"{% endif %}>Letterheads</a>
+      {% endif %}
       {% if principal.can('setting.view') %}
       <a href="/admin/settings" {% if request.url.path.startswith('/admin/settings') %}aria-current="page"{% endif %}>Settings</a>
       {% endif %}

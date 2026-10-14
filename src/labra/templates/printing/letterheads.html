@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Letterheads{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Letterheads</h1></div>
+<p>Each branch has its own letterhead and margins for reports and for bills. A document keeps the version it was made with.</p>
+<table class="table">
+  <thead><tr><th>Branch</th><th>Document</th><th>In use</th><th>Draft</th><th></th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    {% for k in row.kinds %}
+    <tr>
+      <td>{{ row.branch.code }} · {{ row.branch.name }}</td>
+      <td>{{ k.label }}</td>
+      <td>{% if k.published %}Version {{ k.published.version }}, {{ k.published.published_at | local_time('%d %b %Y') }}{% else %}<span class="badge-outline">Built-in header</span>{% endif %}</td>
+      <td>{% if k.draft %}<span class="badge">Draft</span>{% else %}—{% endif %}</td>
+      <td><a href="/admin/letterheads/{{ row.branch.id }}/{{ k.doc_kind }}">Open</a></td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

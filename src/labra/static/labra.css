@@ -104,4 +104,8 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 .upload-row fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; }
 .upload-row legend { padding: 0; font-weight: 600; }
 
+.letterhead-pages { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.letterhead-pages img { width: min(100%, 26rem); height: auto; border: 1px solid var(--border, #ccc);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); background: #fff; }
+
 [hidden] { display: none !important; }

@@ -1,0 +1,28 @@
+/* Shared look of server-made documents. Page size, margins and the font size come from the
+   letterhead layout (labra.printing.letterhead.page_css). No colour except the guides. */
+h1.doc-title { font-size: 1.3rem; margin: 0 0 3mm; text-align: center; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+th, td { text-align: left; padding: 1mm 1.5mm; vertical-align: top; }
+table.patient th { width: 18%; font-weight: normal; color: #333; }
+table.results thead th { border-bottom: 0.6pt solid #000; }
+table.results tfoot th { border-top: 0.6pt solid #000; }
+table.results th.panel { font-size: 1.1rem; border-bottom: 0; padding-top: 2mm; }
+table.results { break-inside: auto; }
+table.results tr { break-inside: avoid; }
+.num { text-align: right; }
+.signature-area { break-inside: avoid; display: flex; flex-direction: column; justify-content: flex-end; }
+.signatory { text-align: right; }
+.end { text-align: center; font-size: 0.9rem; margin-top: 3mm; }
+.builtin-header { border-bottom: 0.8pt solid #000; padding-bottom: 2mm; margin-bottom: 4mm; }
+.builtin-name { font-size: 1.5rem; font-weight: bold; }
+.builtin-lines { font-size: 0.9rem; }
+
+/* Guides, only on the editor preview and the calibration page. */
+.guide-box { position: fixed; top: 0; left: 0; right: 0; bottom: 0; border: 0.5pt solid #1d4ed8; }
+.guide-signature { outline: 0.5pt dashed #dc2626; }
+.guide-corner { position: fixed; width: 8mm; height: 8mm; border: 0 solid #000; }
+.guide-corner.top-left { top: -8mm; left: -8mm; border-bottom-width: 0.5pt; border-right-width: 0.5pt; }
+.guide-corner.top-right { top: -8mm; right: -8mm; border-bottom-width: 0.5pt; border-left-width: 0.5pt; }
+.guide-corner.bottom-left { bottom: -8mm; left: -8mm; border-top-width: 0.5pt; border-right-width: 0.5pt; }
+.guide-corner.bottom-right { bottom: -8mm; right: -8mm; border-top-width: 0.5pt; border-left-width: 0.5pt; }
+.guide-ruler { width: 100mm; border-top: 0.5pt solid #000; border-left: 0.5pt solid #000; border-right: 0.5pt solid #000; font-size: 7pt; text-align: center; margin: 0 0 4mm; }

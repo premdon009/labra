@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="labra-asset:pdf/document.css">
+</head>
+<body>
+{% if guides %}
+<div class="guide-box"></div>
+{% if guides == "calibration" %}
+<div class="guide-corner top-left"></div><div class="guide-corner top-right"></div>
+<div class="guide-corner bottom-left"></div><div class="guide-corner bottom-right"></div>
+<div class="guide-ruler">100 mm: measure this line on the printed page</div>
+{% endif %}
+{% endif %}
+{% if builtin_header %}
+<header class="builtin-header">
+  <div class="builtin-name">{{ builtin_header.name }}</div>
+  {% if builtin_header.lines %}<div class="builtin-lines">{{ builtin_header.lines | join(" · ") }}</div>{% endif %}
+</header>
+{% endif %}
+{% block content %}{% endblock %}
+</body>
+</html>

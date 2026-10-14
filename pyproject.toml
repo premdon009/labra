@@ -185,6 +185,7 @@ containers = [
     "labra.billing",
     "labra.extlabs",
     "labra.results",
+    "labra.printing",
 ]
 layers = ["routes", "service", "models"]
 
@@ -215,7 +216,7 @@ forbidden_modules = ["labra.reports"]
 [[tool.importlinter.contracts]]
 name = "PDF, image and QR libraries are used only in the printing package"
 type = "protected"
-protected_modules = ["weasyprint"]
+protected_modules = ["weasyprint", "pypdf", "pypdfium2", "PIL"]
 allowed_importers = ["labra.printing"]
 
 [[tool.importlinter.contracts]]

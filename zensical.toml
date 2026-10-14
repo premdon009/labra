@@ -31,6 +31,7 @@ nav = [
       "manual/admin/methods.md",
       "manual/admin/prices.md",
       "manual/admin/external-labs.md",
+      "manual/admin/letterhead-and-margins.md",
       "manual/admin/starter-catalog.md",
     ] },
     { "Front desk" = [

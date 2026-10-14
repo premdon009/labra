@@ -1,0 +1,25 @@
+{% extends "pdf/base.html" %}
+{% block title %}Sample report{% endblock %}
+{% block content %}
+<table class="patient">
+  <tr><th>Patient</th><td>{{ sample.patient }}</td><th>Patient no.</th><td>{{ sample.patient_no }}</td></tr>
+  <tr><th>Age / sex</th><td>{{ sample.age_sex }}</td><th>Referred by</th><td>{{ sample.referrer }}</td></tr>
+</table>
+{% for panel in sample.panels %}
+<table class="results">
+  <thead>
+    <tr><th colspan="4" class="panel">{{ panel.name }}</th></tr>
+    <tr><th>Test</th><th>Result</th><th>Unit</th><th>Bio. ref. interval</th></tr>
+  </thead>
+  <tbody>
+  {% for row in panel.rows %}
+    <tr><td>{{ row.name }}</td><td>{{ row.result }}</td><td>{{ row.unit }}</td><td>{{ row.range }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endfor %}
+<div class="signature-area{% if guides %} guide-signature{% endif %}">
+  <div class="signatory">{{ sample.signatory }}</div>
+</div>
+<p class="end">End of report</p>
+{% endblock %}
