@@ -364,6 +364,44 @@ def reopen(
     return _back(db, ordered)
 
 
+@router.post("/tests/{order_test_id}/method")
+def method(
+    request: Request,
+    db: DB,
+    principal: Enterer,
+    order_test_id: str,
+    row_version: RowVersion = 0,
+    method_id: Annotated[str, Form()] = "",
+) -> Response:
+    ordered = as_uuid(order_test_id)
+    try:
+        entry.set_method(db, principal, ordered, _uuid_or_none(method_id), row_version)
+    except ValidationFailedError as exc:
+        return _refused(request, db, principal, ordered, exc)
+    db.commit()
+    return _back(db, ordered)
+
+
+@router.post("/samples/{sample_id}/remarks")
+def sample_remarks(
+    request: Request,
+    db: DB,
+    principal: Enterer,
+    sample_id: str,
+    row_version: RowVersion = 0,
+    remarks: Annotated[str, Form()] = "",
+    order_test_id: Annotated[str, Form()] = "",
+) -> Response:
+    """Saved from under one test of the sample; the grid opens again at that test."""
+    ordered = as_uuid(order_test_id)
+    try:
+        entry.set_sample_remarks(db, principal, as_uuid(sample_id), remarks, row_version)
+    except ValidationFailedError as exc:
+        return _refused(request, db, principal, ordered, exc)
+    db.commit()
+    return _back(db, ordered)
+
+
 @router.post("/tests/{order_test_id}/route")
 def route(
     request: Request,

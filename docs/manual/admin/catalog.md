@@ -1,6 +1,6 @@
 ---
 title: Test catalog
-features: [M05, M05.1, M14, M14.1, M14.2, M23.1, EC-F03]
+features: [M05, M05.1, M14, M14.1, M14.2, M23.1, M12.1, EC-F03]
 ---
 
 # Test catalog
@@ -33,7 +33,11 @@ To add a test:
    `hgb haemo`.
 5. Choose the **Specimen**, the usual **Turnaround (hours)**, and the **Interpretation** text to
    print under the results, if any.
-6. Select **Save**. The test opens again, ready for its parameters.
+6. Set **Order on the report**: within its department, a test with a smaller number prints
+   first. Tests with the same number print by name.
+7. Tick **This test is in our NABL scope** if your accreditation covers it, and **For research
+   use only** if the report must say so under the result.
+8. Select **Save**. The test opens again, ready for its parameters.
 
 To add a parameter (one line of the result, such as Haemoglobin or HDL cholesterol):
 
@@ -80,6 +84,9 @@ open the package, untick the test and select **Save**.
   another formula. If an input is missing, or the **Calculate only when** rule doesn't hold,
   no value is calculated.
 - Units are chosen from a list, so every report prints them the same way.
+- The branch's NABL certificate number prints on a report only when every test on that
+  report is ticked as in your NABL scope. Set the number under
+  [Branches](branches.md).
 - If someone else saved the same test while you were editing it, Labra refuses your save and
   says who changed it and when. Reload, then make your change again.
 - Every change is recorded in the audit log with the old and new values.

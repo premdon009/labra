@@ -18,9 +18,14 @@ from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.catalog import formula
-from labra.catalog.models import ReferenceRange, TestParameter
+from labra.catalog.models import ReferenceRange, TestMethod, TestParameter
 from labra.core import audit
-from labra.core.errors import ConflictError, PermissionDeniedError, ValidationFailedError
+from labra.core.errors import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationFailedError,
+)
 from labra.core.ids import utcnow
 from labra.org.service import stale
 from labra.results.flags import compute_flag, is_absurd
@@ -35,6 +40,7 @@ from labra.results.worklist import (
     plain,
     range_text,
 )
+from labra.visits.models import OrderTest, Sample
 
 NOT_YET = {
     "ordered": "The sample for this test hasn't been collected yet.",
@@ -45,6 +51,7 @@ NOT_YET = {
     "cancelled": "This test was cancelled with its bill.",
 }
 MAX_TEXT = 200
+MAX_REMARKS = 300
 # What fits the column: ten digits before the point.
 _TOO_BIG = Decimal(10) ** 10
 _PLAIN_NUMBER = re.compile(r"[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)")
@@ -348,3 +355,87 @@ def save_value(
             branch_id=ordered.perform_branch_id,
         )
     return Saved(result, calculated)
+
+
+def _editable_here(principal: Principal, ordered: OrderTest) -> None:
+    if not principal.can("result.enter", ordered.perform_branch_id):
+        raise PermissionDeniedError()
+    if ordered.status not in EDITABLE:
+        raise ConflictError(NOT_YET.get(ordered.status, "This test can't take results now."))
+
+
+def set_method(
+    db: Session,
+    principal: Principal,
+    order_test_id: uuid.UUID,
+    method_id: uuid.UUID | None,
+    row_version: int,
+) -> OrderTest:
+    """Choose the method printed for this test; None prints the test's default method. A
+    test already submitted goes back for submission, as a changed value does."""
+    ordered = load_sheet(db, order_test_id, lock=True).ordered
+    _editable_here(principal, ordered)
+    if ordered.row_version != row_version:
+        raise stale(db, ordered)
+    if method_id is not None:
+        method = db.get(TestMethod, method_id)
+        if method is None or method.test_id != ordered.test_id or not method.is_active:
+            raise ValidationFailedError({"method": "Choose one of this test's methods."})
+    if ordered.method_id == method_id:
+        return ordered
+    before = ordered.method_id
+    ordered.method_id = method_id
+    if ordered.status == "resulted":
+        ordered.status = "in_lab"
+    ordered.updated_by = principal.user_id
+    db.flush()
+    audit.record(
+        db,
+        "order_test.method",
+        "order_test",
+        ordered.id,
+        {"from": str(before or ""), "to": str(method_id or "")},
+        user_id=principal.user_id,
+        branch_id=ordered.perform_branch_id,
+    )
+    return ordered
+
+
+def set_sample_remarks(
+    db: Session, principal: Principal, sample_id: uuid.UUID, remarks: str, row_version: int
+) -> Sample:
+    """The remark printed above the panels of this sample's tests, such as "Mildly
+    haemolysed". It can change while one of those tests can still take values here."""
+    sample = db.scalar(select(Sample).where(Sample.id == sample_id).with_for_update())
+    if sample is None:
+        raise NotFoundError()
+    tests = db.scalars(
+        select(OrderTest).where(OrderTest.sample_id == sample.id, OrderTest.status != "cancelled")
+    ).all()
+    mine = [t for t in tests if principal.can("result.enter", t.perform_branch_id)]
+    if not mine:
+        raise NotFoundError()
+    if not any(t.status in EDITABLE for t in mine):
+        raise ConflictError(
+            "The tests on this sample are verified. A signatory must reopen one first."
+        )
+    if sample.row_version != row_version:
+        raise stale(db, sample)
+    remarks = " ".join(remarks.split())
+    if len(remarks) > MAX_REMARKS:
+        raise ValidationFailedError({"remarks": f"Up to {MAX_REMARKS} characters."})
+    if remarks == sample.remarks:
+        return sample
+    sample.remarks = remarks
+    sample.updated_by = principal.user_id
+    db.flush()
+    audit.record(
+        db,
+        "sample.remarks",
+        "sample",
+        sample.id,
+        {"chars": len(remarks)},
+        user_id=principal.user_id,
+        branch_id=mine[0].perform_branch_id,
+    )
+    return sample

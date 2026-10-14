@@ -219,6 +219,9 @@ class TestInput:
     default_tat_hours: int = 24
     in_house_available: bool = True
     interpretation_text: str = ""
+    display_order: int = 0
+    research_use: bool = False
+    in_nabl_scope: bool = False
     is_active: bool = True
 
 
@@ -260,6 +263,8 @@ def _validate_test(db: Session, data: TestInput, test_id: uuid.UUID | None) -> N
         problems["specimen_type_id"] = "Choose a specimen type."
     if not 0 < data.default_tat_hours <= 24 * 60:
         problems["default_tat_hours"] = "Between 1 and 1440 hours."
+    if not 0 <= data.display_order <= 9999:
+        problems["display_order"] = "Between 0 and 9999."
     if problems:
         raise ValidationFailedError(problems)
 

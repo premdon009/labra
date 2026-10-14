@@ -3,7 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
@@ -13,9 +13,13 @@ from labra.core import consent, lab_settings
 from labra.core.currency import CurrencyFormat, amount_in_words, format_from, load_format
 from labra.core.db import get_session
 from labra.core.errors import NotFoundError, ValidationFailedError
+from labra.core.files import read_file
 from labra.core.registry import get_platform
+from labra.core.uploads import JPEG, PNG, check_upload
 from labra.org import service
 from labra.org.models import BRANCH_KINDS
+from labra.printing.images import signature_png
+from labra.printing.preview import data_uri
 from labra.web.forms import RowVersion, page_no
 from labra.web.money_format import format_money, money_filter
 from labra.web.templating import page, render
@@ -23,6 +27,9 @@ from labra.web.templating import page, render
 router = APIRouter(prefix="/admin")
 
 DB = Annotated[Session, Depends(get_session)]
+
+# A phone photo of a signature is a few MB; anything larger is not a signature.
+SIGNATURE_BYTES = 5 * 1024 * 1024
 
 
 def _uuid(value: str) -> uuid.UUID:
@@ -96,6 +103,7 @@ def branch_save(
     phone: Annotated[str, Form()] = "",
     email: Annotated[str, Form()] = "",
     gstin: Annotated[str, Form()] = "",
+    nabl_cert_no: Annotated[str, Form()] = "",
     is_active: Annotated[bool, Form()] = False,
     branch_id: Annotated[str, Form()] = "",
     row_version: RowVersion = 0,
@@ -110,6 +118,7 @@ def branch_save(
         email.strip(),
         gstin,
         is_active or not branch_id,
+        nabl_cert_no,
     )
     try:
         if branch_id:
@@ -155,11 +164,16 @@ def _user_form(
     errors: dict[str, str],
     status: int = 200,
 ) -> Response:
+    signature = None
+    file_id = getattr(user, "signature_file_id", None)
+    if file_id is not None:
+        signature = data_uri(read_file(db, get_platform().filestore, file_id)[1])
     return render(
         request,
         "org/user_form.html",
         {
             "user": user,
+            "signature": signature,
             "chosen": {f"{b}:{r}" for b, r in chosen},
             "branches": service.list_branches(db, principal),
             "roles": service.list_roles(db),
@@ -211,6 +225,8 @@ def user_save(
     is_active: Annotated[bool, Form()] = False,
     password: Annotated[str, Form()] = "",
     role: Annotated[list[str], Form()] = [],  # noqa: B006
+    qualification: Annotated[str, Form()] = "",
+    council_reg_no: Annotated[str, Form()] = "",
     user_id: Annotated[str, Form()] = "",
     row_version: RowVersion = 0,
 ) -> Response:
@@ -223,6 +239,8 @@ def user_save(
         can_login,
         is_active or not user_id,
         roles,
+        qualification.strip(),
+        council_reg_no.strip(),
     )
     identity = get_platform().identity
     try:
@@ -239,6 +257,44 @@ def user_save(
         return _user_form(request, db, principal, values, roles, exc.errors, status=422)
     db.commit()
     return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{user_id}/signature")
+def user_signature(
+    request: Request,
+    user_id: str,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("user.edit"))],
+    signature: UploadFile | None = None,
+    row_version: RowVersion = 0,
+) -> Response:
+    uid = _uuid(user_id)
+    # One byte past the cap is enough to know the file is too large.
+    data = signature.file.read(SIGNATURE_BYTES + 1) if signature is not None else b""
+    try:
+        check_upload(data, allowed={PNG, JPEG}, max_bytes=SIGNATURE_BYTES, field="signature")
+        png = signature_png(data)
+        service.set_signature(db, get_platform().filestore, principal, uid, png, row_version)
+    except ValidationFailedError as exc:
+        db.rollback()
+        user = service.get_user(db, principal, uid)
+        roles = service.user_roles(db, uid)
+        return _user_form(request, db, principal, user, roles, exc.errors, status=422)
+    db.commit()
+    return RedirectResponse(f"/admin/users/{uid}", status_code=303)
+
+
+@router.post("/users/{user_id}/signature/remove")
+def user_signature_remove(
+    user_id: str,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("user.edit"))],
+    row_version: RowVersion = 0,
+) -> Response:
+    uid = _uuid(user_id)
+    service.set_signature(db, get_platform().filestore, principal, uid, None, row_version)
+    db.commit()
+    return RedirectResponse(f"/admin/users/{uid}", status_code=303)
 
 
 # Settings

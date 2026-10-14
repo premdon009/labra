@@ -65,6 +65,7 @@
     </div>
 
     {{ field('default_tat_hours', 'Turnaround (hours)', test.default_tat_hours if test else 24, errors, type='number') }}
+    {{ field('display_order', 'Order on the report', test.display_order if test else 0, errors, type='number', hint='Within its department, smaller numbers print first. Tests with the same number print by name.') }}
 
     <div class="field-row">
       <label class="label" for="f-interpretation_text">Interpretation</label>
@@ -73,6 +74,8 @@
     </div>
   </fieldset>
   <p>{{ checkbox('in_house_available', 'We can run this test in our own lab', test.in_house_available if test else True) }}</p>
+  <p>{{ checkbox('in_nabl_scope', 'This test is in our NABL scope', test.in_nabl_scope if test else False) }}</p>
+  <p>{{ checkbox('research_use', 'For research use only: the report says so under the result', test.research_use if test else False) }}</p>
 
   {% if saved %}<p>{{ checkbox('is_active', 'Test is in use', test.is_active) }}</p>{% endif %}
 

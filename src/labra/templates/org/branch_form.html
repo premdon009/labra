@@ -25,6 +25,7 @@
     {{ field('phone', 'Phone', branch.phone if branch, errors, type='tel') }}
     {{ field('email', 'Email', branch.email if branch, errors, type='email') }}
     {{ field('gstin', 'GSTIN', branch.gstin if branch, errors) }}
+    {{ field('nabl_cert_no', 'NABL certificate number', branch.nabl_cert_no if branch, errors, hint='Printed on a report only when every test on it is in your NABL scope. Leave empty if this branch is not accredited.') }}
   </div>
   {% if branch and branch.id %}<p>{{ checkbox('is_active', 'Branch is open', branch.is_active) }}</p>{% endif %}
   <div class="form-actions">

@@ -1,6 +1,6 @@
 ---
 title: Entering results
-features: [M11, M11.1, M09, M10, M21]
+features: [M11, M11.1, M09, M10, M21, M12.1, M20]
 ---
 
 # Entering results
@@ -45,6 +45,15 @@ Only a signatory sees these buttons.
 3. To correct a verified test, type the reason in **Reason for reopening** and press
    **Reopen**. Correct the value, submit the test and verify it again.
 
+### Sample remarks and method
+
+1. To note something about the sample that the report should show, such as "Mildly
+   haemolysed", type it in **Sample … remarks** above the test's rows and press **Save
+   remarks**. It prints above the panels of every test from that sample.
+2. If the test can be run by more than one method, pick the one used in **Method** and
+   press **Use this method**. The report names it under the test's heading. The method
+   marked **(usual)** is the test's default.
+
 ### Choosing where a test is done
 
 1. In **Done at**, above the test's rows, pick your own lab, the branch that took the
@@ -85,6 +94,11 @@ Only a signatory sees these buttons.
   patient paid for the test, and its turnaround time in hours. The cheapest lab is first.
   For a test inside a package, the margin uses the test's share of the package price.
 - A test can be moved until it has a result. After that the list is gone.
+- Sample remarks are shared by all tests on the same sample, so a change under one test
+  shows under the others too. Remarks and the method can be changed until the test is
+  verified. Changing the method of a submitted test sends it back to **In the lab**.
+- The method list appears only for a test with more than one method. Methods are kept in
+  [Methods and comment presets](../admin/methods.md).
 - A test that goes to an outside lab takes no value until the lab's PDF is attached under
   **Results from outside labs**. See [Outsourcing](outsourcing.md).
 - **Timeline**, under each test, lists what happened to it, when and who did it.

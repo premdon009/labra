@@ -1,4 +1,4 @@
-"""Letterhead images made small and safe to draw.
+"""Letterhead and signature images made small and safe to draw.
 
 A phone photo or a designer's export can be tens of megabytes, carry EXIF, colour profiles
 and an alpha channel, or be WebP, which not every PDF reader shows. The image is decoded,
@@ -19,6 +19,8 @@ A4_MM = (210, 297)
 ASPECT_TOLERANCE = 0.03
 # Decoding is refused above this many pixels (a 600 dpi A4 scan is about 35 million).
 MAX_PIXELS = 50_000_000
+# A signature is drawn about 50 x 17 mm on a report: 600 x 200 is 300 dpi at that size.
+SIGNATURE_MAX = (600, 200)
 
 
 @dataclass(frozen=True)
@@ -37,12 +39,12 @@ def _refuse(message: str, field: str) -> ValidationFailedError:
     return ValidationFailedError({field: message})
 
 
-def _open(data: bytes, field: str) -> Image.Image:
+def _open(data: bytes, field: str, too_large: str) -> Image.Image:
     try:
         with Image.open(io.BytesIO(data)) as probe:
             width, height = probe.size
         if width * height > MAX_PIXELS:
-            raise _refuse("This image is too large to use. Save it at A4, 300 dpi or less.", field)
+            raise _refuse(too_large, field)
         image = Image.open(io.BytesIO(data))
         image.load()
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
@@ -71,7 +73,8 @@ def _encode(image: Image.Image) -> tuple[bytes, str]:
 
 def optimise_raster(data: bytes, dpi: int, *, field: str = "file") -> Optimised:
     """The letterhead image at A4 and `dpi`, re-encoded, or ValidationFailedError."""
-    image = ImageOps.exif_transpose(_open(data, field))
+    too_large = "This image is too large to use. Save it at A4, 300 dpi or less."
+    image = ImageOps.exif_transpose(_open(data, field, too_large))
     width, height = image.size
     expected = A4_MM[1] / A4_MM[0]
     if abs(height / width - expected) / expected > ASPECT_TOLERANCE:
@@ -86,3 +89,15 @@ def optimise_raster(data: bytes, dpi: int, *, field: str = "file") -> Optimised:
         image = image.resize(target, Image.Resampling.LANCZOS)
     encoded, mime = _encode(image)
     return Optimised(data=encoded, mime=mime, size=target)
+
+
+def signature_png(data: bytes, *, field: str = "signature") -> bytes:
+    """A signature image as a new PNG of at most 600 x 200 pixels that keeps its transparency,
+    or ValidationFailedError. Only the pixels are kept."""
+    image = ImageOps.exif_transpose(_open(data, field, "This image is too large to use."))
+    clear = image.mode in {"RGBA", "LA", "PA"} or "transparency" in image.info
+    image = image.convert("RGBA" if clear else "RGB")
+    image.thumbnail(SIGNATURE_MAX, Image.Resampling.LANCZOS)
+    out = io.BytesIO()
+    image.save(out, "PNG", optimize=True)
+    return out.getvalue()

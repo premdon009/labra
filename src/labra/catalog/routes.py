@@ -171,12 +171,16 @@ def test_save(
     default_tat_hours: Annotated[str, Form()] = "24",
     in_house_available: Annotated[bool, Form()] = False,
     interpretation_text: Annotated[str, Form()] = "",
+    display_order: Annotated[str, Form()] = "0",
+    research_use: Annotated[bool, Form()] = False,
+    in_nabl_scope: Annotated[bool, Form()] = False,
     is_active: Annotated[bool, Form()] = False,
     test_id: Annotated[str, Form()] = "",
     row_version: RowVersion = 0,
 ) -> Response:
     errors: dict[str, str] = {}
     tat = _int(default_tat_hours, errors, "default_tat_hours", 24)
+    order = _int(display_order, errors, "display_order", 0)
     try:
         dept = _uuid(department_id)
     except NotFoundError:
@@ -191,6 +195,9 @@ def test_save(
         default_tat_hours=tat,
         in_house_available=in_house_available,
         interpretation_text=interpretation_text,
+        display_order=order,
+        research_use=research_use,
+        in_nabl_scope=in_nabl_scope,
         is_active=is_active or not test_id,
     )
     try:

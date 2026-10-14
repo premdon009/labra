@@ -17,7 +17,14 @@ from sqlalchemy.orm import Session, aliased
 from labra.auth.principal import Principal
 from labra.catalog import service as catalog
 from labra.catalog import units
-from labra.catalog.models import Department, ReferenceBand, ReferenceRange, Test, TestParameter
+from labra.catalog.models import (
+    Department,
+    ReferenceBand,
+    ReferenceRange,
+    Test,
+    TestMethod,
+    TestParameter,
+)
 from labra.core.consent import current_notice
 from labra.core.dialect import latest_per
 from labra.core.errors import NotFoundError, PermissionDeniedError
@@ -681,6 +688,23 @@ def has_document(db: Session, order_test_id: uuid.UUID) -> bool:
 
 
 @dataclass(frozen=True)
+class MethodChoice:
+    id: uuid.UUID
+    name: str
+    is_default: bool
+
+
+@dataclass(frozen=True)
+class SampleNote:
+    """The sample a test is read from and the remark printed above its panel."""
+
+    id: uuid.UUID
+    sample_no: str
+    remarks: str
+    row_version: int
+
+
+@dataclass(frozen=True)
 class TestBlock:
     """One test of the visit with its rows, what is still to look at before it goes for
     verification, and what this user may do with it."""
@@ -707,6 +731,10 @@ class TestBlock:
     accession_no: str = ""
     # Routed to an outside lab and its PDF isn't here yet, so nothing can be typed.
     awaiting_pdf: bool = False
+    # The methods the report can name; `method_id` None prints the default one.
+    methods: list[MethodChoice] = field(default_factory=list)
+    method_id: uuid.UUID | None = None
+    sample: SampleNote | None = None
 
     def count(self, *states: str) -> int:
         return sum(1 for r in self.rows if r.state in states)
@@ -743,6 +771,15 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
             )
             or ""
         )
+    methods = [
+        MethodChoice(m.id, m.name, m.is_default)
+        for m in db.scalars(
+            select(TestMethod)
+            .where(TestMethod.test_id == ordered.test_id, TestMethod.is_active)
+            .order_by(TestMethod.is_default.desc(), TestMethod.name)
+        )
+    ]
+    sample = db.get(Sample, ordered.sample_id) if ordered.sample_id else None
     return TestBlock(
         order_test_id=ordered.id,
         visit_id=ordered.visit_id,
@@ -762,6 +799,11 @@ def test_block(db: Session, principal: Principal, sheet: Sheet) -> TestBlock:
         verified_by=verified_by,
         accession_no=ordered.external_accession_no,
         awaiting_pdf=waiting_to_go,
+        methods=methods,
+        method_id=ordered.method_id,
+        sample=SampleNote(sample.id, sample.sample_no, sample.remarks, sample.row_version)
+        if sample
+        else None,
     )
 
 

@@ -18,11 +18,13 @@ from labra.core.errors import (
     PermissionDeniedError,
     ValidationFailedError,
 )
+from labra.core.files import save_file
 from labra.core.ids import IST, lab_today, utcnow
 from labra.core.models import ConsentNotice, NumberSeries
 from labra.core.numbering import DOC_LABELS, ensure_series, format_problems
 from labra.core.paging import Page, page_of
-from labra.core.ports import IdentityProvider
+from labra.core.ports import FileStore, IdentityProvider
+from labra.core.uploads import PNG
 from labra.org.models import BRANCH_KINDS, AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.org.permissions import SYSTEM_ROLES
 
@@ -31,6 +33,7 @@ _USERNAME_RE = re.compile(r"^[a-z0-9._-]{3,40}$")
 _PHONE_RE = re.compile(r"^[6-9]\d{9}$")
 _GSTIN_RE = re.compile(r"^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 _STATE_RE = re.compile(r"^\d{2}$")
+_CERT_RE = re.compile(r"^[A-Z0-9][A-Z0-9/ -]{0,39}$")
 
 
 def _check(principal: Principal, permission: str, branch_id: uuid.UUID | None = None) -> None:
@@ -63,6 +66,7 @@ class BranchInput:
     email: str = ""
     gstin: str = ""
     is_active: bool = True
+    nabl_cert_no: str = ""
 
     def problems(self) -> dict[str, str]:
         p: dict[str, str] = {}
@@ -78,6 +82,8 @@ class BranchInput:
             p["phone"] = "Ten digits, starting with 6 to 9."
         if self.gstin and not _GSTIN_RE.match(self.gstin):
             p["gstin"] = "A GSTIN has 15 characters, for example 27ABCDE1234F1Z5."
+        if self.nabl_cert_no and not _CERT_RE.match(self.nabl_cert_no):
+            p["nabl_cert_no"] = "Up to 40 letters, digits, dashes or slashes, for example MC-1234."
         return p
 
 
@@ -104,6 +110,7 @@ def get_branch(db: Session, principal: Principal, branch_id: uuid.UUID) -> Branc
 def _validate_branch(db: Session, data: BranchInput, exclude: uuid.UUID | None) -> None:
     data.code = data.code.strip().upper()
     data.gstin = data.gstin.strip().upper()
+    data.nabl_cert_no = data.nabl_cert_no.strip().upper()
     problems = data.problems()
     clash = db.scalar(select(Branch.id).where(Branch.code == data.code))
     if clash is not None and clash != exclude:
@@ -312,6 +319,9 @@ class UserInput:
     is_active: bool = True
     # (branch_id, role_id) pairs.
     roles: set[tuple[uuid.UUID, uuid.UUID]] = field(default_factory=set)
+    # Printed under a signatory's name on reports.
+    qualification: str = ""
+    council_reg_no: str = ""
 
     def problems(self) -> dict[str, str]:
         p: dict[str, str] = {}
@@ -323,6 +333,10 @@ class UserInput:
             p["phone"] = "Ten digits, starting with 6 to 9."
         if self.email and "@" not in self.email:
             p["email"] = "Enter a valid email address."
+        if len(self.qualification) > 80:
+            p["qualification"] = "Up to 80 characters."
+        if len(self.council_reg_no) > 40:
+            p["council_reg_no"] = "Up to 40 characters."
         return p
 
 
@@ -451,3 +465,35 @@ def reset_password(
     identity.set_password(db, user.id, password)
     end_all_sessions(db, user.id, utcnow())
     audit.record(db, "user.password_reset", "app_user", user.id, user_id=principal.user_id)
+
+
+def set_signature(
+    db: Session,
+    store: FileStore,
+    principal: Principal,
+    user_id: uuid.UUID,
+    png: bytes | None,
+    row_version: int,
+) -> AppUser:
+    """Store the signature printed on the reports a signatory releases, or take it off with
+    `png` None. The image is made by the caller, already re-encoded."""
+    _check(principal, "user.edit")
+    user = get_user(db, principal, user_id)
+    if user.row_version != row_version:
+        raise stale(db, user)
+    if png is None:
+        user.signature_file_id = None
+    else:
+        saved = save_file(db, store, png, f"signature-{user.username}.png", PNG, principal.user_id)
+        user.signature_file_id = saved.id
+    user.updated_by = principal.user_id
+    db.flush()
+    audit.record(
+        db,
+        "user.signature",
+        "app_user",
+        user.id,
+        {"removed": png is None, "bytes": len(png or b"")},
+        user_id=principal.user_id,
+    )
+    return user

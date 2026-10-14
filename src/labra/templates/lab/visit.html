@@ -37,6 +37,33 @@
     <button type="submit" class="btn-sm-outline">Move the test</button>
   </form>
   {% endif %}
+  {% if block.sample %}
+  {% if block.editable %}
+  <form method="post" action="/lab/samples/{{ block.sample.id }}/remarks" class="route-row">
+    {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ block.sample.row_version }}">
+    <input type="hidden" name="order_test_id" value="{{ block.order_test_id }}">
+    <label for="rm-{{ block.order_test_id }}">Sample {{ block.sample.sample_no }} remarks</label>
+    <input class="input" type="text" id="rm-{{ block.order_test_id }}" name="remarks" value="{{ block.sample.remarks }}" maxlength="300" autocomplete="off" placeholder="For example: mildly haemolysed">
+    <button type="submit" class="btn-sm-outline">Save remarks</button>
+  </form>
+  {% elif block.sample.remarks %}
+  <p class="muted">Sample {{ block.sample.sample_no }}: {{ block.sample.remarks }}</p>
+  {% endif %}
+  {% endif %}
+  {% if block.methods|length > 1 and block.editable %}
+  <form method="post" action="/lab/tests/{{ block.order_test_id }}/method" class="route-row">
+    {{ csrf(csrf_token) }}<input type="hidden" name="row_version" value="{{ block.row_version }}">
+    <label for="m-{{ block.order_test_id }}">Method</label>
+    <select class="select" id="m-{{ block.order_test_id }}" name="method_id">
+      {% for m in block.methods %}
+      <option value="{{ '' if m.is_default else m.id }}"{% if m.id == block.method_id or (m.is_default and not block.method_id) %} selected{% endif %}>{{ m.name }}{% if m.is_default %} (usual){% endif %}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-sm-outline">Use this method</button>
+  </form>
+  {% elif block.method_id %}
+  {% for m in block.methods if m.id == block.method_id %}<p class="muted">Method: {{ m.name }}</p>{% endfor %}
+  {% endif %}
   {% if block.rows %}
   <table class="table result-grid" data-result-grid>
     <thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Flag</th><th>Reference interval</th><th>Previous</th></tr></thead>

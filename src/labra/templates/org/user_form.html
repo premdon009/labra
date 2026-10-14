@@ -15,6 +15,12 @@
     {{ field('phone', 'Phone', user.phone if user, errors, type='tel') }}
     {{ field('email', 'Email', user.email if user, errors, type='email') }}
   </div>
+  <h2>On reports</h2>
+  <p class="muted">For a signatory: printed under the name on the reports they release.</p>
+  <div class="form-grid">
+    {{ field('qualification', 'Qualification', user.qualification if user, errors, hint='For example MD (Pathology).') }}
+    {{ field('council_reg_no', 'Medical council registration number', user.council_reg_no if user, errors) }}
+  </div>
   <p>{{ checkbox('can_login', 'Signs in to Labra', user.can_login if user else True) }}</p>
   {% if editing %}<p>{{ checkbox('is_active', 'Still works here', user.is_active) }}</p>{% endif %}
   {% if password_login %}
@@ -46,4 +52,30 @@
     <a class="btn-outline" href="/admin/users">Cancel</a>
   </div>
 </form>
+{% if editing %}
+<h2>Signature</h2>
+{% if signature %}
+<p><img class="signature-preview" src="{{ signature }}" alt="Signature of {{ user.full_name }}"></p>
+{% else %}
+<p class="muted">No signature yet. Reports this person releases show the name without a signature.</p>
+{% endif %}
+<form method="post" action="/admin/users/{{ user.id }}/signature" enctype="multipart/form-data">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="row_version" value="{{ user.row_version }}">
+  <div class="field-row">
+    <label class="label" for="f-signature">{{ 'Replace the signature' if signature else 'Upload a signature' }}</label>
+    <input class="input" type="file" id="f-signature" name="signature" accept=".png,.jpg,.jpeg" {% if errors.signature %}aria-invalid="true" aria-describedby="e-signature"{% endif %}>
+    <p class="muted">PNG or JPEG, up to 5 MB. Sign in dark ink on white paper; a PNG with a clear background prints best. It is made into a new PNG of at most 600 by 200 pixels.</p>
+    {% if errors.signature %}<p class="field-error" id="e-signature">{{ errors.signature }}</p>{% endif %}
+  </div>
+  <div class="form-actions"><button type="submit" class="btn-outline">Upload</button></div>
+</form>
+{% if signature %}
+<form method="post" action="/admin/users/{{ user.id }}/signature/remove">
+  {{ csrf(csrf_token) }}
+  <input type="hidden" name="row_version" value="{{ user.row_version }}">
+  <button type="submit" class="btn-sm-outline">Remove the signature</button>
+</form>
+{% endif %}
+{% endif %}
 {% endblock %}
