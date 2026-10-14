@@ -127,6 +127,10 @@ for h in strict-transport-security content-security-policy x-frame-options \
   x-content-type-options referrer-policy; do
   check "header $h" yes "$(grep -q "^$h:" <<<"$headers" && echo yes || echo no)"
 done
+csp=$(grep '^content-security-policy:' <<<"$headers")
+check "one CSP through the proxy, the app's, no inline code or eval" yes \
+  "$([[ $(wc -l <<<"$csp") == 1 && $csp == *"script-src 'self';"* && $csp != *unsafe* ]] &&
+    echo yes || echo no)"
 check "plain HTTP redirects to HTTPS" '30[178] https://*' \
   "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H "Host: $site" \
     "http://127.0.0.1:$http_port/login")"
