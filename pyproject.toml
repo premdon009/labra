@@ -75,6 +75,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel.force-include]
 "CHANGELOG.md" = "labra/CHANGELOG.md"
 
+[tool.uv]
+# Minimum release age: lock only releases at least 7 days old. A critical fix goes in
+# exclude-newer-package with an Age exceptions row in docs/DEPENDENCIES.md.
+exclude-newer = "7 days"
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
