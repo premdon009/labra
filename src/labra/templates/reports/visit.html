@@ -19,7 +19,7 @@
         <td>{{ report.released_at|local_time }}</td>
         <td>{{ released_by }}</td>
         <td>{% if report.status == 'released' %}Current{% else %}Superseded{% endif %}</td>
-        <td><a href="/reports/{{ report.id }}/pdf" target="_blank">Open the PDF</a></td>
+        <td><a href="/reports/{{ report.id }}">Open</a></td>
       </tr>
       {% endfor %}
     </tbody>
@@ -123,7 +123,7 @@
   {% endif %}
 </section>
 {% endif %}
-<form method="get" action="/reports/visits/{{ planned.visit.id }}/preview" target="_blank" class="stack" aria-labelledby="h-preview">
+<form method="get" action="/reports/visits/{{ planned.visit.id }}/preview" target="_blank" rel="noopener" class="stack" aria-labelledby="h-preview">
   <h2 id="h-preview">Preview</h2>
   <fieldset>
     <legend>Paper</legend>

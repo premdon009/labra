@@ -18,8 +18,9 @@ released reports not yet handed over.
 - **Menu ▸ Reports** lists:
     - **To release** (signatories only): visits with verified tests not yet on a report,
       the longest waiting first. Press **Release** to open the visit.
-    - **Released, not yet handed over**: the current version of each report nobody has
-      handed over yet, newest first, with **Open the PDF**.
+    - **Released, not yet handed over**: the current version of each report not handed
+      over yet, newest first. Press **Print or hand over** to open the report's own screen
+      (see [Handing over reports](delivery.md)).
 - Or **Menu ▸ Lab ▸ Worklist**, open the visit, then press **Report** at the top. Only a
   signatory sees the button, once at least one test of the visit is verified.
 
@@ -39,18 +40,14 @@ released list only.
       time each is expected, and the report is marked **PARTIAL REPORT**.
 3. If you want to check the PDF first, use **Preview** (see below).
 4. Tick **Yes, release B2/R/2627/000001 v1** and press **Release B2/R/2627/000001 v1**.
-5. The screen comes back with the version under **Released versions**. Press **Open the
-   PDF** to see the stored copy.
+5. The screen comes back with the version under **Released versions**. Press **Open** to
+   see the report's own screen, where you can open the stored copy with **PDF to send**.
 
 ### Preview
 
-Under **Preview**, choose:
-
-- **Paper**: A4 or A5.
-- **Reference interval column**: show or hide it.
-- **Tests**: tick some to preview a report with only those tests. None ticked means all.
-
-Press **Open the preview**. The PDF opens in a new tab. Nothing is saved or numbered.
+Under **Preview**, choose the paper, the reference interval column and the tests (see
+[Report options](options.md)), then press **Open the preview**. The PDF opens in a new tab.
+Nothing is saved or numbered.
 
 ## Outside lab results
 
@@ -95,7 +92,8 @@ reports](amended.md).
 A visit has one report number. When more tests are verified after a release, the next
 release is a new version of the same number, such as **v2**, carrying every test of v1
 and the new ones. v1 is then **Superseded**; its PDF is kept and still opens from
-**Released versions**, but only the current version is listed for handing over.
+**Released versions**, but only the current version is listed for handing over, and it is
+listed again even if v1 was handed over.
 
 A released version can't be changed or deleted, by anyone.
 
@@ -162,6 +160,8 @@ The last page has a QR code beside the signature.
 
 ## Related pages
 
+- [Handing over reports](delivery.md)
+- [Report options](options.md)
 - [Amended reports](amended.md)
 - [Entering results](../lab/entering-results.md)
 - [Outsourcing](../lab/outsourcing.md)

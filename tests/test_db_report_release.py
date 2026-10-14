@@ -290,17 +290,17 @@ def test_the_queue_lists_what_waits_and_the_stored_copy_opens(
     assert service.to_release(lab, priya) == []
     assert [r.report_id for r in service.released(lab, priya)] == [report.id]
     assert service.released(lab, as_user(lab, platform, "b3desk")) == []
-    _, data = service.report_file(lab, platform.filestore, priya, report.id)
-    assert hashlib.sha256(data).hexdigest() == report.sha256
+    assert service.viewable(lab, priya, report.id) == (report, done)
+    _, data = read_file(lab, platform.filestore, report.file_id)
     with pytest.raises(NotFoundError):
-        service.report_file(lab, platform.filestore, as_user(lab, platform, "b3desk"), report.id)
+        service.viewable(lab, as_user(lab, platform, "b3desk"), report.id)
     lab.commit()
 
     sign_in(db_client, "priya")
     page = db_client.get("/reports")
     assert page.status_code == 200
     assert "To release" not in page.text and report.report_no in page.text
-    pdf = db_client.get(f"/reports/{report.id}/pdf")
+    pdf = db_client.get(f"/reports/{report.id}/pdf", params={"dues": "yes"})
     assert pdf.status_code == 200 and pdf.content == data
     name = f"report-{report.report_no.replace('/', '-')}-v1.pdf"
     assert pdf.headers["content-disposition"] == f'inline; filename="{name}"'

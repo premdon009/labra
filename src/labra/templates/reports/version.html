@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Report {{ s.report.report_no }} v{{ s.report.version }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Report {{ s.report.report_no }} v{{ s.report.version }} <span class="muted">{{ s.patient.full_name }} · {{ s.visit.visit_no }}</span></h1>
+  <a class="btn-outline" href="/reports">Back to reports</a>
+</div>
+<p>
+  {% if s.report.status == 'released' %}<span class="badge">Current</span>{% else %}<span class="badge-outline">Superseded</span> <a href="/reports/{{ s.current.id }}">Open v{{ s.current.version }}, the version in force</a>{% endif %}
+  {% if s.report.is_partial %}<span class="badge-outline">Partial</span>{% endif %}
+  {% if s.report.amendment_reason %}<span class="badge-outline">Amended</span>{% endif %}
+  <span class="muted">Released {{ s.report.released_at|local_time }}</span>
+</p>
+{% if s.due > 0 %}
+<div class="alert-destructive" role="alert"><p><strong>Due {{ s.due|money(fmt) }} on the bill.</strong> You can still print or hand over the report: tick the box to go ahead.</p></div>
+{% endif %}
+{% if errors.get('dues') and form is none %}
+<div class="alert-destructive" role="alert"><p>{{ errors.dues }}</p></div>
+{% endif %}
+
+<form method="get" action="/reports/{{ s.report.id }}/pdf" target="_blank" rel="noopener" class="stack" aria-labelledby="h-copy">
+  <h2 id="h-copy">Download or print</h2>
+  <fieldset>
+    <legend>Paper</legend>
+    {% for paper in papers %}
+    <label><input type="radio" name="paper" value="{{ paper }}"{% if paper == s.stored.paper %} checked{% endif %}> {{ paper }}</label>
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend>Reference interval column</legend>
+    <label><input type="radio" name="reference" value="1"{% if s.stored.reference %} checked{% endif %}> Show</label>
+    <label><input type="radio" name="reference" value="0"{% if not s.stored.reference %} checked{% endif %}> Hide</label>
+  </fieldset>
+  <fieldset>
+    <legend>Tests (none ticked means all)</legend>
+    {% for test_id, name in s.tests %}
+    <label><input type="checkbox" name="tests" value="{{ test_id }}"> {{ name }}</label>
+    {% endfor %}
+  </fieldset>
+  {% if s.due > 0 %}
+  <label class="label"><input class="input" type="checkbox" name="dues" value="yes" {% if errors.get('dues') and form is none %}aria-invalid="true"{% endif %}> Go ahead although {{ s.due|money(fmt) }} is due</label>
+  {% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn" name="output" value="{{ print_mode }}">PDF to print</button>
+    <button type="submit" class="btn-outline" name="output" value="digital">PDF to send</button>
+  </div>
+</form>
+
+{% if s.can_deliver and s.report.status == 'released' %}
+<form method="post" action="/reports/{{ s.report.id }}/deliver" class="stack" aria-labelledby="h-deliver">
+  <h2 id="h-deliver">Hand over</h2>
+  {{ csrf(csrf_token) }}
+  <label class="label" for="delivered_to">Received by</label>
+  <input class="input" id="delivered_to" name="delivered_to" maxlength="120" value="{{ form.delivered_to if form else '' }}" placeholder="The patient, or who collected it for them" {% if errors.get('delivered_to') %}aria-invalid="true"{% endif %}>
+  {% if errors.get('delivered_to') %}<p class="field-error">{{ errors.delivered_to }}</p>{% endif %}
+  <label class="label" for="mode">How</label>
+  <select class="input" id="mode" name="mode" {% if errors.get('mode') %}aria-invalid="true"{% endif %}>
+    {% for value, label in modes.items() %}
+    <option value="{{ value }}"{% if form and form.mode == value %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if errors.get('mode') %}<p class="field-error">{{ errors.mode }}</p>{% endif %}
+  <label class="label" for="staff_id">Handed over by</label>
+  <select class="input" id="staff_id" name="staff_id" {% if errors.get('staff_id') %}aria-invalid="true"{% endif %}>
+    {% set picked = form.staff_id if form else me %}
+    {% for user in s.staff %}
+    <option value="{{ user.id }}"{% if picked == user.id|string %} selected{% endif %}>{{ user.full_name }}</option>
+    {% endfor %}
+  </select>
+  {% if errors.get('staff_id') %}<p class="field-error">{{ errors.staff_id }}</p>{% endif %}
+  <label class="label" for="note">Note <span class="muted">(optional)</span></label>
+  <input class="input" id="note" name="note" maxlength="300" value="{{ form.note if form else '' }}" {% if errors.get('note') %}aria-invalid="true"{% endif %}>
+  {% if errors.get('note') %}<p class="field-error">{{ errors.note }}</p>{% endif %}
+  {% if s.due > 0 %}
+  <label class="label"><input class="input" type="checkbox" name="dues" value="yes" {% if errors.get('dues') and form %}aria-invalid="true"{% endif %}> Hand over although {{ s.due|money(fmt) }} is due</label>
+  {% if errors.get('dues') and form %}<p class="field-error">{{ errors.dues }}</p>{% endif %}
+  {% endif %}
+  <div class="form-actions"><button type="submit" class="btn">Record the hand-over</button></div>
+</form>
+{% endif %}
+
+<section aria-labelledby="h-log">
+  <h2 id="h-log">Hand-overs and copies</h2>
+  <table class="table">
+    <thead><tr><th>When</th><th>Version</th><th>What</th><th>By</th><th>Details</th><th class="num">Due then</th></tr></thead>
+    <tbody>
+      {% for line in s.log %}
+      <tr>
+        <td>{{ line.at|local_time }}</td>
+        <td>v{{ line.version }}</td>
+        <td>{{ actions[line.what] }}</td>
+        <td>{{ line.by }}</td>
+        <td>{{ line.detail }}</td>
+        <td class="num">{% if line.due > 0 %}{{ line.due|money(fmt) }}{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Not handed over or printed yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

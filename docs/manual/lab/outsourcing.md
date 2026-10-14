@@ -62,7 +62,9 @@ visit, under **Results from outside labs**.
 - A value can be typed only after the PDF is attached. Typing it is optional: the test can
   be submitted with the PDF alone.
 - **Timeline**, under each test, lists what happened to it, when and who did it:
-  registered, sample collected, routed, sent, result received, submitted, verified.
+  registered, sample collected, routed, sent, result received, submitted, verified, then
+  report released and report handed over (see [Handing over
+  reports](../reports/delivery.md)).
 - **Could go to an outside lab** shows at most 25 tests, the most urgent first.
 - Staff who route tests but don't enter results, such as an administrator, see the lists
   and can move and send tests. Only staff who enter results at the lab that does the test

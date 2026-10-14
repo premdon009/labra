@@ -18,13 +18,12 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.catalog.models import Test
 from labra.core import audit
 from labra.core.errors import ConflictError, NotFoundError, PermissionDeniedError
-from labra.core.files import read_file
 from labra.core.ids import lab_today, utcnow
 from labra.core.lab_settings import get_value
 from labra.core.numbering import upcoming
@@ -429,18 +428,13 @@ def to_release(db: Session, principal: Principal) -> list[ToRelease]:
 
 
 def released(db: Session, principal: Principal) -> list[Released]:
-    """Current reports of visits at this user's branches that nobody has handed over yet,
-    the newest first."""
+    """Current reports of visits at this user's branches not yet handed over, the newest
+    first. A new version is handed over again, so an earlier version's hand-over doesn't
+    count."""
     branches = principal.branches_with("report.view")
     if not branches:
         return []
-    handed = aliased(Report)
-    delivered = (
-        select(ReportDelivery.id)
-        .join(handed, handed.id == ReportDelivery.report_id)
-        .where(handed.report_no == Report.report_no)
-        .exists()
-    )
+    delivered = select(ReportDelivery.id).where(ReportDelivery.report_id == Report.id).exists()
     rows = db.execute(
         select(
             Report.id,
@@ -460,10 +454,8 @@ def released(db: Session, principal: Principal) -> list[Released]:
     return [Released(*row) for row in rows]
 
 
-def report_file(
-    db: Session, store: FileStore, principal: Principal, report_id: uuid.UUID
-) -> tuple[Report, bytes]:
-    """A released version's stored PDF, for a user who may view the reports of the visit's
+def viewable(db: Session, principal: Principal, report_id: uuid.UUID) -> tuple[Report, Visit]:
+    """A released version and its visit, for a user who may view the reports of the visit's
     branch or of a branch that performed one of its tests."""
     report = db.get(Report, report_id)
     if report is None:
@@ -478,5 +470,4 @@ def report_file(
     )
     if visit.branch_id not in branches and performed is None:
         raise NotFoundError()
-    _, data = read_file(db, store, report.file_id)
-    return report, data
+    return report, visit

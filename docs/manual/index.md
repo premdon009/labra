@@ -94,9 +94,14 @@ Every feature Labra has, and the manual page that explains it.
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Settings](admin/settings.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Entering results](lab/entering-results.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Handing over reports](reports/delivery.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Report options](reports/options.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Print or send](reports/print-vs-digital.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Releasing reports](reports/releasing.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Entering results](lab/entering-results.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Outsourcing](lab/outsourcing.md) |
+| M21 | Delivery tracking and outsourcing timeline | [Handing over reports](reports/delivery.md) |
+| M21 | Delivery tracking and outsourcing timeline | [Print or send](reports/print-vs-digital.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |
 | M23 | Currency display settings (§8) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | M23.1 | Admin price headings use the currency symbol from settings | [Test catalog](admin/catalog.md) |

@@ -39,6 +39,8 @@ TEST_EVENT_LABELS = {
     "resulted": "Submitted for verification",
     "verified": "Verified",
     "reopened": "Reopened",
+    "released": "Report released",
+    "delivered": "Report handed over",
 }
 CRITICAL_MODE_LABELS = {
     "phone": "By phone",

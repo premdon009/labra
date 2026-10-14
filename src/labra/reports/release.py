@@ -29,9 +29,9 @@ from labra.core.numbering import next_number
 from labra.core.ports import FileStore
 from labra.org.models import AppUser, Branch
 from labra.printing.service import published, render_report
-from labra.reports.content import Options, snapshot, view
+from labra.reports.content import snapshot, view
 from labra.reports.models import Report, ReportTest
-from labra.reports.service import Plan, amendment, plan
+from labra.reports.service import Plan, amendment, options, plan
 from labra.results.models import ExternalDocument, OrderTestEvent
 from labra.visits.models import OrderTest, Visit
 
@@ -173,12 +173,13 @@ def _issue(
         separately=planned.separately if document is None else (),
         amended=corrected,
     )
+    # The stored copy follows the lab's settings, recorded so a copy made later matches it.
+    chosen = options(db)
+    content["stored"] = {"paper": chosen.paper, "reference": chosen.reference}
     token = secrets.token_urlsafe(16)
     content["qr"] = _qr_text(db, report_no, version, token, content)
     layout = published(db, branch.id, "report_a4")
-    rendered = render_report(
-        db, store, branch.id, view(content, Options()), "digital", layout=layout
-    )
+    rendered = render_report(db, store, branch.id, view(content, chosen), "digital", layout=layout)
     stored = save_file(
         db,
         store,

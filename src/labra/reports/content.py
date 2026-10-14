@@ -66,6 +66,13 @@ class Options:
     tests: frozenset[str] = field(default_factory=frozenset)
 
 
+def stored_options(content: dict[str, Any]) -> Options:
+    """The choices the stored copy was made with; reports from before they were recorded
+    were made on A4 with the reference column."""
+    stored = content.get("stored", {})
+    return Options(stored.get("paper", "A4"), stored.get("reference", True))
+
+
 # Building the snapshot
 
 

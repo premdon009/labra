@@ -31,7 +31,7 @@
       <td>{{ item.patient_name }}</td>
       <td>{{ item.visit_no }}</td>
       <td>{{ item.released_at|local_time }}</td>
-      <td><a href="/reports/{{ item.report_id }}/pdf" target="_blank">Open the PDF</a></td>
+      <td><a href="/reports/{{ item.report_id }}">Print or hand over</a></td>
     </tr>
     {% else %}
     <tr><td colspan="5">No released report is waiting to be handed over.</td></tr>

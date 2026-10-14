@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session
 
 from labra.auth.deps import require
 from labra.auth.principal import Principal
+from labra.core.currency import load_format
 from labra.core.db import get_session
 from labra.core.errors import ValidationFailedError
+from labra.core.lab_settings import get_value
 from labra.core.registry import get_platform
-from labra.reports import release, service, verify
+from labra.reports import delivery, release, service, verify
 from labra.reports.content import PAPERS
 from labra.web.documents import pdf_inline
 from labra.web.forms import as_uuid
@@ -32,9 +34,26 @@ KIND_LABELS = {
     "external_forward": "An outside lab's PDF",
 }
 
+DELIVERY_LABELS = {
+    "counter": "At the counter",
+    "home": "Home delivery",
+    "email": "By email (recorded only; Labra doesn't send it)",
+    "whatsapp": "By WhatsApp (recorded only; Labra doesn't send it)",
+}
+
+LOG_LABELS = {
+    "digital": "PDF to send",
+    "print": "PDF to print",
+    "counter": "Handed over at the counter",
+    "home": "Home delivery",
+    "email": "Sent by email",
+    "whatsapp": "Sent by WhatsApp",
+}
+
 DB = Annotated[Session, Depends(get_session)]
 Releaser = Annotated[Principal, Depends(require("report.release"))]
 Viewer = Annotated[Principal, Depends(require("report.view"))]
+Deliverer = Annotated[Principal, Depends(require("report.deliver"))]
 
 
 @router.get("", response_class=HTMLResponse)
@@ -138,7 +157,7 @@ def report_mode(
 
 
 @router.get("/visits/{visit_id}/preview")
-@page("reports/releasing", "reports/report.html")
+@page("reports/options", "reports/report.html")
 def visit_preview(
     db: DB,
     principal: Releaser,
@@ -154,13 +173,103 @@ def visit_preview(
     return pdf_inline(rendered.pdf, "report-preview")
 
 
+def _version_page(
+    request: Request,
+    db: Session,
+    principal: Principal,
+    report_id: uuid.UUID,
+    errors: dict[str, str] | None = None,
+    form: dict[str, str] | None = None,
+) -> Response:
+    s = delivery.screen(db, principal, report_id)
+    return render(
+        request,
+        "reports/version.html",
+        {
+            "s": s,
+            "papers": PAPERS,
+            "modes": DELIVERY_LABELS,
+            "actions": LOG_LABELS,
+            "print_mode": get_value(db, "print.default_mode", s.visit.branch_id),
+            "fmt": load_format(db, s.visit.branch_id),
+            "me": str(principal.user_id),
+            "form": form,
+            "errors": errors or {},
+        },
+        status_code=422 if errors else 200,
+    )
+
+
+@router.get("/{report_id}", response_class=HTMLResponse)
+@page("reports/delivery", "reports/version.html")
+def version_screen(request: Request, db: DB, principal: Viewer, report_id: str) -> Response:
+    return _version_page(request, db, principal, as_uuid(report_id))
+
+
 @router.get("/{report_id}/pdf")
-@page("reports/releasing", "reports/report.html")
-def report_pdf(db: DB, principal: Viewer, report_id: str) -> Response:
-    """The stored copy of a released version, exactly as released."""
+@page("reports/print-vs-digital", "reports/report.html")
+def report_pdf(
+    request: Request,
+    db: DB,
+    principal: Viewer,
+    report_id: str,
+    output: str = "digital",
+    paper: str = "",
+    reference: str = "",
+    tests: Annotated[list[str] | None, Query()] = None,
+    dues: str = "",
+) -> Response:
+    """A copy of a released version: the stored PDF when it is the full digital one, else
+    made again from what was released. Logged."""
+    report = as_uuid(report_id)
     store = get_platform().filestore
-    report, data = service.report_file(db, store, principal, as_uuid(report_id))
-    return pdf_inline(data, f"report-{report.report_no.replace('/', '-')}-v{report.version}")
+    try:
+        found, data = delivery.make_copy(
+            db,
+            store,
+            principal,
+            report,
+            output,
+            dues == "yes",
+            paper=paper,
+            reference=reference,
+            tests=[t for t in tests or [] if t],
+        )
+    except ValidationFailedError as exc:
+        db.rollback()
+        return _version_page(request, db, principal, report, exc.errors)
+    db.commit()
+    name = f"report-{found.report_no.replace('/', '-')}-v{found.version}"
+    return pdf_inline(data, name if output == "digital" else f"{name}-print")
+
+
+@router.post("/{report_id}/deliver")
+@page("reports/delivery", "reports/version.html")
+def deliver_report(
+    request: Request,
+    db: DB,
+    principal: Deliverer,
+    report_id: str,
+    delivered_to: Annotated[str, Form()] = "",
+    mode: Annotated[str, Form()] = "",
+    staff_id: Annotated[str, Form()] = "",
+    note: Annotated[str, Form()] = "",
+    dues: Annotated[str, Form()] = "",
+) -> Response:
+    report = as_uuid(report_id)
+    try:
+        staff = uuid.UUID(staff_id)
+    except ValueError:
+        staff = None
+    data = delivery.DeliveryInput(delivered_to, mode, staff, note)
+    try:
+        delivery.deliver(db, principal, report, data, dues == "yes")
+    except ValidationFailedError as exc:
+        db.rollback()
+        form = {"delivered_to": delivered_to, "mode": mode, "staff_id": staff_id, "note": note}
+        return _version_page(request, db, principal, report, exc.errors, form)
+    db.commit()
+    return RedirectResponse(f"/reports/{report}", status_code=303)
 
 
 @public.get("/v/{token}", response_class=HTMLResponse)
