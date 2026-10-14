@@ -50,6 +50,9 @@ nav = [
       "manual/lab/outsourcing.md",
       "manual/lab/calculated-values.md",
     ] },
+    { "Reports" = [
+      "manual/reports/releasing.md",
+    ] },
   ] },
   { "Developers" = [
     "dev/setup.md",

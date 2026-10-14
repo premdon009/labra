@@ -6,11 +6,16 @@ Two outputs share one layout, so the text sits at the same place on both:
   as one shared form object, so a 3-page report carries the letterhead once.
 - `print`: no letterhead, for paper that already has it printed, shifted by the branch's
   printer offset so the text lands inside the printed frame.
+
+A document with a running header or footer (a report's patient band, its page numbers) asks
+for room for them inside the content box with `reserve`; they print in the page margin boxes.
+A long document can be laid out more than once (`compose_paged`), so a table that runs onto
+another page can be split there and its heading marked "(continued)".
 """
 
 import io
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -22,15 +27,22 @@ from pypdf.generic import (
     DictionaryObject,
     NameObject,
 )
+from weasyprint import Document
 
 from labra.core.errors import ValidationFailedError
-from labra.printing.pdf import FILE, FileReader, Rendered, render_pdf
+from labra.printing.pdf import FILE, FileReader, Rendered, layout, render_pdf
 
 OUTPUTS = ("digital", "print")
 A4_PT = (595.28, 841.89)
 PT_PER_MM = 72 / 25.4
 _A4_TOLERANCE_PT = 3
 _STAMP = "/LabraLetterhead"
+NO_RESERVE = (Decimal(0), Decimal(0))
+# Rows that may carry over to another page have the id `split:<table key>:<row index>`.
+SPLIT_ID = "split:"
+# For each table key, the row indices that start a new page, in order.
+Splits = Mapping[str, tuple[int, ...]]
+MAX_PASSES = 4
 
 
 @dataclass(frozen=True)
@@ -46,6 +58,7 @@ class PageSpec:
     file_id: uuid.UUID | None = None
     file_type: str | None = None
     apply_on: str = "all"
+    page_size: str = "A4"
 
 
 # Used when a branch has published no layout: the built-in header prints inside these margins.
@@ -57,6 +70,16 @@ BUILTIN = PageSpec(
     signature_area_mm=Decimal(30),
     font_size_pt=Decimal(10),
 )
+# A5 has no letterhead file of its own: always the built-in header, inside fixed margins.
+A5 = PageSpec(
+    margin_top_mm=Decimal(10),
+    margin_bottom_mm=Decimal(12),
+    margin_left_mm=Decimal(10),
+    margin_right_mm=Decimal(10),
+    signature_area_mm=Decimal(22),
+    font_size_pt=Decimal(9),
+    page_size="A5",
+)
 
 
 def _num(value: Decimal) -> str:
@@ -65,13 +88,15 @@ def _num(value: Decimal) -> str:
     return text.rstrip("0").rstrip(".") if "." in text else text
 
 
-def page_css(spec: PageSpec, output: str) -> str:
+def page_css(spec: PageSpec, output: str, reserve: tuple[Decimal, Decimal] = NO_RESERVE) -> str:
     """Page size, margins and font size, plus the letterhead background for a digital SVG
-    or image letterhead. Templates size their signatory block with `.signature-area`."""
-    top, right = _num(spec.margin_top_mm), _num(spec.margin_right_mm)
-    bottom, left = _num(spec.margin_bottom_mm), _num(spec.margin_left_mm)
+    or image letterhead. Templates size their signatory block with `.signature-area`.
+    `reserve` is the room (top, bottom) a running header and footer take from the content
+    box; they print in the margin boxes, just inside the letterhead's margins."""
+    top, right = _num(spec.margin_top_mm + reserve[0]), _num(spec.margin_right_mm)
+    bottom, left = _num(spec.margin_bottom_mm + reserve[1]), _num(spec.margin_left_mm)
     css = [
-        f"@page {{ size: A4; margin: {top}mm {right}mm {bottom}mm {left}mm; }}",
+        f"@page {{ size: {spec.page_size}; margin: {top}mm {right}mm {bottom}mm {left}mm; }}",
         f"html {{ font-size: {_num(spec.font_size_pt)}pt; }}",
         f".signature-area {{ height: {_num(spec.signature_area_mm)}mm; }}",
     ]
@@ -157,14 +182,81 @@ def compose(
     output: str,
     *,
     files: FileReader | None = None,
-    offset_mm: tuple[Decimal, Decimal] = (Decimal(0), Decimal(0)),
+    offset_mm: tuple[Decimal, Decimal] = NO_RESERVE,
     stylesheets: Sequence[str] = (),
+    reserve: tuple[Decimal, Decimal] = NO_RESERVE,
 ) -> Rendered:
     """The HTML as a PDF in the spec's content box, with the letterhead for `digital` or the
     printer offset for `print`."""
     if output not in OUTPUTS:
         raise ValueError(f"unknown output {output!r}")
-    rendered = render_pdf(html, files=files, stylesheets=stylesheets, css=[page_css(spec, output)])
+    css = [page_css(spec, output, reserve)]
+    rendered = render_pdf(html, files=files, stylesheets=stylesheets, css=css)
+    return _finish(rendered, spec, output, files, offset_mm)
+
+
+def splits_in(document: Document) -> dict[str, tuple[int, ...]]:
+    """Where each split table runs onto a new page: the index of its first row on every page
+    after the one it starts on."""
+    first_on_page: dict[str, list[int]] = {}
+    for page in document.pages:
+        here: dict[str, int] = {}
+        for anchor in page.anchors:
+            if not anchor.startswith(SPLIT_ID):
+                continue
+            key, _, index = anchor.removeprefix(SPLIT_ID).rpartition(":")
+            if key and index.isdigit():
+                here[key] = min(here.get(key, int(index)), int(index))
+        for key, index in here.items():
+            first_on_page.setdefault(key, []).append(index)
+    return {key: tuple(i for i in starts[1:] if i > 0) for key, starts in first_on_page.items()}
+
+
+def compose_paged(
+    build: Callable[[Splits], str],
+    spec: PageSpec,
+    output: str,
+    *,
+    files: FileReader | None = None,
+    offset_mm: tuple[Decimal, Decimal] = NO_RESERVE,
+    stylesheets: Sequence[str] = (),
+    reserve: tuple[Decimal, Decimal] = NO_RESERVE,
+) -> Rendered:
+    """Like `compose`, for a document whose tables may run over pages. `build` returns the
+    HTML for the splits found so far; it starts each part after a split on a new page, under
+    a heading marked as continued. Splitting at the row where the page broke anyway leaves the
+    earlier pages as they were, so a few passes find every split."""
+    if output not in OUTPUTS:
+        raise ValueError(f"unknown output {output!r}")
+    css = [page_css(spec, output, reserve)]
+    splits: dict[str, tuple[int, ...]] = {}
+    document, fetcher = layout(build(splits), files=files, stylesheets=stylesheets, css=css)
+    for _ in range(MAX_PASSES - 1):
+        found = splits_in(document)
+        merged = {
+            key: tuple(sorted(set(splits.get(key, ())) | set(found.get(key, ()))))
+            for key in splits.keys() | found.keys()
+        }
+        merged = {key: rows for key, rows in merged.items() if rows}
+        if merged == splits:
+            break
+        splits = merged
+        document, fetcher = layout(build(splits), files=files, stylesheets=stylesheets, css=css)
+    pdf = document.write_pdf()
+    if pdf is None:  # only when writing to a target
+        raise RuntimeError("WeasyPrint returned no PDF bytes")
+    rendered = Rendered(pdf=pdf, pages=len(document.pages), refused=tuple(fetcher.refused))
+    return _finish(rendered, spec, output, files, offset_mm)
+
+
+def _finish(
+    rendered: Rendered,
+    spec: PageSpec,
+    output: str,
+    files: FileReader | None,
+    offset_mm: tuple[Decimal, Decimal],
+) -> Rendered:
+    """The letterhead stamped under a digital copy, or the printer offset on a print copy."""
     stamp = output == "digital" and spec.file_type == "pdf" and spec.file_id is not None
     shift = output == "print" and any(offset_mm)
     if not stamp and not shift:

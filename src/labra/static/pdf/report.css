@@ -1,0 +1,55 @@
+/* A patient report (templates/reports/report.html, design §7.0). The patient band repeats at
+   the top of every page and the report number with "Page x of y" at the bottom; both sit in
+   the room labra.printing.letterhead.page_css reserves inside the letterhead's margins.
+   No colour: bold and the flag letters carry the meaning. */
+@page {
+  @top-center { content: element(pagehead); vertical-align: bottom; width: 100%; }
+  @bottom-center {
+    content: string(reportref) "  ·  Page " counter(page) " of " counter(pages);
+    vertical-align: top;
+    font-size: 8pt;
+  }
+}
+.pagehead { position: running(pagehead); width: 100%; font-size: 0.85rem; }
+.pagehead.measuring { position: static; }
+.pagehead .builtin-header { margin-bottom: 1.5mm; }
+.band { margin: 0; border-top: 0.6pt solid #000; border-bottom: 0.6pt solid #000; }
+.band td { padding: 0.5mm 1mm; }
+.band .band-wide { width: 42%; }
+.band .whole { white-space: nowrap; }
+.band .label, .interpretation .label { font-size: 0.85em; color: #333; }
+.band .barcode { text-align: right; vertical-align: middle; width: 1%; white-space: nowrap; }
+.barcode-text { font-size: 7pt; text-align: center; }
+.nabl { font-size: 0.85em; text-align: right; }
+
+.report-ref { string-set: reportref content(); text-align: center; margin: 0 0 2mm; font-size: 0.9rem; }
+.banner { border: 1pt solid #000; padding: 1mm 2mm; font-weight: bold; text-align: center; margin: 0 0 2mm; }
+.selected { font-style: italic; margin: 0 0 2mm; }
+
+h2.department {
+  font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 0.8pt solid #000; margin: 4mm 0 1mm; padding-bottom: 0.5mm;
+  break-after: avoid;
+}
+.remarks { font-style: italic; margin: 1mm 0; break-after: avoid; }
+.part { margin: 0 0 1.5mm; }
+.part.keep { break-inside: avoid; }
+.part.continued { break-before: page; }
+table.results th.panel { text-align: left; font-size: 1rem; padding-top: 1.5mm; }
+.panel-meta { font-weight: normal; font-size: 0.85rem; margin-left: 2mm; }
+table.results tr.columns th { font-weight: normal; font-size: 0.85rem; border-bottom: 0.6pt solid #000; }
+table.results td { padding: 0.6mm 1.5mm; }
+td.name { width: 38%; }
+td.result { width: 14%; }
+td.result.flagged { font-weight: bold; }
+td.flag { width: 7%; font-weight: bold; }
+td.unit { width: 13%; }
+.note { font-size: 0.85em; font-style: italic; }
+.tiers { font-size: 0.85rem; border: 0.5pt solid #000; padding: 1mm 2mm; margin: 0 0 1.5mm; break-inside: avoid; }
+.tiers p, .critical, .interpretation, .footnote, .pending { margin: 0.5mm 0; }
+.critical { font-weight: bold; }
+.interpretation { white-space: pre-line; font-size: 0.9rem; }
+.closing { margin-top: 3mm; }
+.footnote { font-size: 0.85rem; }
+.sign-off { break-inside: avoid; }
+.signature { max-height: 14mm; max-width: 50mm; display: block; margin-left: auto; }

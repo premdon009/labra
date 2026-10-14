@@ -8,7 +8,12 @@
 {% block content %}
 <div class="page-head">
   <h1>{{ sheet.patient_name }} <span class="muted">{{ sheet.age }} · {{ sexes.get(sheet.sex, sheet.sex) }} · {{ sheet.visit_no }}</span></h1>
-  <a class="btn-outline" href="/lab/worklist">Back to the worklist</a>
+  <div class="form-actions">
+    {% if principal.can('report.release', principal.branch_id) and sheet.blocks|selectattr('status', 'in', ['verified', 'released'])|list %}
+    <a class="btn" href="/reports/visits/{{ sheet.visit_id }}">Report</a>
+    {% endif %}
+    <a class="btn-outline" href="/lab/worklist">Back to the worklist</a>
+  </div>
 </div>
 {% if sheet.sharing_consent_missing and sheet.blocks|selectattr('choices')|list %}
 <div class="alert" role="status">

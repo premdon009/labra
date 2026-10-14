@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -32,8 +33,10 @@ from labra.core.svg import SvgRefusedError, sanitise_svg
 from labra.core.uploads import IMAGES, JPEG, PDF, PNG, SVG, WEBP, check_upload
 from labra.org.models import Branch
 from labra.org.service import stale
+from labra.printing import samples
 from labra.printing.images import optimise_raster
 from labra.printing.letterhead import (
+    A5,
     BUILTIN,
     OUTPUTS,
     PageSpec,
@@ -42,8 +45,8 @@ from labra.printing.letterhead import (
 )
 from labra.printing.models import APPLY_ON, DOC_KINDS, LetterheadLayout
 from labra.printing.pdf import FileReader, Rendered
+from labra.printing.reportpage import compose_report
 from labra.printing.samples import FOR_KIND, SAMPLES
-from labra.printing.templates import render_html
 
 DOC_LABELS = {"report_a4": "Report (A4)", "bill_a4": "Bill of supply (A4)"}
 FILE_LABELS = {"svg": "SVG drawing", "pdf": "PDF", "raster": "Picture"}
@@ -533,15 +536,16 @@ def render_sample(
     guides: str = "",
 ) -> Rendered:
     """A made-up document on this layout, for the preview or the calibration page."""
-    chosen = SAMPLES[sample]
-    html = render_html(
-        chosen.template,
-        sample=chosen.data,
-        guides=guides,
-        builtin_header=builtin_header(db, branch) if spec.file_id is None else None,
-    )
     offset = printer_offset(db, branch.id) if output == "print" else (Decimal(0), Decimal(0))
-    return compose(html, spec, output, files=file_reader(db, store), offset_mm=offset)
+    return samples.render(
+        sample,
+        spec,
+        output,
+        files=file_reader(db, store),
+        offset_mm=offset,
+        guides=guides,
+        header=builtin_header(db, branch),
+    )
 
 
 def preview(
@@ -600,3 +604,33 @@ def render_document(
     html = build(builtin_header(db, branch) if spec.file_id is None else None)
     offset = printer_offset(db, branch.id) if output == "print" else (Decimal(0), Decimal(0))
     return compose(html, spec, output, files=file_reader(db, store), offset_mm=offset)
+
+
+def render_report(
+    db: Session,
+    store: FileStore,
+    branch_id: uuid.UUID,
+    report: dict[str, Any],
+    output: str,
+    *,
+    layout: LetterheadLayout | None,
+    paper: str = "A4",
+) -> Rendered:
+    """A patient report (`labra.reports.content.view`) on `layout`, the branch's report
+    layout it was released with (`published` for a new one). Without a letterhead file it
+    prints the built-in header the report was made with; A5 always does, inside its own
+    margins."""
+    if output not in OUTPUTS:
+        raise NotFoundError()
+    branch = db.get(Branch, branch_id)
+    if branch is None:
+        raise NotFoundError()
+    spec = A5 if paper == "A5" else spec_of(layout)
+    offset = printer_offset(db, branch.id) if output == "print" else (Decimal(0), Decimal(0))
+    return compose_report(
+        report,
+        spec,
+        output,
+        files=file_reader(db, store),
+        offset_mm=offset,
+    )

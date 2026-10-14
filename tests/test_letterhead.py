@@ -16,12 +16,11 @@ from pypdf.generic import ArrayObject, DictionaryObject, NameObject
 from labra.core.errors import ValidationFailedError
 from labra.core.svg import sanitise_svg
 from labra.core.uploads import JPEG, PNG, sniff
+from labra.printing import samples
 from labra.printing.images import a4_pixels, optimise_raster
 from labra.printing.letterhead import PageSpec, compose, page_css, prepare_pdf_letterhead
-from labra.printing.pdf import render_pdf
+from labra.printing.pdf import Rendered, render_pdf
 from labra.printing.preview import page_pngs
-from labra.printing.samples import SAMPLES
-from labra.printing.templates import render_html
 
 MM = 72 / 25.4
 D = Decimal
@@ -41,10 +40,8 @@ def _spec(file_id: uuid.UUID | None = None, file_type: str | None = None, **chan
     return PageSpec(**{**values, **changes})
 
 
-def _sample(code: str = "three_pages", **context: object) -> str:
-    chosen = SAMPLES[code]
-    values = {"sample": chosen.data, "guides": "", "builtin_header": None, **context}
-    return render_html(chosen.template, **values)
+def _render(spec: PageSpec, output: str = "digital", code: str = "three_pages", **kw) -> Rendered:
+    return samples.render(code, spec, output, **kw)
 
 
 def _picture(size: tuple[int, int] = (2480, 3508), mode: str = "RGB", fmt: str = "PNG") -> bytes:
@@ -123,7 +120,8 @@ def _forms(page) -> set[int]:
 @pytest.mark.item("M17")
 @pytest.mark.item("EC-K03")
 def test_text_stays_inside_the_content_box_on_every_page() -> None:
-    rendered = compose(_sample(), _spec(), "digital")
+    file_id, files = _raster_letterhead()
+    rendered = _render(_spec(file_id, "raster"), files=files.__getitem__)
     assert rendered.pages == 3
     with pdfplumber.open(io.BytesIO(rendered.pdf)) as doc:
         for page in doc.pages:
@@ -139,15 +137,14 @@ def test_text_stays_inside_the_content_box_on_every_page() -> None:
 def test_digital_and_print_put_every_character_in_the_same_place() -> None:
     file_id, files = _raster_letterhead()
     spec = _spec(file_id, "raster")
-    html = _sample()
-    digital = compose(html, spec, "digital", files=files.__getitem__)
-    printed = compose(html, spec, "print", files=files.__getitem__)
+    digital = _render(spec, files=files.__getitem__)
+    printed = _render(spec, "print", files=files.__getitem__)
     assert _chars(digital.pdf) == _chars(printed.pdf)
     assert _images(digital.pdf) and not _images(printed.pdf)
 
     lh_id = uuid.uuid4()
     pdf_files = {lh_id: ("application/pdf", _pdf_letterhead())}
-    stamped = compose(html, _spec(lh_id, "pdf"), "digital", files=pdf_files.__getitem__)
+    stamped = _render(_spec(lh_id, "pdf"), files=pdf_files.__getitem__)
     for on_digital, on_print in zip(_chars(stamped.pdf), _chars(printed.pdf), strict=True):
         assert set(on_print) <= set(on_digital)
 
@@ -157,8 +154,8 @@ def test_digital_and_print_put_every_character_in_the_same_place() -> None:
 def test_an_image_letterhead_is_stored_once_and_extra_pages_cost_little() -> None:
     file_id, files = _raster_letterhead()
     spec = _spec(file_id, "raster")
-    one = compose(_sample("short"), spec, "digital", files=files.__getitem__)
-    three = compose(_sample(), spec, "digital", files=files.__getitem__)
+    one = _render(spec, code="short", files=files.__getitem__)
+    three = _render(spec, files=files.__getitem__)
     assert (one.pages, three.pages) == (1, 3)
     assert len(_images(three.pdf)) == 1
     assert len(three.pdf) <= len(one.pdf) + 100 * 1024
@@ -173,9 +170,7 @@ def test_a_large_photo_letterhead_becomes_a_small_page() -> None:
     assert image.size == a4_pixels(150) == (1240, 1754)
     file_id = uuid.uuid4()
     files = {file_id: (image.mime, image.data)}
-    rendered = compose(
-        _sample("short"), _spec(file_id, "raster"), "digital", files=files.__getitem__
-    )
+    rendered = _render(_spec(file_id, "raster"), code="short", files=files.__getitem__)
     assert rendered.pages == 1
     assert len(rendered.pdf) <= 300 * 1024
 
@@ -225,7 +220,7 @@ def test_a_picture_that_is_not_an_a4_page_is_refused(data: bytes, message: str) 
 def test_a_pdf_letterhead_is_stored_once_for_every_page() -> None:
     lh_id = uuid.uuid4()
     files = {lh_id: ("application/pdf", _pdf_letterhead())}
-    rendered = compose(_sample(), _spec(lh_id, "pdf"), "digital", files=files.__getitem__)
+    rendered = _render(_spec(lh_id, "pdf"), files=files.__getitem__)
     pages = PdfReader(io.BytesIO(rendered.pdf)).pages
     shared = [_forms(page) for page in pages]
     assert len(shared) == 3
@@ -233,9 +228,7 @@ def test_a_pdf_letterhead_is_stored_once_for_every_page() -> None:
     assert shared[0] == shared[1] == shared[2]
     assert all("SYNTHETIC LAB" in (page.extract_text() or "") for page in pages)
 
-    first = compose(
-        _sample(), _spec(lh_id, "pdf", apply_on="first"), "digital", files=files.__getitem__
-    )
+    first = _render(_spec(lh_id, "pdf", apply_on="first"), files=files.__getitem__)
     texts = [p.extract_text() or "" for p in PdfReader(io.BytesIO(first.pdf)).pages]
     assert ["SYNTHETIC LAB" in t for t in texts] == [True, False, False]
 
@@ -284,11 +277,10 @@ def test_a_pdf_letterhead_that_is_locked_or_not_a4_portrait_is_refused() -> None
 
 @pytest.mark.item("M17")
 def test_the_printer_offset_moves_only_the_print_copy() -> None:
-    html = _sample("short")
     offset = (D(5), D(-3))
-    plain = _chars(compose(html, _spec(), "print").pdf)[0]
-    shifted = _chars(compose(html, _spec(), "print", offset_mm=offset).pdf)[0]
-    digital = _chars(compose(html, _spec(), "digital", offset_mm=offset).pdf)[0]
+    plain = _chars(_render(_spec(), "print", "short").pdf)[0]
+    shifted = _chars(_render(_spec(), "print", "short", offset_mm=offset).pdf)[0]
+    digital = _chars(_render(_spec(), "digital", "short", offset_mm=offset).pdf)[0]
     assert digital == plain
     assert len(shifted) == len(plain)
     for (text, x, top), (moved, mx, mtop) in zip(plain, shifted, strict=True):
@@ -308,12 +300,10 @@ def test_an_svg_letterhead_is_drawn_without_fetching_anything() -> None:
     )
     file_id = uuid.uuid4()
     spec = _spec(file_id, "svg")
-    unsafe = compose(_sample("short"), spec, "digital", files=lambda _: ("image/svg+xml", raw))
+    unsafe = _render(spec, code="short", files=lambda _: ("image/svg+xml", raw))
     assert "http://example.invalid/logo.png" in unsafe.refused
     clean = sanitise_svg(raw)
-    drawn = compose(
-        _sample("short"), spec, "digital", files=lambda _: ("image/svg+xml", clean.data)
-    )
+    drawn = _render(spec, code="short", files=lambda _: ("image/svg+xml", clean.data))
     assert drawn.refused == ()
     assert drawn.pages == 1
 
@@ -332,7 +322,7 @@ def test_page_css_puts_the_background_on_digital_copies_only() -> None:
 
 @pytest.mark.item("M17")
 def test_preview_pages_are_images() -> None:
-    rendered = compose(_sample(), _spec(), "digital")
+    rendered = _render(_spec())
     pngs = page_pngs(rendered.pdf, limit=2)
     assert len(pngs) == 2
     for png in pngs:

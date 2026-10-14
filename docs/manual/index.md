@@ -74,10 +74,13 @@ Every feature Labra has, and the manual page that explains it.
 | M11.3 | Samples from another branch are scanned in at the lab before they appear on the worklist | [Receiving samples](lab/receiving-samples.md) |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Settings](admin/settings.md) |
 | M12 | Reports: combined/separate, signature image, release, amendments, QR | [Staff and roles](admin/users-and-roles.md) |
+| M12 | Reports: combined/separate, signature image, release, amendments, QR | [Entering results](lab/entering-results.md) |
+| M12 | Reports: combined/separate, signature image, release, amendments, QR | [Releasing reports](reports/releasing.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Branches](admin/branches.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Test catalog](admin/catalog.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Staff and roles](admin/users-and-roles.md) |
 | M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Entering results](lab/entering-results.md) |
+| M12.1 | Report layout v2: ISO 15189 §7.4.1.6 items on every report, panel/page-break rules, compact tiered ranges (§7.0) | [Releasing reports](reports/releasing.md) |
 | M14 | Admin screens (own HTMX, ADR-0010) | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
@@ -90,6 +93,7 @@ Every feature Labra has, and the manual page that explains it.
 | M18.2 | Visit screen keeps codes typed while the last test is still being added, and drops test searches that are out of date | [New visit](frontdesk/new-visit.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Settings](admin/settings.md) |
 | M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Entering results](lab/entering-results.md) |
+| M20 | Report options: selected tests, reference column, A4/A5, methods, barcode | [Releasing reports](reports/releasing.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Entering results](lab/entering-results.md) |
 | M21 | Delivery tracking and outsourcing timeline | [Outsourcing](lab/outsourcing.md) |
 | M23 | Currency display settings (§8) | [Currency](admin/currency.md) |

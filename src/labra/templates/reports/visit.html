@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Report · {{ found.visit.visit_no }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Report <span class="muted">{{ found.patient.full_name }} · {{ found.visit.visit_no }}</span></h1>
+  <a class="btn-outline" href="/lab/visits/{{ found.visit.id }}">Back to the results</a>
+</div>
+<section aria-labelledby="h-ready">
+  <h2 id="h-ready">Signed off, ready to report</h2>
+  <ul>
+    {% for line in found.lines %}<li>{{ line.name }} <span class="muted">· {{ statuses.get(line.status, line.status) }}</span></li>{% endfor %}
+  </ul>
+</section>
+{% if found.waiting %}
+<section aria-labelledby="h-waiting">
+  <h2 id="h-waiting">Pending</h2>
+  <p class="muted">These print on the report as pending, with the time they are expected.</p>
+  <ul>
+    {% for line in found.waiting %}<li>{{ line.name }} <span class="muted">· {{ statuses.get(line.status, line.status) }}</span></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+<form method="get" action="/reports/visits/{{ found.visit.id }}/preview" target="_blank" class="stack" aria-labelledby="h-preview">
+  <h2 id="h-preview">Preview</h2>
+  <fieldset>
+    <legend>Paper</legend>
+    {% for paper in papers %}
+    <label><input type="radio" name="paper" value="{{ paper }}"{% if paper == chosen.paper %} checked{% endif %}> {{ paper }}</label>
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend>Reference interval column</legend>
+    <label><input type="radio" name="reference" value="1"{% if chosen.reference %} checked{% endif %}> Show</label>
+    <label><input type="radio" name="reference" value="0"{% if not chosen.reference %} checked{% endif %}> Hide</label>
+  </fieldset>
+  <fieldset>
+    <legend>Tests (none ticked means all)</legend>
+    {% for line in found.lines %}
+    <label><input type="checkbox" name="tests" value="{{ line.order_test_id }}"> {{ line.name }}</label>
+    {% endfor %}
+  </fieldset>
+  <button type="submit" class="btn">Open the preview</button>
+</form>
+{% endblock %}

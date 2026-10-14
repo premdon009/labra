@@ -70,6 +70,10 @@ publish.
   released, or a bill already issued, keeps printing on the version it was made with.
 - With no letterhead published, documents print a plain header with the lab name, branch,
   address and phone inside the same margins.
+- On a report, the patient's details and the barcode repeat at the top of every page, and the
+  report number with **Page x of y** at the bottom, all inside the content box. Long names
+  make that band taller, so it never runs into the letterhead. The **Sample document** list
+  has a long report and long names in Hindi to check this.
 - The screen shows the size of the file you uploaded and the size actually used. Pictures are
   resized to A4 at 150 dots per inch (set **Resolution for picture letterheads** in
   [Settings](settings.md) for 200), and the smaller of JPEG and PNG is kept. A report of
@@ -88,3 +92,4 @@ publish.
 
 - [Settings](settings.md)
 - [Branches](branches.md)
+- [Releasing reports](../reports/releasing.md)

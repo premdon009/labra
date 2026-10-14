@@ -1,6 +1,6 @@
 ---
 title: Entering results
-features: [M11, M11.1, M09, M10, M21, M12.1, M20]
+features: [M11, M11.1, M09, M10, M21, M12.1, M20, M12]
 ---
 
 # Entering results
@@ -44,6 +44,8 @@ Only a signatory sees these buttons.
 2. Read the values, then press **Verify**.
 3. To correct a verified test, type the reason in **Reason for reopening** and press
    **Reopen**. Correct the value, submit the test and verify it again.
+4. To see the report these tests make, press **Report** at the top. See [Releasing
+   reports](../reports/releasing.md).
 
 ### Sample remarks and method
 
@@ -114,6 +116,7 @@ Only a signatory sees these buttons.
 ## Related pages
 
 - [Lab worklist](worklist.md)
+- [Releasing reports](../reports/releasing.md)
 - [Critical values](critical-values.md)
 - [Outsourcing](outsourcing.md)
 - [Calculated values](calculated-values.md)

@@ -1,0 +1,115 @@
+{% extends "pdf/base.html" %}
+{#- A patient report (design §7.0). `report` comes from labra.reports.content.view, or a
+    made-up one from labra.printing.samples; `splits` says where a panel runs onto a new
+    page, so the part after it starts that page under a heading marked "(continued)".
+    With `measure` only the patient band is laid out, in the page, to find its height.
+    Rendered with the pdf/report.css stylesheet (labra.printing.letterhead.REPORT_CSS). -#}
+{% block title %}{{ report.reference }}{% endblock %}
+{% block content %}
+{% if measure %}<div id="head-start"></div>{% endif %}
+<div class="pagehead{% if measure %} measuring{% endif %}">
+  {% if builtin %}
+  <div class="builtin-header">
+    <div class="builtin-name">{{ report.header.name }}</div>
+    {% if report.header.lines %}<div class="builtin-lines">{{ report.header.lines | join(" · ") }}</div>{% endif %}
+  </div>
+  {% endif %}
+  <table class="band">
+    <tr>
+      <td class="band-wide"><span class="label">Patient</span> <strong>{{ report.patient.name }}</strong></td>
+      <td class="whole"><span class="label">Patient no.</span> {{ report.patient.patient_no }}</td>
+      <td class="whole"><span class="label">Age / sex</span> {{ report.patient.age_sex }}</td>
+      <td class="barcode" rowspan="3">
+        <svg viewBox="0 0 {{ report.barcode.modules }} 10" width="{{ report.barcode.width_mm }}mm" height="7mm" preserveAspectRatio="none">
+          {% for x, width in report.barcode.runs %}<rect x="{{ x }}" y="0" width="{{ width }}" height="10" fill="#000"></rect>{% endfor %}
+        </svg>
+        <div class="barcode-text">{{ report.barcode.text }}</div>
+      </td>
+    </tr>
+    <tr>
+      <td class="band-wide"><span class="label">Ref. by</span> {{ report.visit.referrer }}</td>
+      <td colspan="2"><span class="label">Collected</span> {{ report.visit.collected }} ({{ report.visit.branch }})</td>
+    </tr>
+    <tr>
+      <td class="band-wide"><span class="label">Received</span> {{ report.visit.received or "—" }}</td>
+      <td colspan="2"><span class="label">Reported</span> {{ report.visit.reported }}</td>
+    </tr>
+  </table>
+  {% if report.nabl %}<div class="nabl">NABL certificate no. {{ report.nabl }}</div>{% endif %}
+</div>
+{% if measure %}<div id="head-end"></div>{% else %}
+
+<h1 class="doc-title">Laboratory report</h1>
+<p class="report-ref">{{ report.reference }}</p>
+{% if report.preview %}<p class="banner">PREVIEW: not released, not for the patient</p>{% endif %}
+{% if report.partial %}<p class="banner">PARTIAL REPORT: some tests are still pending (listed at the end)</p>{% endif %}
+{% if report.selected %}<p class="selected">{{ report.selected }}</p>{% endif %}
+
+{% set columns = 5 if report.show_reference else 4 %}
+{#- A short panel moves whole to the next page; a long one starts where it is and runs on. -#}
+{% set keep_rows = 20 %}
+{% for department in report.departments %}
+<h2 class="department">{{ department.name }}</h2>
+{% for panel in department.panels %}
+  {% if panel.remarks %}<p class="remarks">Sample remarks ({{ panel.sample_no }}): {{ panel.remarks }}</p>{% endif %}
+  {% set bounds = [0] + (splits.get(panel.key, ()) | list) + [panel.rows | length] %}
+  {% for part in range(bounds | length - 1) %}
+  {% set size = bounds[part + 1] - bounds[part] %}
+  <div class="part{% if part %} continued{% endif %}{% if size <= keep_rows %} keep{% endif %}">
+  <table class="results">
+    <thead>
+      <tr><th colspan="{{ columns }}" class="panel">
+        {{ panel.name }}{% if panel.outside %} *{% endif %}{% if panel.research %} †{% endif %}{% if part %} (continued){% endif %}
+        <span class="panel-meta">{% for bit in [panel.specimen, ("sample " ~ panel.sample_no) if panel.sample_no else "", ("Method: " ~ panel.method) if panel.method else ""] if bit %}{% if not loop.first %} · {% endif %}{{ bit }}{% endfor %}</span>
+      </th></tr>
+      <tr class="columns"><th>Test</th><th>Result</th><th>Flag</th><th>Unit</th>{% if report.show_reference %}<th>Bio. ref. interval</th>{% endif %}</tr>
+    </thead>
+    <tbody>
+    {% for row in panel.rows[bounds[part]:bounds[part + 1]] %}
+      <tr id="split:{{ panel.key }}:{{ bounds[part] + loop.index0 }}">
+        <td class="name">{{ row.name }}{% if row.calc %} (calc.){% endif %}{% if row.note %}<div class="note">{{ row.note }}</div>{% endif %}</td>
+        {% if row.text_only %}
+        <td class="result" colspan="{{ columns - 1 }}">{{ row.result }}</td>
+        {% else %}
+        <td class="result{% if row.flag %} flagged{% endif %}">{{ row.result }}</td>
+        <td class="flag">{{ row.flag }}</td>
+        <td class="unit">{{ row.unit }}</td>
+        {% if report.show_reference %}<td class="range">{{ row.range }}</td>{% endif %}
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endfor %}
+  {% if report.show_reference and panel.tiers %}
+  <div class="tiers">
+    {% for tier in panel.tiers %}<p>{{ tier.name }}: {{ tier.bands }}{% if tier.this %}; this result: <strong>{{ tier.this }}</strong>{% endif %}</p>{% endfor %}
+  </div>
+  {% endif %}
+  {% for line in panel.critical %}<p class="critical">{{ line }}</p>{% endfor %}
+  {% if panel.interpretation %}<p class="interpretation"><span class="label">Interpretation</span> {{ panel.interpretation }}</p>{% endif %}
+{% endfor %}
+{% endfor %}
+
+<div class="closing">
+  {% if report.pending %}
+  <p class="pending"><strong>Pending:</strong> {% for item in report.pending %}{{ item.name }} (expected {{ item.expected }}){% if not loop.last %}; {% endif %}{% endfor %}</p>
+  {% endif %}
+  {% for line in report.outside %}<p class="footnote">* {{ line }}</p>{% endfor %}
+  {% if report.research %}<p class="footnote">† For research use only; not for diagnosis or treatment.</p>{% endif %}
+  {% if report.footer_text %}<p class="footnote">{{ report.footer_text }}</p>{% endif %}
+</div>
+<div class="sign-off">
+  <div class="signature-area{% if guides %} guide-signature{% endif %}">
+    <div class="signatory">
+      {% if report.signatory.signature %}<img class="signature" src="{{ report.signatory.signature }}" alt="">{% endif %}
+      <div><strong>{{ report.signatory.name }}</strong></div>
+      {% if report.signatory.qualification %}<div>{{ report.signatory.qualification }}</div>{% endif %}
+      {% if report.signatory.council_reg_no %}<div>Reg. no. {{ report.signatory.council_reg_no }}</div>{% endif %}
+    </div>
+  </div>
+  <p class="end">End of report</p>
+</div>
+{% endif %}
+{% endblock %}
