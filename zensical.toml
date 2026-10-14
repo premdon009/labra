@@ -33,6 +33,7 @@ nav = [
       "manual/admin/external-labs.md",
       "manual/admin/letterhead-and-margins.md",
       "manual/admin/starter-catalog.md",
+      "manual/admin/data-export.md",
     ] },
     { "Front desk" = [
       "manual/frontdesk/new-visit.md",

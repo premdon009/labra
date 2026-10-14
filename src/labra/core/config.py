@@ -38,6 +38,8 @@ class Settings(BaseSettings):
 
     database_url: SecretStr = SecretStr("postgresql+psycopg://labra@localhost:5432/labra")
     files_dir: Path = Path("/data/files")
+    # Where `labra export` writes; exports hold patient data, so a folder on the data volume.
+    export_dir: Path | None = None
 
     # Platform adapters, by entry-point name (ADR-0008).
     auth_provider: str = "local"

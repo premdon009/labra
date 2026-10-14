@@ -26,8 +26,9 @@ RUN apt-get update \
         libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 10001 --home-dir /app labra \
-    && mkdir -p /data/files \
-    && chown labra /data/files
+    && mkdir -p /data/files /data/export \
+    && chown labra /data/files /data/export \
+    && chmod 700 /data/export
 COPY --from=build /app/.venv /app/.venv
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \

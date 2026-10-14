@@ -99,6 +99,19 @@ Anything else, such as heartbeat URLs (`LABRA_HEARTBEAT_URL_<JOB>`) or the
 `LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the top of `compose.yaml`. Run
 `docker compose exec web labra check-config` after changing them.
 
+## Exports
+
+`labra export accounting` and `labra export all` write to the `exports` volume, mounted at
+`/data/export` (`LABRA_EXPORT_DIR`). They hold patient data: copy them off the server only to
+an encrypted disk, and never into a folder the proxy serves. For example:
+
+```bash
+docker compose exec web labra export accounting --date 2026-10-14 --as admin
+docker compose cp web:/data/export ./export-copy
+```
+
+The [Data export](../manual/admin/data-export.md) page of the manual explains the files.
+
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.
 - `/readyz`: database reachable, migrations at head, enough free disk for the files folder.

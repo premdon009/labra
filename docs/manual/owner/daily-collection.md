@@ -50,9 +50,12 @@ branches where they hold that role.
   was first sent. A test cancelled afterwards does not count.
 - For a test in a package, the patient's charge is its share of the package price.
 - **Tests now** is always the current count, whatever date you choose.
+- An administrator can write the same figures to a file for the accountant (see [Data
+  export](../admin/data-export.md)).
 
 ## Related pages
 
 - [Dues, pending tests and outsourcing](dues-pending-outsourcing.md)
 - [Dues and payments](../frontdesk/dues-and-payments.md)
 - [Outsourcing](../lab/outsourcing.md)
+- [Data export](../admin/data-export.md)

@@ -149,11 +149,15 @@ source_modules = [
     "labra.printing",
     "labra.reports",
     "labra.owner",
+    "labra.exports",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
     "labra.core.logging -> structlog",
     "labra.core.metrics -> prometheus_client",
+    # The full export lists every table, the local identity adapter's included (it leaves
+    # the password hashes out).
+    "labra.exports.full -> labra.models",
 ]
 
 [[tool.importlinter.contracts]]
@@ -172,6 +176,7 @@ forbidden_modules = [
     "labra.printing",
     "labra.reports",
     "labra.owner",
+    "labra.exports",
     "labra.web",
 ]
 
@@ -235,6 +240,33 @@ source_modules = [
     "labra.reports",
 ]
 forbidden_modules = ["labra.owner"]
+
+[[tool.importlinter.contracts]]
+name = "Exports run from the command line only: no screen or domain module reaches them"
+type = "forbidden"
+source_modules = [
+    "labra.core",
+    "labra.auth",
+    "labra.org",
+    "labra.catalog",
+    "labra.patients",
+    "labra.visits",
+    "labra.billing",
+    "labra.extlabs",
+    "labra.results",
+    "labra.printing",
+    "labra.reports",
+    "labra.owner",
+    "labra.web",
+    "labra.app",
+]
+forbidden_modules = ["labra.exports"]
+
+[[tool.importlinter.contracts]]
+name = "Parquet files are written only by the full data export"
+type = "protected"
+protected_modules = ["duckdb"]
+allowed_importers = ["labra.exports.full"]
 
 [[tool.importlinter.contracts]]
 name = "PDF, image and QR libraries are used only in the printing package"

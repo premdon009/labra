@@ -21,11 +21,13 @@ x-labra: &labra
   environment:
     LABRA_DATABASE_URL_FILE: /run/secrets/database_url
     LABRA_FILES_DIR: /data/files
+    LABRA_EXPORT_DIR: /data/export
     LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
     LABRA_MAILER: ${LABRA_MAILER:-console}
   secrets: [database_url]
   volumes:
     - files:/data/files
+    - exports:/data/export
   networks: [db]
 
 services:
@@ -164,6 +166,7 @@ networks:
 volumes:
   pgdata:
   files:
+  exports:
   caddy_data:
   caddy_config:
   tailscale_state:
