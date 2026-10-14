@@ -1,10 +1,10 @@
 ---
-items: [W02, W15, W16]
+items: [W02, W15, W16, W20]
 status: accepted
 date: 2026-10-09
 ---
 
-# ADR-0008: Platform services behind ports, with built-in defaults
+# ADR-0008: Platform services behind ports, with built-in defaults, and a database seam
 
 ## Context
 Login, logging, metrics, error tracking, health checks, mail and file storage are needed by every install, but larger labs or groups often already run their own identity provider, log collector or monitoring. Labra must work alone out of the box and must not lock a lab into one vendor.
@@ -33,8 +33,14 @@ Login, logging, metrics, error tracking, health checks, mail and file storage ar
 
 Details: design §17.6.
 
+### Database seam (added 2026-10-14)
+- **Labra supports the PostgreSQL family:** any PostgreSQL 18 server, chosen by `LABRA_DATABASE_URL`, with psycopg 3 as the driver. Settings refuse any other URL scheme at startup, and `labra check-config` exits 2.
+- **No second engine or driver yet.** Trigram search, advisory locks, arrays, JSONB, `DISTINCT ON`, partial indexes and the plpgsql guards in the migrations would each need a second version and a second test run, with no install asking for one. A second engine is X40 (MariaDB) and a second driver X44 (pg8000), built when an install needs them (ADR-0007).
+- **Postgres-only code sits behind `labra.core.dialect`.** Domain code reaches those types, functions and locks only through its named helpers, so a second engine changes that module, the models' index options and a new migration chain, and nothing else. `scripts/check_services.py` fails when a `sqlalchemy.dialects` import or a Postgres-only call appears anywhere else outside the migrations. An import-linter contract can't forbid a subpackage of an external package, so the gate does it.
+
 ## Consequences
 - A lab can adopt its own monitoring or SSO by setting environment variables.
 - Each port needs a contract test suite that every adapter passes, and an in-memory fake for domain tests.
 - External adapters are built only when an install needs one (ADR-0007).
-- Every replaceable part, ports included, is listed with the setting that selects it and the test that proves the swap in the [service register](../dev/services.md).
+- Every replaceable part, ports included, is listed with the setting that selects it and the test that proves the swap in the [service register](../dev/services.md), which also sizes the work a second database engine would need.
+- A new Postgres-only query is added to `labra.core.dialect` as a named helper with a test in `tests/test_db_dialect.py`.

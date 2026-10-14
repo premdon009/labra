@@ -29,6 +29,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Submit for verification, verification by the signatory only, and reopening with a reason that keeps the old values.
 - Outsourcing screen: send-out sheet, mark sent with the outside lab's number, result PDF upload and download, and a timeline for each test.
 - `test.sent_out` and `test.performed` events in the outbox.
+- A service swap register in the developer docs: every replaceable part with the setting that selects it and the test that proves the swap, kept complete by a gate.
 
 ### Changed
 - Package and comment preset forms take tests by typed code instead of listing every test.
@@ -36,6 +37,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Admin price headings use the currency symbol from settings.
 - A bill can't be cancelled once one of its tests is sent out or has a result.
 - A UPI reference that is already on another receipt is refused until the desk confirms that one payment covers both bills.
+- `labra check-config` and startup refuse a database URL that isn't PostgreSQL.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.
