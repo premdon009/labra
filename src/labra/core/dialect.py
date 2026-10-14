@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 # Column types for models. `StringList(String(20))` is a list of short strings in one column.
 Json = JSONB
 StringList = ARRAY
+# Server default for a Json column: an empty object.
+EMPTY_JSON = text("'{}'::jsonb")
 
 
 # Locks

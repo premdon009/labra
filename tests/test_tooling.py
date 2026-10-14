@@ -352,6 +352,7 @@ def test_service_register_problems_found(tmp_path: Path, old: str, new: str, pro
         ('db.execute(text("select pg_advisory_xact_lock(1)"))', "a Postgres lock"),
         ("stmt = stmt.ext(distinct_on(Result.parameter_id))", "DISTINCT ON"),
         ('match = Patient.name.op("%")(q)', "the trigram % operator"),
+        ("extra = mapped_column(Json, server_default=text(\"'{}'::jsonb\"))", "a Postgres cast"),
     ],
 )
 def test_postgres_only_code_outside_the_seam_found(tmp_path: Path, line: str, what: str) -> None:

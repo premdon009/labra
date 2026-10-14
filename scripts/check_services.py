@@ -48,6 +48,7 @@ POSTGRES_ONLY = [
     (re.compile(r"pg_advisory|hashtextextended"), "a Postgres lock"),
     (re.compile(r"\bdistinct_on\b"), "DISTINCT ON"),
     (re.compile(r"\.op\(\s*[\"']%[\"']"), "the trigram % operator"),
+    (re.compile(r"'::[a-z]"), "a Postgres cast"),
 ]
 
 

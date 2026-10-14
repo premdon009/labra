@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
-from labra.core.dialect import Json
+from labra.core.dialect import EMPTY_JSON, Json
 from labra.core.ids import utcnow
 
 DOC_TYPES = ("bill_of_supply", "tax_invoice")
@@ -90,9 +90,7 @@ class Bill(TrackedMixin, Base):
     cancelled_at: Mapped[datetime | None]
     cancelled_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("app_user.id"))
     print_snapshot: Mapped[dict[str, Any]] = mapped_column(Json)
-    extra: Mapped[dict[str, Any]] = mapped_column(
-        Json, default=dict, server_default=text("'{}'::jsonb")
-    )
+    extra: Mapped[dict[str, Any]] = mapped_column(Json, default=dict, server_default=EMPTY_JSON)
     origin_device_id: Mapped[str | None] = mapped_column(String(40))
     client_ref: Mapped[uuid.UUID] = mapped_column(unique=True)
 

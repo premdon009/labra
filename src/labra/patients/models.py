@@ -4,11 +4,11 @@ import uuid
 from datetime import date
 from typing import Any
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from labra.core.db import Base, TrackedMixin
-from labra.core.dialect import Json
+from labra.core.dialect import EMPTY_JSON, Json
 
 SEXES = ("M", "F", "O")
 REFERRER_KINDS = ("doctor", "clinic", "hospital", "corporate", "self")
@@ -47,9 +47,7 @@ class Patient(TrackedMixin, Base):
     address: Mapped[str] = mapped_column(Text, default="")
     city: Mapped[str] = mapped_column(String(60), default="")
     pincode: Mapped[str] = mapped_column(String(6), default="")
-    extra: Mapped[dict[str, Any]] = mapped_column(
-        Json, default=dict, server_default=text("'{}'::jsonb")
-    )
+    extra: Mapped[dict[str, Any]] = mapped_column(Json, default=dict, server_default=EMPTY_JSON)
 
 
 class Referrer(TrackedMixin, Base):

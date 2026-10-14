@@ -51,8 +51,8 @@ a Python package used in one module.
   flow style (`{…}`) are refused, since the gate would not see them;
 - each row's proof exists: the test function or script, an open tracker row, or the ADR;
 - Postgres-only code (`sqlalchemy.dialects` imports, `func.similarity`, `pg_advisory_*`,
-  `hashtextextended`, `func.array_to_string`, `func.unnest`, `distinct_on`, `.op("%")`) sits only
-  in `src/labra/core/dialect.py` or `src/labra/migrations/`.
+  `hashtextextended`, `func.array_to_string`, `func.unnest`, `distinct_on`, `.op("%")`, casts such
+  as `'{}'::jsonb`) sits only in `src/labra/core/dialect.py` or `src/labra/migrations/`.
 
 ## What ties Labra to PostgreSQL
 
@@ -67,7 +67,7 @@ Another engine is tracker row X40 and another driver is X44. This list keeps tha
 | Trigram name search (`pg_trgm`: `similarity`, `%`) | `labra.core.dialect` (`similar`, `similarity`); GIN `gin_trgm_ops` indexes in the patient and catalog models; extension created in migration 0002 | a fuzzy match function, or `LIKE` with ranking in Python |
 | Transaction-scoped advisory locks | `labra.core.dialect` (`advisory_lock`, `advisory_lock_for`) | named locks (MariaDB `GET_LOCK`) or a lock table |
 | Lists in one column (`ARRAY`, `@>`, `unnest`, `array_to_string`) | `labra.core.dialect` (`StringList`, `list_contains`, `list_items`, `list_as_text`); GIN index on test aliases | a JSON array or a child table |
-| JSON documents (`JSONB`) | `labra.core.dialect` (`Json`); `'{}'::jsonb` server defaults in the patient, visit and bill models | the engine's JSON type |
+| JSON documents (`JSONB`) | `labra.core.dialect` (`Json`, and `EMPTY_JSON` for the server default) | the engine's JSON type |
 | One row per group in a given order (`DISTINCT ON`) | `labra.core.dialect` (`latest_per`) | a window function (`row_number() over …`) |
 | Partial indexes (`postgresql_where`) | catalog, visit, bill, external lab and core models | unique constraints over generated columns, or a service check |
 | `NULLS NOT DISTINCT` unique constraints | catalog and core models | a generated key column |

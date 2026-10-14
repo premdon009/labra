@@ -7,6 +7,8 @@ from sqlalchemy import Column, Engine, Integer, MetaData, String, Table, insert,
 from sqlalchemy.orm import Session
 
 from labra.core.dialect import (
+    EMPTY_JSON,
+    Json,
     StringList,
     advisory_lock,
     advisory_lock_for,
@@ -29,6 +31,7 @@ rows = Table(
     Column("tags", StringList(String(20)), nullable=False),
     Column("grp", Integer, nullable=False),
     Column("at", Integer, nullable=False),
+    Column("extra", Json, nullable=False, server_default=EMPTY_JSON),
     prefixes=["TEMPORARY"],
 )
 
@@ -54,6 +57,10 @@ def test_similar_finds_spelling_variants(filled: Session) -> None:
         .order_by(similarity(rows.c.name, "sunita rao").desc())
     ).all()
     assert found == ["Sunita Rao", "Sunitha Rao"]
+
+
+def test_json_column_defaults_to_an_empty_object(filled: Session) -> None:
+    assert filled.scalars(select(rows.c.extra).order_by(rows.c.id)).all() == [{}, {}, {}]
 
 
 def test_list_helpers(filled: Session) -> None:
