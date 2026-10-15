@@ -15,3 +15,4 @@ How to write one: [ADR-0001](0001-record-decisions.md).
 | [0009](0009-runtime-neutral-packaging.md) | Runtime-neutral packaging | accepted |
 | [0010](0010-own-admin-screens.md) | Own HTMX admin screens instead of SQLAdmin | accepted |
 | [0011](0011-svg-stdlib-parser.md) | Untrusted SVG parsed with the standard library | accepted |
+| [0012](0012-pdf-engine.md) | WeasyPrint stays the PDF engine | accepted |
