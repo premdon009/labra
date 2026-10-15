@@ -42,6 +42,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Owner figures: daily collection by branch and mode, bills, cancellations, dues, outsourcing margin, and pending and overdue tests.
 - `labra export accounting` and `labra export all` (CSV and Parquet with a schema description), for administrators only and audited.
 - `report.released` events in the outbox.
+- The branch and settings screens warn when bills would print no place of supply, and the main lab's GST state code must be two digits or empty.
 - Tests for the security headers and a scan of the templates for inline code; a browser test of releasing, printing and handing over; snapshot tests for the report and bill PDFs.
 
 ### Changed
@@ -52,6 +53,9 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - A UPI reference that is already on another receipt is refused until the desk confirms that one payment covers both bills.
 - `labra check-config` and startup refuse a database URL that isn't PostgreSQL.
 - The local gate keeps the logs of its recent runs and a JUnit test report, and CI uploads them when it fails. A failed test is re-run once; one that then passes fails the gate as flaky, and `scripts/flaky_report.py` counts flaky and failed tests across runs.
+- CI installs the PDF libraries the image has and runs the tests on Ubuntu 26.04, the OS the PDF snapshots were made on.
+- Uploaded SVGs are parsed with Python's own XML parser, which refuses DTDs and entities; `defusedxml` is no longer a dependency.
+- SQLAlchemy and pypdf deprecation warnings fail the tests.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 
 ### Fixed
@@ -62,3 +66,4 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Upgrade step `0005` gives branches made by older versions the number series they lack (samples, refunds).
 - A form that carries a row version that isn't a number is refused as out of date instead of failing.
 - Previous and Next work on the departments and specimens screen after a refused save.
+- The demo signatory's degree is printed once, as a qualification, not in the name as well.

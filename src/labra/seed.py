@@ -43,7 +43,7 @@ CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
     ("b3desk", "Kavya Rao", True, [("B3", "front_desk"), ("B3", "branch_manager")]),
 ]
 
-# What the demo signatory's reports print under her name: (username, qualification, invented
+# What the demo signatory's reports print under the name: (username, qualification, invented
 # council registration number).
 DEMO_SIGNATORY = ("meera", "MD (Pathology)", "XMC 00000")
 
