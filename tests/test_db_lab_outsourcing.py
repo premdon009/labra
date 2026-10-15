@@ -347,7 +347,7 @@ def test_the_timeline_says_what_happened_to_a_test_when_and_by_whom(
         ("sent", "Suresh Iyer"),
         ("received_back", "Suresh Iyer"),
         ("resulted", "Suresh Iyer"),
-        ("verified", "Dr Meera Nair, MD"),
+        ("verified", "Dr Meera Nair"),
     ]
     assert [s.at for s in steps] == sorted(s.at for s in steps)
     assert steps[3].note == f"To {LAB_NAME}, their number RL-2291"

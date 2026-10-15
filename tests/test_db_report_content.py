@@ -17,7 +17,7 @@ from labra.catalog.models import Test, TestMethod
 from labra.core import lab_settings
 from labra.core.errors import NotFoundError, PermissionDeniedError
 from labra.core.registry import Platform
-from labra.org.models import AppUser, Branch
+from labra.org.models import Branch
 from labra.patients.models import Patient
 from labra.reports import service as reports
 from labra.reports.content import Options
@@ -43,8 +43,9 @@ def lab(db: Session, platform: Platform) -> Session:
 
 
 def _ready(db: Session, platform: Platform) -> Session:
-    """On a seeded database: lipid and haemoglobin ranges approved, prices for haemoglobin
-    and TSH, and the signatory's qualification and registration number."""
+    """On a seeded database: lipid and haemoglobin ranges approved, and prices for
+    haemoglobin and TSH. The seed gives the signatory a qualification and registration
+    number."""
     _approve(db, platform, "lipid")
     _approve(db, platform, "hb")
     anil = as_user(db, platform, "anil")
@@ -52,9 +53,6 @@ def _ready(db: Session, platform: Platform) -> Session:
         test = db.scalars(select(Test).where(Test.code == code)).one()
         if not catalog.lab_prices(db, [test.id]):
             catalog.set_price(db, anil, "test", test.id, "200")
-    meera = db.scalars(select(AppUser).where(AppUser.username == "meera")).one()
-    meera.qualification = "MD (Pathology)"
-    meera.council_reg_no = "XMC 00000"
     db.flush()
     return db
 
@@ -158,6 +156,8 @@ def test_the_report_carries_everything_iso_15189_asks_for(lab: Session, platform
     }
     missing = [what for what, words in checklist.items() if words and words not in flat]
     assert missing == []
+    # The degree is printed once, as the qualification, not in the name as well.
+    assert flat.count("MD") == 1
     # Departments in the catalog's report order, values in bold only when flagged.
     assert flat.index("HAEMATOLOGY") < flat.index("BIOCHEMISTRY")
     assert re.search(r"Haemoglobin 10\.5 L g/dL", flat)

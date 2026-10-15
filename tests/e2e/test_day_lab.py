@@ -133,7 +133,7 @@ def test_a_lipid_panel_typed_with_the_keyboard(
     expect(box("LDL")).to_have_text("110")
     foot.get_by_role("button", name="Verify").focus()
     keys.press("Enter")
-    expect(foot).to_contain_text("Verified by Dr Meera Nair, MD")
+    expect(foot).to_contain_text("Verified by Dr Meera Nair")
     expect(page.locator(f"#t-{test_id} input[type=text][id^='v-']")).to_have_count(0)
     with Session(committed_engine) as db:
         assert db.get_one(OrderTest, test_id).status == "verified"
@@ -219,7 +219,7 @@ def test_a_test_goes_to_an_outside_lab_and_comes_back_as_a_pdf(
     sign_in(page, "meera")
     page.goto(f"/lab/visits/{visit_id}")
     foot.get_by_role("button", name="Verify").click()
-    expect(foot).to_contain_text("Verified by Dr Meera Nair, MD")
+    expect(foot).to_contain_text("Verified by Dr Meera Nair")
 
     with Session(committed_engine) as db:
         ordered = db.get_one(OrderTest, test_id)

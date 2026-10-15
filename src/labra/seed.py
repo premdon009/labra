@@ -39,9 +39,13 @@ CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
     ("anil", "Anil Kumar", True, [("MAIN", "admin"), ("B2", "admin"), ("B3", "admin")]),
     ("priya", "Priya Sharma", True, [("B2", "front_desk")]),
     ("suresh", "Suresh Iyer", True, [("MAIN", "technician")]),
-    ("meera", "Dr Meera Nair, MD", True, [("MAIN", "signatory")]),
+    ("meera", "Dr Meera Nair", True, [("MAIN", "signatory")]),
     ("b3desk", "Kavya Rao", True, [("B3", "front_desk"), ("B3", "branch_manager")]),
 ]
+
+# What the demo signatory's reports print under her name: (username, qualification, invented
+# council registration number).
+DEMO_SIGNATORY = ("meera", "MD (Pathology)", "XMC 00000")
 
 # Lab-wide demo prices by test code. The starter catalog ships without prices.
 DEMO_PRICES = {"fbs": "80", "lipid": "500", "urine": "150", "vitd": "1200"}
@@ -211,6 +215,10 @@ def seed(
             [(branches[b].id, r) for b, r in roles],
             can_login,
         )
+    username, qualification, reg_no = DEMO_SIGNATORY
+    signatory = db.scalars(select(AppUser).where(AppUser.username == username)).one()
+    if not signatory.qualification:
+        signatory.qualification, signatory.council_reg_no = qualification, reg_no
     # Staff who appear on records but never sign in, e.g. home-collection phlebotomists.
     fake = Faker("en_IN")
     fake.seed_instance(FAKER_SEED)
