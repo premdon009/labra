@@ -247,7 +247,7 @@ def daily(
         )
     ).one()
     dues_bills, dues = _dues_at(db, ids, end)
-    sent = [(o, i) for o, i in db.execute(_sent(ids, start, end)).tuples()]
+    sent = [(o, i) for o, i in db.execute(_sent(ids, start, end))]
     waiting_tests = _pending(ids).subquery()
     waiting, late = db.execute(
         select(func.count(), func.count().filter(waiting_tests.c.due_at < utcnow())).select_from(
@@ -330,7 +330,7 @@ def outsourcing(
     start, _ = day_bounds(start_day)
     _, end = day_bounds(end_day)
     by_lab: dict[uuid.UUID, list[tuple[OrderTest, OrderItem]]] = defaultdict(list)
-    for ordered, item in db.execute(_sent(ids, start, end)).tuples():
+    for ordered, item in db.execute(_sent(ids, start, end)):
         if ordered.external_lab_id is not None:
             by_lab[ordered.external_lab_id].append((ordered, item))
     names = dict(

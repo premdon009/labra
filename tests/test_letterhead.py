@@ -11,6 +11,7 @@ import pdfplumber
 import pytest
 from PIL import Image, ImageDraw
 from pypdf import PdfReader, PdfWriter
+from pypdf.actions import JavaScript
 from pypdf.generic import ArrayObject, DictionaryObject, NameObject
 
 from labra.core.errors import ValidationFailedError
@@ -247,7 +248,8 @@ def test_a_pdf_letterhead_keeps_only_its_first_page_without_links_or_actions() -
     )
     page[NameObject("/Annots")] = ArrayObject([writer._add_object(link)])
     page[NameObject("/AA")] = DictionaryObject()
-    writer.add_js("app.alert('synthetic');")
+    writer.add_open_action(JavaScript("app.alert('synthetic');"))
+    assert "/Names" in writer.root_object
     out = io.BytesIO()
     writer.write(out)
 

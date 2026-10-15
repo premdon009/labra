@@ -115,7 +115,9 @@ def test_a_release_numbers_stores_and_marks_the_tests_released(
     event = lab.scalars(select(EventOutbox).where(EventOutbox.topic == "report.released")).one()
     assert event.payload["entity_id"] == str(report.id)
     assert event.payload["order_test_ids"] == sorted([str(lipid.id), str(hb.id)])
-    flat = str(event.payload) + str(entry.detail)
+    # Ids are random hex, which can hold "420" by chance, so they are cut out first.
+    ids = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+    flat = ids.sub("", str(event.payload) + str(entry.detail))
     for private in (report.verify_token, "Sunita", "420", report.report_no):
         assert private not in flat
 

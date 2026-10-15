@@ -7,11 +7,13 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+from sqlalchemy.exc import SADeprecationWarning
 
 from labra.cli import build_parser, main
 
@@ -305,6 +307,21 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
     text = _job(workflow, job)
     assert _apt_packages(text) == image
     assert "runs-on: ubuntu-26.04" in text
+
+
+@pytest.mark.item("W01")
+@pytest.mark.parametrize(
+    ("message", "category"),
+    [
+        ("The Result.tuples() method is deprecated.", SADeprecationWarning),
+        ("add_js is deprecated and will be removed in pypdf 7.0.0.", DeprecationWarning),
+    ],
+)
+def test_a_sqlalchemy_or_pypdf_deprecation_fails_the_test_that_hits_it(
+    message: str, category: type[Warning]
+) -> None:
+    with pytest.raises(category, match="deprecated"):
+        warnings.warn(message, category, stacklevel=1)
 
 
 NOW = datetime(2026, 10, 14, 12, 0, tzinfo=UTC)
