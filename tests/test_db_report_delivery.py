@@ -104,8 +104,10 @@ def test_a_copy_needs_the_dues_tick_and_is_logged(lab: Session, platform: Platfo
     assert hashlib.sha256(every).hexdigest() == report.sha256
 
     # Anything else is made again from what was released, and says what it holds.
+    # With no letterhead or printer offset set, the print copy has the same words; it can be the
+    # same bytes too, since the PDF engine renders the same input the same way.
     printed = _copy(lab, platform, report, "print")
-    assert printed != data and _flat(printed) == _flat(data)
+    assert _flat(printed) == _flat(data) and _last_print(lab).output == "print"
     one = _flat(_copy(lab, platform, report, tests=[str(lipid.id)]))
     assert "Selected tests only: 1 of 2 on this report" in one and "Haemoglobin" not in one
     assert _last_print(lab).order_test_ids == [str(lipid.id)]

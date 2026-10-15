@@ -1,5 +1,5 @@
 ---
-items: [W01, W08]
+items: [W01, W08, W23]
 ---
 
 # Developer setup
@@ -12,6 +12,7 @@ items: [W01, W08]
 | gitleaks | secret scan in pre-commit and the gate | package manager or GitHub release |
 | osv-scanner | vulnerability scan of `uv.lock` | package manager or GitHub release |
 | git-cliff | changelog drafts (releases only) | `uvx git-cliff` |
+| Pango, HarfBuzz (with its subset library) and fontconfig | PDFs: reports, bills, letterheads (WeasyPrint) | `sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig`, the Dockerfile's list |
 
 `scripts/check_tools.sh` prints what's present and which versions. Missing required tools fail the gate; missing optional ones show as warnings.
 
@@ -53,6 +54,8 @@ Tests that need Postgres are marked `db` and start a `postgres:18` container thr
 The tests marked `e2e` drive a working day in a real browser with the keyboard: the front desk, the lab bench, and the report from release to hand-over and the owner's figures. Install the browser once with `uv run playwright install chromium`. Without it the test is skipped with the reason "no browser for e2e tests" and the test stage is `WARN`.
 
 `tests/test_db_pdf_snapshots.py` keeps the words of a 3-page report and of a bill, with their positions, in `tests/goldens/`. After a deliberate change to a PDF template or its CSS, write them again with `LABRA_WRITE_GOLDENS=1 uv run pytest tests/test_db_pdf_snapshots.py` and review the JSON diff before committing it.
+
+The goldens were written on Ubuntu 26.04 with its Pango and HarfBuzz, and GitHub CI runs the tests on `ubuntu-26.04` with the same libraries as the image (`tests/test_tooling.py` checks that the workflows' list matches the Dockerfile's). Another build of those libraries can move text by a fraction of a point, which the test's tolerance absorbs. If CI moves to a newer Ubuntu and the snapshots fail, write the goldens again on that release, check that only positions moved by small amounts, and commit them with the runner change. Without `libharfbuzz-subset0`, WeasyPrint warns that it is using fontTools instead of HarfBuzz-Subset for each font: the PDFs look the same, but fontTools is slower and WeasyPrint plans to drop it.
 
 On Windows with WSL: turn on *Settings ▸ Resources ▸ WSL integration* in Docker Desktop for your distribution, so `docker` inside WSL talks to the Docker Desktop engine.
 

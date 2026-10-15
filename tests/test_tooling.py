@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
@@ -276,6 +277,34 @@ def test_action_pinning(line: str, pinned: bool) -> None:
     m = audit.USES_RE.match(line)
     assert m is not None
     assert bool(audit.SHA_RE.match(m.group(1).partition("@")[2])) is pinned
+
+
+def _apt_packages(text: str) -> set[str]:
+    """The packages named by the first `apt-get install` in a Dockerfile or a workflow job."""
+    text = text.replace("\\\n", " ")
+    m = re.search(r"apt-get install (.*?)(?:&&|\n\s*- |\Z)", text, re.S)
+    return {w for w in m.group(1).split() if not w.startswith("-")} if m else set()
+
+
+def _job(workflow: str, name: str) -> str:
+    text = (ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+    m = re.search(rf"^  {name}:\n(.*?)(?=^  \S|\Z)", text, re.M | re.S)
+    assert m is not None, f"{workflow} has no job {name}"
+    return m.group(1)
+
+
+@pytest.mark.item("W23")
+@pytest.mark.parametrize(
+    ("workflow", "job"), [("ci.yml", "gate"), ("portability.yml", "outside-postgres")]
+)
+def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
+    workflow: str, job: str
+) -> None:
+    image = _apt_packages((ROOT / "Dockerfile").read_text(encoding="utf-8"))
+    assert {"libpango-1.0-0", "libharfbuzz-subset0", "fontconfig"} <= image
+    text = _job(workflow, job)
+    assert _apt_packages(text) == image
+    assert "runs-on: ubuntu-26.04" in text
 
 
 NOW = datetime(2026, 10, 14, 12, 0, tzinfo=UTC)
