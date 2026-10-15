@@ -1,8 +1,9 @@
 """Uploaded SVG made safe to keep: an allowlist of drawing elements and attributes.
 
 An SVG is markup, so a letterhead could carry a script, an event handler, embedded HTML or
-links that make the renderer fetch something. The file is parsed with defusedxml (no DTD,
-entities or external references), and everything not on the lists below is dropped:
+links that make the renderer fetch something. The file is parsed with the standard library's
+expat, refusing any DTD, entity declaration or external reference, and everything not on the
+lists below is dropped:
 `script`, `foreignObject`, `on*` attributes, any `href` that isn't `#id` or an inline PNG or
 JPEG, and any CSS `url()` or `@import` that points outside the file. What was dropped is
 returned so the admin screen can say so.
@@ -11,10 +12,9 @@ returned so the admin screen can say so.
 import re
 from collections import Counter
 from dataclasses import dataclass
-from xml.etree.ElementTree import Element, register_namespace, tostring
-
-from defusedxml import ElementTree as SafeTree
-from defusedxml.common import DefusedXmlException
+from typing import NoReturn
+from xml.etree.ElementTree import Element, TreeBuilder, register_namespace, tostring
+from xml.parsers import expat
 
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -72,11 +72,45 @@ def _local(tag: str) -> tuple[str, str]:
     return "", tag
 
 
+def _refuse(*_: object) -> NoReturn:
+    raise ValueError("A DTD, entity or external reference is not allowed.")
+
+
+def _qualified(name: str) -> str:
+    """Expat's `namespace}local` as ElementTree's `{namespace}local`."""
+    ns, found, local = name.rpartition("}")
+    return f"{{{ns}}}{local}" if found else name
+
+
+def _parse(data: bytes) -> Element:
+    """The root element of the XML in `data`, or ValueError or expat.ExpatError.
+
+    Without a DTD there is nowhere to declare an entity, so a reference to one is an error,
+    and nothing outside the bytes is ever read. Comments and processing instructions are
+    dropped.
+    """
+    builder = TreeBuilder()
+    parser = expat.ParserCreate(namespace_separator="}")
+    parser.buffer_text = True
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    parser.StartDoctypeDeclHandler = _refuse
+    parser.EntityDeclHandler = _refuse
+    parser.UnparsedEntityDeclHandler = _refuse
+    parser.ExternalEntityRefHandler = _refuse
+    parser.StartElementHandler = lambda tag, attrs: builder.start(
+        _qualified(tag), {_qualified(key): value for key, value in attrs.items()}
+    )
+    parser.EndElementHandler = lambda tag: builder.end(_qualified(tag))
+    parser.CharacterDataHandler = builder.data
+    parser.Parse(data, True)
+    return builder.close()
+
+
 def is_svg(data: bytes) -> bool:
     """Whether the bytes parse safely as XML whose root is an SVG element."""
     try:
-        root = SafeTree.fromstring(data, forbid_dtd=True)
-    except (SafeTree.ParseError, DefusedXmlException, ValueError):
+        root = _parse(data)
+    except (expat.ExpatError, ValueError):
         return False
     return _local(root.tag) == (SVG_NS, "svg")
 
@@ -133,8 +167,8 @@ def _clean(el: Element, removed: Counter[str]) -> None:
 def sanitise_svg(data: bytes) -> CleanSvg:
     """The SVG with everything outside the allowlist removed, or SvgRefusedError."""
     try:
-        root = SafeTree.fromstring(data, forbid_dtd=True)
-    except (SafeTree.ParseError, DefusedXmlException, ValueError) as exc:
+        root = _parse(data)
+    except (expat.ExpatError, ValueError) as exc:
         raise SvgRefusedError("This SVG file can't be read.") from exc
     if _local(root.tag) != (SVG_NS, "svg"):
         raise SvgRefusedError("This file is not an SVG drawing.")

@@ -32,7 +32,10 @@ is a fix for a published advisory, recorded under [Age exceptions](#age-exceptio
 - CLI tools and services aren't pinned by the repository. Install a release at least 7 days old.
 
 **Status:** Active (release in the last 6 months) · Stable (no release for 6–24 months but
-done) · Watch · Replace. A Replace row needs an ADR and a tracker row before the next release.
+done) · Watch (no release for over 24 months, or a risk to its future such as a young single
+maintainer, a pre-1.0 API or an archived upstream; looked at again before each release, and
+replaced only through Replace) · Replace. A Replace row needs an ADR and a tracker row before
+the next release.
 
 | Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status | Backing | Why we use it | Alternative · exit cost | Reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -58,7 +61,6 @@ done) · Watch · Replace. A Replace row needs an ADR and a tracker row before t
 | `pypdfium2` | runtime | P | Apache-2.0 OR BSD-3-Clause | 5.14.0 | 5.14.0 · 2026-10-04 | 18 | Active | single maintainer | PNG preview of a PDF page in the letterhead editor | the `pdftoppm` command · low | 2026-10-14 |
 | `pillow` | runtime | P | MIT-CMU | 12.3.0 | 12.3.0 · 2026-07-01 | 5 | Active | team | re-encodes letterhead and signature images: resize, strip metadata, JPEG or palette PNG | the `vips` command · low | 2026-10-14 |
 | `segno` | runtime | P | BSD-3-Clause | 1.6.6 | 1.6.6 · 2025-03-12 | 0 | Stable | single maintainer (long-standing) | QR code on reports, drawn as inline SVG | own QR encoder · medium | 2026-10-14 |
-| `defusedxml` | runtime | P | PSF-2.0 | 0.7.1 | 0.7.1 · 2021-03-08 | 0 | Watch | single maintainer (long-standing) | parses uploaded SVG letterheads without entity or external-reference attacks, before the allowlist sanitiser | stdlib `xml.etree` with entities refused by hand · low | 2026-10-14 |
 | `duckdb` | runtime | P | MIT | 1.5.6 | 1.5.6 · 2026-09-28 | 90 | Active | foundation | writes the Parquet files of the full data export; no extensions are loaded, so it never downloads anything | pyarrow · low | 2026-10-14 |
 | `faker` | seed | P | MIT | 40.41.0 | 40.43.0 · 2026-10-09 | 64 | Active | team | synthetic demo data (`labra seed`) | hand-written lists · low | 2026-10-09 |
 | `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.13.1 · 2026-09-23 | 18 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |

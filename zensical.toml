@@ -86,6 +86,7 @@ nav = [
     "adr/0008-platform-ports.md",
     "adr/0009-runtime-neutral-packaging.md",
     "adr/0010-own-admin-screens.md",
+    "adr/0011-svg-stdlib-parser.md",
   ] },
   { "Plan and progress" = [
     "design/v1-plan.md",

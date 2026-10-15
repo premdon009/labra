@@ -80,7 +80,9 @@ publish.
   several pages stores the letterhead only once, so the file stays small enough to send on
   WhatsApp.
 - An SVG file is cleaned before use: scripts, links to other files and anything else that
-  isn't a drawing are removed, and the screen lists what was taken out. A PDF letterhead
+  isn't a drawing are removed, and the screen lists what was taken out. An SVG with a
+  `<!DOCTYPE` line, which some older drawing programs write, is refused; save it again as
+  plain SVG. A PDF letterhead
   keeps only its first page, without links or actions. Password-protected PDFs are refused.
 - Labra fetches nothing from the internet while making a document. A letterhead that points
   to a web address shows without that part.

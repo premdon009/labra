@@ -1,11 +1,12 @@
 """The SVG sanitiser keeps drawings and drops anything that runs, embeds or fetches."""
 
+from xml.etree import ElementTree
+
 import pytest
-from defusedxml import ElementTree as SafeTree
 from hypothesis import given
 from hypothesis import strategies as st
 
-from labra.core.svg import SVG_NS, XLINK_NS, SvgRefusedError, sanitise_svg
+from labra.core.svg import SVG_NS, XLINK_NS, SvgRefusedError, is_svg, sanitise_svg
 
 HEAD = f"<svg xmlns='{SVG_NS}' xmlns:xlink='{XLINK_NS}' viewBox='0 0 100 40'"
 PNG_URI = "data:image/png;base64,iVBORw0KGgo="
@@ -60,6 +61,7 @@ def test_anything_that_runs_or_fetches_is_dropped(
 
 
 @pytest.mark.item("EC-A07")
+@pytest.mark.item("W24")
 @pytest.mark.parametrize(
     "data",
     [
@@ -71,11 +73,48 @@ def test_anything_that_runs_or_fetches_is_dropped(
         b"<svg xmlns='http://www.w3.org/2000/svg'/>",
         b"<?xml version='1.0'?><!DOCTYPE svg [<!ENTITY x SYSTEM 'file:///etc/passwd'>]>"
         b"<svg xmlns='http://www.w3.org/2000/svg'><text>&x;</text></svg>",
+        b"<?xml version='1.0'?><!DOCTYPE svg [<!ENTITY a 'aaaaaaaaaa'>"
+        b"<!ENTITY b '&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;'><!ENTITY c '&b;&b;&b;&b;&b;&b;&b;&b;'>]>"
+        b"<svg xmlns='http://www.w3.org/2000/svg'><text>&c;</text></svg>",
+        b"<!ENTITY x 'y'><svg xmlns='http://www.w3.org/2000/svg'/>",
+        b"<svg xmlns='http://www.w3.org/2000/svg'><text>&x;</text></svg>",
+        b"<?xml version='1.0'?><!DOCTYPE svg [<!ENTITY % p SYSTEM 'http://example.invalid/p'>%p;]>"
+        b"<svg xmlns='http://www.w3.org/2000/svg'/>",
+        b"<?xml version='1.0'?><!DOCTYPE svg><svg xmlns='http://www.w3.org/2000/svg'/>",
     ],
 )
 def test_what_is_not_a_safe_svg_document_is_refused(data: bytes) -> None:
+    assert not is_svg(data)
     with pytest.raises(SvgRefusedError):
         sanitise_svg(data)
+
+
+@pytest.mark.item("W24")
+def test_a_drawing_saved_by_an_editor_keeps_its_namespaces_text_and_xml_space() -> None:
+    data = (
+        "<?xml version='1.0' encoding='UTF-8' standalone='no'?>\n"
+        "<!-- Created with an SVG editor -->\n"
+        f"<svg xmlns='{SVG_NS}' xmlns:xlink='{XLINK_NS}'"
+        " xmlns:inkscape='http://www.inkscape.org/namespaces/inkscape'"
+        " width='210mm' height='40mm' viewBox='0 0 210 40' inkscape:version='1.4'>"
+        "<?xml-stylesheet href='x.css'?>"
+        "<g inkscape:label='Layer 1'><text xml:space='preserve' x='4' y='20'>"
+        "Sample &amp; Co Diagnostics \u20b9 \u0928\u092e\u0942\u0928\u093e</text>"
+        "<use xlink:href='#t'/></g></svg>"
+    ).encode()
+    assert is_svg(data)
+    result = sanitise_svg(data)
+    root = ElementTree.fromstring(result.data)  # noqa: S314 - the sanitiser's own output
+    assert root.tag == f"{{{SVG_NS}}}svg"
+    assert root.get("viewBox") == "0 0 210 40"
+    text = root.find(f"{{{SVG_NS}}}g/{{{SVG_NS}}}text")
+    assert text is not None
+    assert text.text == "Sample & Co Diagnostics \u20b9 \u0928\u092e\u0942\u0928\u093e"
+    assert text.get("{http://www.w3.org/XML/1998/namespace}space") == "preserve"
+    use = root.find(f".//{{{SVG_NS}}}use")
+    assert use is not None and use.get(f"{{{XLINK_NS}}}href") == "#t"
+    assert b"xml-stylesheet" not in result.data and b"Created with" not in result.data
+    assert result.removed == {"other attribute": 2}
 
 
 @pytest.mark.item("EC-A07")
@@ -83,7 +122,7 @@ def test_what_is_not_a_safe_svg_document_is_refused(data: bytes) -> None:
 def test_the_cleaned_file_only_ever_holds_allowed_elements(tags: list[str]) -> None:
     body = "".join(f"<{t} onload='x'><{t}/></{t}>" for t in tags)
     cleaned = sanitise_svg(f"{HEAD}>{body}</svg>".encode()).data
-    root = SafeTree.fromstring(cleaned, forbid_dtd=True)
+    root = ElementTree.fromstring(cleaned)  # noqa: S314 - the sanitiser's own output
     for el in root.iter():
         assert el.tag.split("}")[1] in {"svg", "rect", "g", "text"}
         assert not any(key.lower().startswith("on") for key in el.attrib)

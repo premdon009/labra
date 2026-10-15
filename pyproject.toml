@@ -9,7 +9,6 @@ dependencies = [
     "alembic>=1.20",
     "argon2-cffi>=25.1",
     "babel>=2.18",
-    "defusedxml>=0.7",
     "duckdb>=1.5",
     "fastapi>=0.142",
     "jinja2>=3.1.6",
@@ -283,7 +282,7 @@ allowed_importers = ["labra.printing"]
 [[tool.importlinter.contracts]]
 name = "Untrusted XML is parsed only by the SVG sanitiser"
 type = "protected"
-protected_modules = ["defusedxml"]
+protected_modules = ["xml"]
 allowed_importers = ["labra.core.svg"]
 
 [[tool.importlinter.contracts]]
