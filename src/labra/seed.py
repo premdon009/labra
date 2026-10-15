@@ -16,6 +16,7 @@ from labra.auth.service import grants_for
 from labra.catalog import service as catalog
 from labra.catalog.models import Test
 from labra.catalog.starter import import_starter
+from labra.core import lab_settings
 from labra.core.errors import ConfigError
 from labra.core.numbering import ensure_series
 from labra.core.ports import IdentityProvider
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from faker import Faker
 
 DEMO_PASSWORD = "demo-password-1"  # noqa: S105  synthetic demo data only
+DEMO_STATE_CODE = "29"
 FAKER_SEED = 2026
 
 # (username, full name, can_login, [(branch code, role code)])
@@ -197,6 +199,9 @@ def seed(
     }
     for branch in branches.values():
         ensure_series(db, branch.id, branch.code, today)
+    if not lab_settings.get_value(db, "lab.state_code"):
+        # A made-up place of supply, so demo bills print one; the branches inherit it.
+        lab_settings.set_value(db, "lab.state_code", DEMO_STATE_CODE, None)
     for username, full_name, can_login, roles in CAST:
         make_user(
             db,

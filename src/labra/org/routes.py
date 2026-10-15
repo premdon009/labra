@@ -61,12 +61,18 @@ def branches(
 
 
 def _branch_form(
-    request: Request, branch: object, errors: dict[str, str], status: int = 200
+    request: Request, db: DB, branch: object, errors: dict[str, str], status: int = 200
 ) -> Response:
+    own = getattr(branch, "state_code", "")
     return render(
         request,
         "org/branch_form.html",
-        {"branch": branch, "errors": errors, "kinds": BRANCH_KINDS},
+        {
+            "branch": branch,
+            "errors": errors,
+            "kinds": BRANCH_KINDS,
+            "no_place_of_supply": not (own or lab_settings.get_value(db, "lab.state_code")),
+        },
         status_code=status,
     )
 
@@ -74,9 +80,9 @@ def _branch_form(
 @router.get("/branches/new", response_class=HTMLResponse)
 @page("admin/branches", "org/branch_form.html")
 def branch_new(
-    request: Request, principal: Annotated[Principal, Depends(require("branch.edit"))]
+    request: Request, db: DB, principal: Annotated[Principal, Depends(require("branch.edit"))]
 ) -> Response:
-    return _branch_form(request, None, {})
+    return _branch_form(request, db, None, {})
 
 
 @router.get("/branches/{branch_id}", response_class=HTMLResponse)
@@ -87,7 +93,7 @@ def branch_edit(
     db: DB,
     principal: Annotated[Principal, Depends(require("branch.edit"))],
 ) -> Response:
-    return _branch_form(request, service.get_branch(db, principal, _uuid(branch_id)), {})
+    return _branch_form(request, db, service.get_branch(db, principal, _uuid(branch_id)), {})
 
 
 @router.post("/branches")
@@ -129,7 +135,7 @@ def branch_save(
         db.rollback()
         # Keep the record's ID and version, so the corrected form still edits that record.
         values = SimpleNamespace(**vars(data), id=branch_id, row_version=row_version)
-        return _branch_form(request, values, exc.errors, status=422)
+        return _branch_form(request, db, values, exc.errors, status=422)
     db.commit()
     return RedirectResponse("/admin/branches", status_code=303)
 
@@ -335,6 +341,7 @@ def _settings_form(
             "can_edit_lab": principal.can("setting.edit"),
             "can_edit_branch": principal.can("setting.edit_branch"),
             "errors": errors,
+            "no_place_of_supply": service.branches_without_place_of_supply(db, principal),
             **(extra or {}),
         },
         status_code=status,

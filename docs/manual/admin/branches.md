@@ -1,6 +1,6 @@
 ---
 title: Branches
-features: [M02, M02.1, M12.1, EC-F03]
+features: [M02, M02.1, M07.5, M12.1, EC-F03]
 ---
 
 # Branches
@@ -40,6 +40,11 @@ close a branch, untick **Active**: its records stay, but no new work can be adde
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
   through them; a search or filter you chose stays in place.
 - There can be only one main lab.
+- A bill prints the branch's GST state code as its place of supply, or the main lab's code
+  from [Settings](settings.md) when the branch has none. When neither is set, the branch
+  screen says **Bills from this branch will print no place of supply**. Bills are still
+  made, with the place of supply left empty. Fill in the branch's **GST state code**, or
+  the main lab's on Settings, and the notice goes.
 - Two branches can't share a code.
 - The NABL certificate number is kept in capitals. It prints on a report only when every
   test on that report is in your NABL scope, which you set on each test in the

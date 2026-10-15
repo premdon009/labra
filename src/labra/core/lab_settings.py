@@ -43,7 +43,16 @@ def define(d: SettingDef) -> SettingDef:
 
 
 define(SettingDef("lab.display_name", str, "Labra Diagnostics", "Lab name on screens"))
-define(SettingDef("lab.state_code", str, "", "GST state code of the main lab"))
+define(
+    SettingDef(
+        "lab.state_code",
+        str,
+        "",
+        "GST state code of the main lab",
+        pattern=r"(\d{2})?",
+        pattern_hint="Enter two digits, for example 29, or leave it empty.",
+    )
+)
 define(
     SettingDef(
         "visit.default_tat_hours",

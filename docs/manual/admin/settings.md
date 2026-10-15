@@ -1,6 +1,6 @@
 ---
 title: Settings
-features: [W04, M02, M07, M07.1, EC-C01, M12, M17, M20]
+features: [W04, M02, M07, M07.1, M07.5, EC-C01, M12, M17, M20]
 ---
 
 # Settings
@@ -30,7 +30,7 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 | Setting | Applies to | Allowed values |
 |---|---|---|
 | Lab name on screens | Whole lab | Any text; starts as "Labra Diagnostics" |
-| GST state code of the main lab | Whole lab | The two-digit code from the GSTIN, such as `29` |
+| GST state code of the main lab | Whole lab | The two-digit code from the GSTIN, such as `29`, or empty. Bills from a branch without its own code print this one as the place of supply |
 | Default turnaround time (hours) | Each branch | 1 to 720; starts at 24 |
 | Footer printed on receipts | Each branch | Any text, up to 500 characters |
 | Legal name printed on bills | Whole lab | Up to 120 characters. Leave empty to print the lab name |
@@ -47,6 +47,10 @@ turnaround time. Some apply to the whole lab; some can be different at each bran
 
 - A branch value overrides the whole-lab value at that branch. Branches without their own
   value use the whole-lab one.
+- If an open branch has no GST state code of its own and the main lab's is empty, the top
+  of the page says **Bills from B2 will print no place of supply** (naming each such branch
+  you can see). Bills are still made, with the place of supply left empty. Set the code
+  here, or the branch's own on [Branches](branches.md), and the notice goes.
 - Administrators can change every setting. Branch managers can change only the
   per-branch settings, and only at their own branch.
 - To change a branch's setting, first [switch](../getting-started/screen-layout.md) to that

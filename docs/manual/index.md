@@ -60,6 +60,8 @@ Every feature Labra has, and the manual page that explains it.
 | M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | [Dues and payments](frontdesk/dues-and-payments.md) |
 | M07.3 | A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills | [New visit](frontdesk/new-visit.md) |
 | M07.4 | A bill can't be cancelled once a test on it is sent out, resulted, verified or released | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M07.5 | The branch and settings screens warn when bills from an open branch would print no place of supply (no branch or main-lab state code); the main lab's code must be two digits or empty; the demo seed sets one. The bill itself stays blank when unset (owner, 2026-10-15) | [Branches](admin/branches.md) |
+| M07.5 | The branch and settings screens warn when bills from an open branch would print no place of supply (no branch or main-lab state code); the main lab's code must be two digits or empty; the demo seed sets one. The bill itself stays blank when unset (owner, 2026-10-15) | [Settings](admin/settings.md) |
 | M08 | Barcode sample labels | [Sample labels and collection](frontdesk/labels.md) |
 | M09 | Manual routing, in-house or external, showing cost and margin | [Entering results](lab/entering-results.md) |
 | M09 | Manual routing, in-house or external, showing cost and margin | [Outsourcing](lab/outsourcing.md) |

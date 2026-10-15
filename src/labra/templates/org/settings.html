@@ -9,6 +9,12 @@
   <a class="btn-outline" href="/admin/settings/consent">Consent notice</a>
 </div>
 {% if errors %}<div class="alert-destructive" role="alert"><h2>Some settings were not saved.</h2></div>{% endif %}
+{% if no_place_of_supply %}
+<div class="alert" role="status">
+  <h2>Bills from {{ no_place_of_supply|join(', ') }} will print no place of supply</h2>
+  <p>Set the GST state code of the main lab below, or each branch's own on the <a href="/admin/branches">Branches</a> screen.</p>
+</div>
+{% endif %}
 <form method="post" action="/admin/settings">
   {{ csrf(csrf_token) }}
   {% include "org/_setting_rows.html" %}

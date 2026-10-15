@@ -4,6 +4,12 @@
 {% block content %}
 <div class="page-head"><h1>{{ 'Edit branch ' ~ branch.code if branch and branch.id else 'Add branch' }}</h1></div>
 {% if errors %}<div class="alert-destructive" role="alert"><h2>Please correct the highlighted fields.</h2></div>{% endif %}
+{% if no_place_of_supply %}
+<div class="alert" role="status">
+  <h2>Bills from this branch will print no place of supply</h2>
+  <p>Set its GST state code below, or the main lab's on the <a href="/admin/settings">Settings</a> screen.</p>
+</div>
+{% endif %}
 <form method="post" action="/admin/branches">
   {{ csrf(csrf_token) }}
   <input type="hidden" name="branch_id" value="{{ branch.id if branch and branch.id else '' }}">

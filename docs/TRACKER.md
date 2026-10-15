@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 12/23 · Minimal 40/42 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 12/23 · Minimal 40/43 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -91,6 +91,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M07.2~~ | ~~UPI reference must have a digit in it; the audit log records a new visit before its bill~~ | P | done | 2026-10-13 · 6bdf904 |
 | ~~M07.3~~ | ~~A UPI reference already on another receipt is refused until the desk confirms one payment covers both bills~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M07.4~~ | ~~A bill can't be cancelled once a test on it is sent out, resulted, verified or released~~ | P | done | 2026-10-13 · 2c9bb8a |
+| M07.5 | The branch and settings screens warn when bills from an open branch would print no place of supply (no branch or main-lab state code); the main lab's code must be two digits or empty; the demo seed sets one. The bill itself stays blank when unset (owner, 2026-10-15) | P | doing | |
 | M20.1 | Optional "abnormal results at a glance" box at the top of page 1 (§7.0) | P2 | todo | |
 | ~~M14~~ | ~~Admin screens (own HTMX, ADR-0010)~~ | P | done | 2026-10-12 · 00f924d |
 | ~~M14.1~~ | ~~Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test~~ | P | done | 2026-10-13 · 9123107 |

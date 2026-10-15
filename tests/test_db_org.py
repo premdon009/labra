@@ -302,6 +302,68 @@ def test_numbering_form_shows_16_char_problem(
     assert _series(seeded, "B2", "bos").format == "{BR}/{FY2}/{SEQ:5}"
 
 
+# Place of supply
+
+
+@pytest.mark.item("M07.5")
+def test_the_branch_and_settings_screens_warn_when_bills_would_print_no_state_code(
+    seeded: Session, platform: Platform, db_client: TestClient
+) -> None:
+    notice = "will print no place of supply"
+    b2, b3 = _branch(seeded, "B2"), _branch(seeded, "B3")
+    _sign_in(db_client, "anil")
+    # The demo lab has a state code, so every branch prints one.
+    for url in ("/admin/settings", "/admin/branches/new", f"/admin/branches/{b2.id}"):
+        assert notice not in db_client.get(url).text, url
+
+    lab_settings.set_value(seeded, "lab.state_code", "", None)
+    b3.state_code = "27"
+    # Committed, so a refused form's rollback keeps it; the test's transaction still ends.
+    seeded.commit()
+    assert (
+        "Bills from B2, MAIN will print no place of supply" in db_client.get("/admin/settings").text
+    )
+    assert (
+        "Bills from this branch will print no place of supply"
+        in db_client.get(f"/admin/branches/{b2.id}").text
+    )
+    assert notice in db_client.get("/admin/branches/new").text
+    assert notice not in db_client.get(f"/admin/branches/{b3.id}").text
+    # A form sent back for a mistake warns by the code typed into it.
+    data = {"branch_id": str(b2.id), "row_version": b2.row_version, "code": "B2", "kind": "?"}
+    for typed, warned in (("27", False), ("", True)):
+        refused = _post(db_client, "/admin/branches", {**data, "state_code": typed})
+        assert refused.status_code == 422 and (notice in refused.text) is warned
+
+    # A branch manager hears only about the branches they see.
+    b3.state_code = ""
+    seeded.commit()
+    _sign_in(db_client, "b3desk")
+    assert "Bills from B3 will print no place of supply" in db_client.get("/admin/settings").text
+
+
+@pytest.mark.item("M07.5")
+@pytest.mark.parametrize("value", ["2", "290", "KA", "2 9"])
+def test_a_lab_state_code_that_is_not_two_digits_is_refused(seeded: Session, value: str) -> None:
+    with pytest.raises(ValidationFailedError) as bad:
+        lab_settings.set_value(seeded, "lab.state_code", value, None)
+    assert bad.value.errors == {
+        "lab.state_code": "Enter two digits, for example 29, or leave it empty."
+    }
+    assert lab_settings.get_value(seeded, "lab.state_code") == "29"
+
+
+@pytest.mark.item("M07.5")
+def test_a_bill_prints_the_branchs_state_code_else_the_main_labs(seeded: Session) -> None:
+    b2 = _branch(seeded, "B2")
+    assert org.place_of_supply(seeded, b2) == "29"
+    b2.state_code = "27"
+    assert org.place_of_supply(seeded, b2) == "27"
+    b2.state_code = ""
+    lab_settings.set_value(seeded, "lab.state_code", "", None)
+    assert org.place_of_supply(seeded, b2) == ""
+
+
 # Consent notice
 
 

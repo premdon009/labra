@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from labra.auth.principal import Principal
 from labra.auth.service import end_all_sessions
-from labra.core import audit, consent
+from labra.core import audit, consent, lab_settings
 from labra.core.db import TrackedMixin
 from labra.core.errors import (
     ConflictError,
@@ -97,6 +97,25 @@ def list_branches(db: Session, principal: Principal) -> list[Branch]:
 def branch_page(db: Session, principal: Principal, page: int) -> Page[Branch]:
     visible = principal.branches_with("branch.view")
     return page_of(db, select(Branch).where(Branch.id.in_(visible)).order_by(Branch.code), page)
+
+
+def place_of_supply(db: Session, branch: Branch) -> str:
+    """The GST state code a bill from `branch` prints: its own, else the main lab's."""
+    return branch.state_code or lab_settings.get_value(db, "lab.state_code")
+
+
+def branches_without_place_of_supply(db: Session, principal: Principal) -> list[str]:
+    """The codes of the open branches the user sees whose bills would print no state code."""
+    if lab_settings.get_value(db, "lab.state_code"):
+        return []
+    visible = principal.branches_with("branch.view")
+    return list(
+        db.scalars(
+            select(Branch.code)
+            .where(Branch.id.in_(visible), Branch.is_active, Branch.state_code == "")
+            .order_by(Branch.code)
+        )
+    )
 
 
 def get_branch(db: Session, principal: Principal, branch_id: uuid.UUID) -> Branch:

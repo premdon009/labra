@@ -35,7 +35,7 @@ from labra.core.money import ZERO, apply_payment, bill_status, money, round_to_u
 from labra.core.numbering import financial_year, next_number
 from labra.core.paging import Page, page_of
 from labra.org.models import Branch
-from labra.org.service import stale
+from labra.org.service import place_of_supply, stale
 from labra.patients.models import Patient, Referrer
 from labra.visits.models import OrderItem, OrderTest, Sample, Visit
 
@@ -298,7 +298,7 @@ def issue_bill(
         visit_id=visit.id,
         recipient_name=recipient,
         bill_date=today,
-        place_of_supply_state=branch.state_code or lab_settings.get_value(db, "lab.state_code"),
+        place_of_supply_state=place_of_supply(db, branch),
         gross=gross,
         discount=discount,
         discount_reason=discount_reason if discount > 0 else "",
