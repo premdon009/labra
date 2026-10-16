@@ -1,5 +1,6 @@
 """The PDF engine: vendored fonts, Indian scripts, and no fetching outside Labra."""
 
+import gc
 import io
 import uuid
 
@@ -73,5 +74,6 @@ def test_stored_files_come_through_the_callers_reader_and_data_uris_decode_in_me
         files=reader,
     )
     assert rendered.refused == ()
+    gc.collect()  # a data: response left open warns when it is collected
     # Without a reader, stored files are refused too.
     assert f"labra-file:{file_id}" in render_pdf(f"<img src='labra-file:{file_id}'>").refused

@@ -92,22 +92,24 @@ def verify(db: Session) -> VerifyResult:
     """Walk the whole chain. Reports the first row whose link or hash doesn't match."""
     prev = GENESIS
     checked = 0
-    rows = db.execute(select(AuditLog).order_by(AuditLog.id).execution_options(yield_per=1000))
-    for (row,) in rows:
-        if row.prev_hash != prev:
-            return VerifyResult(False, checked, row.id, "link broken: a row before it is gone")
-        expected = chain_hash(
-            row.prev_hash,
-            row.at,
-            row.user_id,
-            row.branch_id,
-            row.action,
-            row.entity,
-            row.entity_id,
-            row.detail,
-        )
-        if row.hash != expected:
-            return VerifyResult(False, checked, row.id, "hash mismatch: the row was changed")
-        prev = row.hash
-        checked += 1
+    stmt = select(AuditLog).order_by(AuditLog.id).execution_options(yield_per=1000)
+    # Closed on the way out too: an early return would leave a server-side cursor open.
+    with db.execute(stmt) as rows:
+        for (row,) in rows:
+            if row.prev_hash != prev:
+                return VerifyResult(False, checked, row.id, "link broken: a row before it is gone")
+            expected = chain_hash(
+                row.prev_hash,
+                row.at,
+                row.user_id,
+                row.branch_id,
+                row.action,
+                row.entity,
+                row.entity_id,
+                row.detail,
+            )
+            if row.hash != expected:
+                return VerifyResult(False, checked, row.id, "hash mismatch: the row was changed")
+            prev = row.hash
+            checked += 1
     return VerifyResult(True, checked)

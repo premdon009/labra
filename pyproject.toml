@@ -122,6 +122,8 @@ addopts = "--strict-markers"
 filterwarnings = [
     "error::sqlalchemy.exc.SADeprecationWarning",
     "error:.*pypdf:DeprecationWarning",
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.coverage.run]

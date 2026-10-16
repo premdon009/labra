@@ -98,8 +98,9 @@ def _text(value: object, as_json: bool = False) -> object:
 def _rows(db: Session, table: Table) -> Iterator[list[object]]:
     stmt = select(table).order_by(*table.primary_key.columns)
     flags = [_is_json(c) for c in table.columns]
-    for row in db.execute(stmt.execution_options(yield_per=BATCH)):
-        yield [_text(v, j) for v, j in zip(row, flags, strict=True)]
+    with db.execute(stmt.execution_options(yield_per=BATCH)) as rows:
+        for row in rows:
+            yield [_text(v, j) for v, j in zip(row, flags, strict=True)]
 
 
 def _csv_cell(value: object) -> object:

@@ -55,7 +55,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The local gate keeps the logs of its recent runs and a JUnit test report, and CI uploads them when it fails. A failed test is re-run once; one that then passes fails the gate as flaky, and `scripts/flaky_report.py` counts flaky and failed tests across runs.
 - CI installs the PDF libraries the image has and runs the tests on Ubuntu 26.04, the OS the PDF snapshots were made on.
 - Uploaded SVGs are parsed with Python's own XML parser, which refuses DTDs and entities; `defusedxml` is no longer a dependency.
-- SQLAlchemy and pypdf deprecation warnings fail the tests.
+- SQLAlchemy and pypdf deprecation warnings fail the tests, and so does a cursor, file or response left open.
 - The gate and pre-commit lint the shell scripts with shellcheck.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 

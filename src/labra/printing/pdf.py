@@ -48,8 +48,8 @@ class Fetcher(URLFetcher):
             return self._file(url, self.files)
         if url.startswith("data:"):
             # Decoded in memory by urllib's data: handler; nothing is opened.
-            response = DataHandler().data_open(Request(url))  # noqa: S310 - data: only
-            return URLFetcherResponse(url, response.read(), dict(response.headers))
+            with DataHandler().data_open(Request(url)) as response:  # noqa: S310 - data: only
+                return URLFetcherResponse(url, response.read(), dict(response.headers))
         return self._refuse(url)
 
     def _asset(self, url: str) -> URLFetcherResponse:

@@ -1,6 +1,7 @@
 """Core tables against real Postgres: migrations, audit log, numbering, settings, files,
 outbox and the seed."""
 
+import gc
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -92,6 +93,7 @@ def test_audit_tamper_detected(db: Session) -> None:
     result = audit.verify(db)
     assert not result.ok
     assert result.first_bad_id == target.id
+    gc.collect()  # the walk stopped early; its server-side cursor must already be closed
 
 
 # Numbering
