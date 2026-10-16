@@ -5,6 +5,7 @@ import gc
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from pathlib import Path
 
 import pytest
 from alembic.autogenerate import compare_metadata
@@ -255,6 +256,25 @@ def test_seed_refuses_a_real_database(db: Session, platform: Platform) -> None:
     db.flush()
     with pytest.raises(ConfigError):
         seed(db, platform.identity, date(2026, 10, 9))
+
+
+@pytest.mark.item("W26")
+def test_no_seeded_persons_name_is_written_in_the_code(seeded: Session, platform: Platform) -> None:
+    from labra.patients.models import Patient, Referrer
+
+    seed(seeded, platform.identity, date(2026, 10, 9), with_catalog=True, with_people=True)
+    names = {
+        *seeded.scalars(select(AppUser.full_name)),
+        *seeded.scalars(select(Referrer.name)),
+        *seeded.scalars(select(Patient.full_name)),
+    }
+    assert len(names) > 10
+    src = Path(__file__).resolve().parent.parent / "src" / "labra"
+    code = "\n".join(f.read_text("utf-8") for f in src.rglob("*") if f.suffix in {".py", ".html"})
+    assert [n for n in names if n.removeprefix("Dr ") in code] == []
+    signatory = seeded.scalars(select(AppUser).where(AppUser.username == "meera")).one()
+    assert signatory.full_name.startswith("Dr ")
+    assert (signatory.qualification, signatory.council_reg_no) == ("MD (Pathology)", "XMC 00000")
 
 
 @pytest.mark.item("M18")

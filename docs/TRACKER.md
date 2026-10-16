@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 14/25 · Minimal 41/43 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 14/26 · Minimal 41/43 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -67,6 +67,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W23~~ | ~~CI's test jobs install the image's PDF libraries (Pango, HarfBuzz with its subset library, fontconfig) and run on Ubuntu 26.04, the OS the PDF snapshot goldens were written on; a test keeps the workflows' package list equal to the Dockerfile's~~ | P | done | 2026-10-15 · 9de6a44 |
 | ~~W24~~ | ~~Uploaded SVG is parsed with the standard library's expat, refusing any DTD, entity declaration or external reference, and `defusedxml` leaves the runtime dependencies; an import contract keeps `xml` imports in the SVG sanitiser; the register defines Watch (ADR-0011)~~ | P | done | 2026-10-15 · a9bd74a |
 | W25 | Shell scripts are linted: `scripts/check_shell.sh` runs shellcheck in the gate's hygiene stage and in pre-commit (unchecked when shellcheck is missing), the scripts are clean, and setup puts git-cliff on `PATH` | P | doing | — |
+| W26 | No person's name is written in the shipped code: the demo seed draws every name from Faker (the signatory gets "Dr"), the letterhead preview samples show role labels, tests look seeded names up, and a test fails when a seeded name appears in `src/` | P | doing | — |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

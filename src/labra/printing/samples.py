@@ -105,7 +105,7 @@ def _report(name: str, referrer: str, departments: list[dict[str, Any]]) -> dict
         "research": False,
         "selected": "",
         "signatory": {
-            "name": "Dr. Sample Signatory",
+            "name": "Signatory Name",
             "qualification": "MD (Pathology)",
             "council_reg_no": "XMC 00000",
             "signature": "",
@@ -116,7 +116,7 @@ def _report(name: str, referrer: str, departments: list[dict[str, Any]]) -> dict
 
 def _short() -> dict[str, Any]:
     cbc = _panel("cbc", "Complete blood count", _CBC, specimen="EDTA whole blood")
-    return _report("Asha Testcase", "Dr. Ref Example", [{"name": "Haematology", "panels": [cbc]}])
+    return _report("Patient Name", "Referring Doctor", [{"name": "Haematology", "panels": [cbc]}])
 
 
 def _three_pages() -> dict[str, Any]:
@@ -127,8 +127,8 @@ def _three_pages() -> dict[str, Any]:
     biochemistry = [_panel(f"lipid{n}", f"Lipid profile ({n})", _LIPID) for n in range(1, 3)]
     immunology = [_panel("allergy", "Allergy screen (made up)", _ALLERGENS)]
     return _report(
-        "Asha Testcase",
-        "Dr. Ref Example",
+        "Patient Name",
+        "Referring Doctor",
         [
             {"name": "Haematology", "panels": haematology},
             {"name": "Biochemistry", "panels": biochemistry},
@@ -146,7 +146,7 @@ def _long_names() -> dict[str, Any]:
     ]  # fmt: skip
     panel = _panel("long", "दीर्घ नाम / Long names", rows)
     return _report(
-        "अनन्या लक्ष्मीनारायण वेंकटरमण सुब्रह्मण्यम (Ananya Lakshminarayana Testcase)",
+        "रोगी का बहुत लंबा पूरा नाम यहाँ (Patient With A Very Long Full Name Here)",
         "डॉ. उदाहरण संदर्भ (Dr. Referrer With A Very Long Example Name)",
         [{"name": "Biochemistry", "panels": [panel]}],
     )
@@ -159,7 +159,7 @@ def _bill() -> dict[str, Any]:
     total = sum(100 + n * 10 for n in range(1, 26))
     return {
         "bill_no": "B2/B/2627/000042",
-        "patient": "Asha Testcase",
+        "patient": "Patient Name",
         "lines": lines,
         "total": f"₹{total:,}.00",
         "signatory": "Front desk",

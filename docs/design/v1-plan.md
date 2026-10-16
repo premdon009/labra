@@ -376,14 +376,16 @@ This walks one patient through the whole minimal version. Everything in it is **
 
 **Cast:**
 - **Main lab** `MAIN`; **Branch 2** `B2` (collection centre)
-- **Priya:** B2 front desk
-- **Suresh:** main-lab technician
-- **Dr Meera Nair, MD:** signatory
-- **Owner:** Anil
+- **Front desk** at B2 (sign-in `priya`)
+- **Technician** at the main lab (`suresh`)
+- **Signatory**, an MD (`meera`)
+- **Owner** (`anil`)
 - **External labs:** Ext Lab A and Ext Lab B
 
+The seed draws each person's name from Faker, so the story calls them by role.
+
 ### Step 1 · 08:40 · Branch 2 front desk: one-screen visit [M18, M03, M04, M05.1, M07]
-Priya types the phone number. A patient is found by phone + name [M19], so there's no duplicate. She types `sf` and the confirm line shows "Glucose, fasting · ₹80" before Enter adds it. Then `lipid`, `ur` and `vitd`.
+The front desk types the phone number. A patient is found by phone + name [M19], so there's no duplicate. The desk types `sf` and the confirm line shows "Glucose, fasting · ₹80" before Enter adds it. Then `lipid`, `ur` and `vitd`.
 ```
 ┌ New visit · B2 ───────────────────────────────────────── Alt+S save ┐
 │ Patient  Arjun Rao (P-000456) · 58 Y / M · 98xxxxxx01  [History ▸]   │
@@ -406,10 +408,10 @@ On Save, Labra:
 - creates 4 `order_test` rows
 
 ### Step 2 · 08:50 · Collection [M08, M01.2, M21]
-Priya scans each tube label → status `collected`, with "collected by" = the phlebotomist, who has no login [M01.2]. At 11:00 the courier takes the box to the main lab.
+The front desk scans each tube label → status `collected`, with "collected by" = the phlebotomist, who has no login [M01.2]. At 11:00 the courier takes the box to the main lab.
 
 ### Step 3 · 11:45 · Main lab intake and routing [M09, M10, M21]
-Suresh scans the tubes → `received`. The in-house tests go to the Biochemistry and Clinical Pathology worklists. Vitamin D shows the routing choice, picked manually in the minimal version:
+The technician scans the tubes → `received`. The in-house tests go to the Biochemistry and Clinical Pathology worklists. Vitamin D shows the routing choice, picked manually in the minimal version:
 ```
 Vitamin D (25-OH) · patient price ₹1,200 · promised Sun 18:00
   ○ In-house       not available
@@ -420,7 +422,7 @@ Vitamin D (25-OH) · patient price ₹1,200 · promised Sun 18:00
 He picks A and enters their accession no `EXT-998877` at 12:30. The timeline logs `sent` with time and user.
 
 ### Step 4 · 14:10 · Result entry [M11, M11.1, M11.2, M05.2]
-Suresh opens the visit from the worklist (or by clicking it on the lab TV board [M22]). The patient is male and 58 at collection, so Labra picks the adult-male ranges. Each Enter saves the cell and returns its colour from the server:
+The technician opens the visit from the worklist (or by clicking it on the lab TV board [M22]). The patient is male and 58 at collection, so Labra picks the adult-male ranges. Each Enter saves the cell and returns its colour from the server:
 ```
  ── GLUCOSE, FASTING ────────────────────────────────────────────────────
  Glucose (F)          [ 132 ]  ↑H Diabetic range    mg/dL  70 – 100   prev 118
@@ -451,23 +453,23 @@ LDL is above its `high` of 100, so it is flagged High; its band label "Borderlin
 The calculated rows (VLDL, LDL, TC/HDL) appeared on their own once TC, TG and HDL were in.
 
 What the guards do:
-- **Typo:** if Suresh had typed `1320` for glucose, it's beyond the absurd limit. "Check value" appears, and saving it anyway needs a second confirm, which is audited [M11.2].
+- **Typo:** if the technician had typed `1320` for glucose, it's beyond the absurd limit. "Check value" appears, and saving it anyway needs a second confirm, which is audited [M11.2].
 - **Critical:** if glucose had been `480`, beyond the critical limit, the cell turns **solid red ⚠HH**. A dialog then requires "informed Dr K. Kumar by phone at 14:12" before he can continue [M11].
-- **Submit for verification:** it lists the 5 unconfirmed "Nil" defaults. Suresh confirms them, then submits.
+- **Submit for verification:** it lists the 5 unconfirmed "Nil" defaults. The technician confirms them, then submits.
 
 ### Step 5 · 15:00 · Verification and partial release [M11, M12, M20]
-Dr Meera's queue shows the visit with **6 high · 1 low · 1 abnormal** and the previous values. She verifies, adds the interpretation comment from presets, and clicks **Release**. Only the signatory role can do this.
+The signatory's queue shows the visit with **6 high · 1 low · 1 abnormal** and the previous values. The signatory verifies, adds the interpretation comment from presets, and clicks **Release**. Only the signatory role can do this.
 - Report mode is **combined** (the default) with Vitamin D still pending, so Labra releases **report R-2026-000456, partial**. It's the digital PDF on the letterhead [M17], with:
   - bold values with H/L, no colours (§7)
   - "Pending: Vitamin D (expected Sun 12:00)"
   - QR verify code and SHA-256
-- B2 prints it on letterhead paper with the **Print** button (same layout, no letterhead) [M17]. The patient collects it at 17:30, and Priya records the delivery: delivered to the patient, at the counter, by Priya [M21].
+- B2 prints it on letterhead paper with the **Print** button (same layout, no letterhead) [M17]. The patient collects it at 17:30, and the front desk records the delivery: delivered to the patient, at the counter, by the front desk [M21].
 
 ### Step 6 · Sunday 12:20 · External result arrives [M10, M21]
-Ext Lab A emails a PDF. Suresh uploads it to the visit and ticks "Vitamin D". He optionally types the value `18.2 ng/mL` → **↓L Deficient** (blue), so history and trends work. The timeline logs `received`.
+Ext Lab A emails a PDF. The technician uploads it to the visit and ticks "Vitamin D", and may also type the value `18.2 ng/mL` → **↓L Deficient** (blue), so history and trends work. The timeline logs `received`.
 
 ### Step 7 · Sunday 13:00 · Final report [M12]
-Dr Meera verifies and releases **R-2026-000456 complete**:
+The signatory verifies and releases **R-2026-000456 complete**:
 - It's a new version that supersedes the partial one (not an "amendment", since no released value changed).
 - Vitamin D is marked `*` "Performed by Ext Lab A (NABL MC-YYYY), accession EXT-998877".
 - If the visit had been set to **separate**, the patient would instead get the in-house report plus Ext Lab A's PDF behind a Labra cover page.
@@ -483,7 +485,7 @@ The patient collects it and pays the ₹737 due in cash. The receipt prints, the
 ```
 
 ### Step 9 · 20:00 · Owner's evening check [M13]
-Anil opens the reports:
+The owner opens the reports:
 ```
  Daily collection · Sat 05-Oct      Cash      UPI     Card    Total     Dues
  MAIN                             8,420   12,300    1,500   22,220    1,200
@@ -494,7 +496,7 @@ Anil opens the reports:
 ```
 
 ### Step 10 · Automatic, no one clicks [M16, M15]
-- **Backups:** at 18:00 the backup timer runs `pg_dump` + files → restic → Google Drive and USB, then pings the healthcheck. A missed run emails Anil.
+- **Backups:** at 18:00 the backup timer runs `pg_dump` + files → restic → Google Drive and USB, then pings the healthcheck. A missed run emails the owner.
 - **Audit chain:** the nightly job re-verifies the audit-log hash chain.
 - **Restore drill:** on the 1st of each month, the latest snapshot is restored into a scratch database.
 
@@ -803,7 +805,7 @@ The owner shared a commercial product's printed report as a reference (never nam
  │ ¹ LDL: < 100 optimal · 100–129 near optimal · 130–159 borderline high ·         │
  │   160–189 high · ≥ 190 very high   → this result: Borderline high              │
  │ ...                                                                             │
- │ [signature]  Dr Meera Nair, MD (Pathology), Reg. No. ……                         │
+ │ [signature]  Dr <name>, MD (Pathology), Reg. No. ……                             │
  │ Report R-2026-000456 v2 · Page 1 of 2 · [QR] · End of report on page 2          │
  └────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -915,7 +917,7 @@ Rules:
 │ Top margin      [====|----------]  42 mm     ┌───────────────────┐   │
 │ Bottom margin   [===|-----------]  30 mm     │ ▓▓ LAB LOGO ▓▓▓▓▓ │   │
 │ Left margin     [=|-------------]  15 mm     │ - - - - - - - - - │   │
-│ Right margin    [=|-------------]  15 mm     │ Patient: Asha D.. │   │
+│ Right margin    [=|-------------]  15 mm     │ Patient: Name ... │   │
 │ Signature area  [==|------------]  25 mm     │ CBC  Hb 11.2 L .. │   │
 │   (reserved above bottom margin)             │ ...               │   │
 │ Font size       [===|-----------]  10 pt     │ [sign] Dr ....    │   │

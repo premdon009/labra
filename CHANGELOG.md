@@ -57,6 +57,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Uploaded SVGs are parsed with Python's own XML parser, which refuses DTDs and entities; `defusedxml` is no longer a dependency.
 - SQLAlchemy and pypdf deprecation warnings fail the tests, and so does a cursor, file or response left open.
 - The gate and pre-commit lint the shell scripts with shellcheck.
+- The demo seed draws every person's name from Faker and the letterhead preview samples show role labels, so no person's name is written in the code.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 
 ### Fixed

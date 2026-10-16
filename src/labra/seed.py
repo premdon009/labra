@@ -1,6 +1,7 @@
-"""Synthetic demo data: the cast of the design's worked example (§1e), plus a few extra staff
-from Faker, and on request a priced catalog, referrers and patients for a demo day. Every
-name and number here is made up. Tests reuse the factory functions.
+"""Synthetic demo data: the roles of the design's worked example (§1e), a few extra staff,
+and on request a priced catalog, referrers and patients for a demo day. People's names are
+drawn from Faker with a fixed seed, so none is written in the code; every number here is made
+up. Tests reuse the factory functions.
 """
 
 import uuid
@@ -34,17 +35,17 @@ DEMO_PASSWORD = "demo-password-1"  # noqa: S105  synthetic demo data only
 DEMO_STATE_CODE = "29"
 FAKER_SEED = 2026
 
-# (username, full name, can_login, [(branch code, role code)])
-CAST: list[tuple[str, str, bool, list[tuple[str, str]]]] = [
-    ("anil", "Anil Kumar", True, [("MAIN", "admin"), ("B2", "admin"), ("B3", "admin")]),
-    ("priya", "Priya Sharma", True, [("B2", "front_desk")]),
-    ("suresh", "Suresh Iyer", True, [("MAIN", "technician")]),
-    ("meera", "Dr Meera Nair", True, [("MAIN", "signatory")]),
-    ("b3desk", "Kavya Rao", True, [("B3", "front_desk"), ("B3", "branch_manager")]),
+# (username, can_login, [(branch code, role code)]); full names come from Faker.
+CAST: list[tuple[str, bool, list[tuple[str, str]]]] = [
+    ("anil", True, [("MAIN", "admin"), ("B2", "admin"), ("B3", "admin")]),
+    ("priya", True, [("B2", "front_desk")]),
+    ("suresh", True, [("MAIN", "technician")]),
+    ("meera", True, [("MAIN", "signatory")]),
+    ("b3desk", True, [("B3", "front_desk"), ("B3", "branch_manager")]),
 ]
 
-# What the demo signatory's reports print under the name: (username, qualification, invented
-# council registration number).
+# The demo signatory, whose name gets "Dr", and what their reports print under the name:
+# (username, qualification, invented council registration number).
 DEMO_SIGNATORY = ("meera", "MD (Pathology)", "XMC 00000")
 
 # Lab-wide demo prices by test code. The starter catalog ships without prices.
@@ -206,7 +207,13 @@ def seed(
     if not lab_settings.get_value(db, "lab.state_code"):
         # A made-up place of supply, so demo bills print one; the branches inherit it.
         lab_settings.set_value(db, "lab.state_code", DEMO_STATE_CODE, None)
-    for username, full_name, can_login, roles in CAST:
+    fake = Faker("en_IN")
+    fake.seed_instance(FAKER_SEED)
+    signatory_name, qualification, reg_no = DEMO_SIGNATORY
+    for username, can_login, roles in CAST:
+        full_name = fake.name()
+        if username == signatory_name:
+            full_name = f"Dr {full_name}"
         make_user(
             db,
             identity,
@@ -215,13 +222,10 @@ def seed(
             [(branches[b].id, r) for b, r in roles],
             can_login,
         )
-    username, qualification, reg_no = DEMO_SIGNATORY
-    signatory = db.scalars(select(AppUser).where(AppUser.username == username)).one()
+    signatory = db.scalars(select(AppUser).where(AppUser.username == signatory_name)).one()
     if not signatory.qualification:
         signatory.qualification, signatory.council_reg_no = qualification, reg_no
     # Staff who appear on records but never sign in, e.g. home-collection phlebotomists.
-    fake = Faker("en_IN")
-    fake.seed_instance(FAKER_SEED)
     for i in range(1, 4):
         make_user(
             db,

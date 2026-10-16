@@ -17,6 +17,7 @@ from labra.extlabs.models import ExternalLab
 from labra.results.models import ExternalDocument, OrderTestEvent, Result
 from labra.visits.models import OrderTest
 from tests.e2e.conftest import sign_in
+from tests.frontdesk import full_name
 from tests.test_db_lab_entry import _approve, _in_lab, _param
 from tests.test_uploads import SMALL_PDF
 
@@ -133,7 +134,9 @@ def test_a_lipid_panel_typed_with_the_keyboard(
     expect(box("LDL")).to_have_text("110")
     foot.get_by_role("button", name="Verify").focus()
     keys.press("Enter")
-    expect(foot).to_contain_text("Verified by Dr Meera Nair")
+    with Session(committed_engine) as db:
+        signer = full_name(db, "meera")
+    expect(foot).to_contain_text(f"Verified by {signer}")
     expect(page.locator(f"#t-{test_id} input[type=text][id^='v-']")).to_have_count(0)
     with Session(committed_engine) as db:
         assert db.get_one(OrderTest, test_id).status == "verified"
@@ -210,7 +213,9 @@ def test_a_test_goes_to_an_outside_lab_and_comes_back_as_a_pdf(
         ]
     )
     expect(steps).to_contain_text("To Demo Referral Lab B, their number RL-2291")
-    expect(steps).to_contain_text("Suresh Iyer")
+    with Session(committed_engine) as db:
+        tech, signer = full_name(db, "suresh"), full_name(db, "meera")
+    expect(steps).to_contain_text(tech)
 
     foot = page.locator(f"#f-{test_id}")
     foot.get_by_role("button", name="Submit for verification").click()
@@ -219,7 +224,7 @@ def test_a_test_goes_to_an_outside_lab_and_comes_back_as_a_pdf(
     sign_in(page, "meera")
     page.goto(f"/lab/visits/{visit_id}")
     foot.get_by_role("button", name="Verify").click()
-    expect(foot).to_contain_text("Verified by Dr Meera Nair")
+    expect(foot).to_contain_text(f"Verified by {signer}")
 
     with Session(committed_engine) as db:
         ordered = db.get_one(OrderTest, test_id)

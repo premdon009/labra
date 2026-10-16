@@ -26,7 +26,7 @@ from labra.results.models import (
 from labra.seed import seed
 from labra.visits.models import OrderTest, Visit
 from tests.conftest import SEED_DAY
-from tests.frontdesk import as_user, post, sign_in
+from tests.frontdesk import as_user, full_name, post, sign_in
 from tests.test_db_lab_entry import (
     _approve,
     _enter,
@@ -465,7 +465,7 @@ def test_the_grid_walks_a_critical_value_from_entry_to_sign_off(
     assert f"/lab/tests/{ordered.id}/verify" in db_client.get(visit_url).text
     assert act("verify").status_code == 303
     page = db_client.get(visit_url).text
-    assert "<strong>Verified</strong> by Dr Meera Nair" in page
+    assert f"<strong>Verified</strong> by {full_name(lab, 'meera')}" in page
     assert f"/lab/tests/{ordered.id}/reopen" in page
     # Verified values are read, not typed.
     assert f'hx-post="/lab/tests/{ordered.id}/cells/{tc.id}"' not in page

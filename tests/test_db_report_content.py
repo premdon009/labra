@@ -26,7 +26,7 @@ from labra.seed import seed
 from labra.visits import service as visits
 from labra.visits.models import OrderTest, Sample, Visit
 from tests.conftest import SEED_DAY
-from tests.frontdesk import as_user, branch, sign_in, visit_input
+from tests.frontdesk import as_user, branch, full_name, sign_in, visit_input
 from tests.test_db_lab_entry import _approve, _enter, _range, _result
 from tests.test_db_lab_outsourcing import _value_row, _vitd
 from tests.test_db_lab_routing import _ids
@@ -148,7 +148,7 @@ def test_the_report_carries_everything_iso_15189_asks_for(lab: Session, platform
         "what is still pending": "Pending: Thyroid stimulating hormone (expected",
         "that it is partial": "PARTIAL REPORT",
         "that it is a preview": "PREVIEW: not released",
-        "who signs": "Dr Meera Nair",
+        "who signs": full_name(lab, "meera"),
         "their qualification": "MD (Pathology)",
         "their registration": "Reg. no. XMC 00000",
         "the page count": "Page 1 of 2",

@@ -28,6 +28,7 @@ from labra.core.registry import Platform
 from labra.org import service as org
 from labra.org.models import AppUser, Branch, Role
 from labra.seed import DEMO_PASSWORD
+from tests.frontdesk import full_name
 
 NEW_PASSWORD = "brand-new-password-7"
 
@@ -110,7 +111,8 @@ def test_branch_edit_with_stale_version_names_who_changed_it(
     org.update_branch(seeded, admin, b2.id, data, b2.row_version)
     with pytest.raises(ConflictError) as exc:
         org.update_branch(seeded, admin, b2.id, data, b2.row_version - 1)
-    assert exc.value.public_message.startswith("Anil Kumar changed this record at ")
+    changed_by = full_name(seeded, "anil")
+    assert exc.value.public_message.startswith(f"{changed_by} changed this record at ")
     assert exc.value.public_message.endswith("Reload to see their changes, then make yours again.")
 
 
@@ -555,7 +557,8 @@ def test_update_user_fields_and_roles(seeded: Session, platform: Platform) -> No
     assert org.user_roles(seeded, priya.id) == {(b3, desk)}
     with pytest.raises(ConflictError) as exc:
         org.update_user(seeded, admin, priya.id, data, priya.row_version - 1)
-    assert exc.value.public_message.startswith("Anil Kumar changed this record at ")
+    changed_by = full_name(seeded, "anil")
+    assert exc.value.public_message.startswith(f"{changed_by} changed this record at ")
     with pytest.raises(NotFoundError):
         org.update_user(seeded, admin, uuid.uuid4(), data, 1)
 

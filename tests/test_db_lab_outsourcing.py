@@ -22,7 +22,7 @@ from labra.results import entry, outsourcing, service, signoff
 from labra.results.models import ExternalDocument, OrderTestEvent, Result
 from labra.seed import make_user
 from labra.visits.models import OrderTest, Visit
-from tests.frontdesk import as_user, branch, post, sign_in, upload
+from tests.frontdesk import as_user, branch, full_name, post, sign_in, upload
 from tests.test_db_lab_routing import _collect, _ids, _lab, _sample, _tests, _visit
 from tests.test_uploads import SMALL_PDF
 
@@ -340,14 +340,15 @@ def test_the_timeline_says_what_happened_to_a_test_when_and_by_whom(
 
     steps = outsourcing.timelines(seeded, [ordered.id])[ordered.id]
 
+    desk, tech, signer = (full_name(seeded, u) for u in ("priya", "suresh", "meera"))
     assert [(s.event, s.by) for s in steps] == [
-        ("registered", "Priya Sharma"),
-        ("collected", "Priya Sharma"),
-        ("routed", "Suresh Iyer"),
-        ("sent", "Suresh Iyer"),
-        ("received_back", "Suresh Iyer"),
-        ("resulted", "Suresh Iyer"),
-        ("verified", "Dr Meera Nair"),
+        ("registered", desk),
+        ("collected", desk),
+        ("routed", tech),
+        ("sent", tech),
+        ("received_back", tech),
+        ("resulted", tech),
+        ("verified", signer),
     ]
     assert [s.at for s in steps] == sorted(s.at for s in steps)
     assert steps[3].note == f"To {LAB_NAME}, their number RL-2291"

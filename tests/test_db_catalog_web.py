@@ -24,6 +24,7 @@ from labra.core import lab_settings
 from labra.core.models import AuditLog
 from labra.org.models import Branch
 from labra.seed import DEMO_PASSWORD
+from tests.frontdesk import full_name
 
 
 def _sign_in(client: TestClient, username: str) -> None:
@@ -308,7 +309,7 @@ def test_a_stale_save_through_the_screen_names_who_changed_it(
     assert _post(db_client, "/admin/catalog/tests", form | {"name": "Lipids"}).status_code == 303
     r = _post(db_client, "/admin/catalog/tests", form | {"name": "Lipid panel"})
     assert r.status_code == 409
-    assert "Anil Kumar changed this record at " in r.text
+    assert f"{full_name(seeded, 'anil')} changed this record at " in r.text
     seeded.refresh(test)
     assert test.name == "Lipids"
 

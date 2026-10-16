@@ -18,7 +18,7 @@ from labra.core.registry import Platform
 from labra.patients import service
 from labra.patients.models import Patient, Referrer
 from tests.conftest import SEED_DAY
-from tests.frontdesk import as_user, branch, patient_input, register, visit_at
+from tests.frontdesk import as_user, branch, full_name, patient_input, register, visit_at
 
 
 def _audit(db: Session, entity_id: object) -> list[AuditLog]:
@@ -208,7 +208,7 @@ def test_stale_patient_edit(seeded: Session, platform: Platform) -> None:
         service.update_patient(
             seeded, priya, patient.id, patient_input(city="Hubballi"), opened, SEED_DAY
         )
-    assert "Priya Sharma changed this record" in exc.value.public_message
+    assert f"{full_name(seeded, 'priya')} changed this record" in exc.value.public_message
     assert patient.city == "Mysuru"
     rows = _audit(seeded, patient.id)
     assert [r.action for r in rows] == ["patient.create", "patient.update"]

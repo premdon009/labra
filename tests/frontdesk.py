@@ -16,7 +16,7 @@ from labra.billing.models import Bill
 from labra.catalog import service as catalog
 from labra.core.ids import utcnow
 from labra.core.registry import Platform
-from labra.org.models import Branch
+from labra.org.models import AppUser, Branch
 from labra.patients import service as patients
 from labra.patients.models import Patient
 from labra.seed import DEMO_PASSWORD
@@ -30,6 +30,13 @@ _TOKEN = re.compile(r'name="csrf_token" value="([^"]+)"')
 def as_user(db: Session, platform: Platform, username: str) -> Principal:
     signed = auth.login(db, platform.identity, username, DEMO_PASSWORD, "10.0.0.5", utcnow())
     return auth.principal_for(db, signed.session)
+
+
+def full_name(db: Session, username: str) -> str:
+    """A seeded user's name. The seed draws names from Faker, so tests look them up."""
+    name = db.scalar(select(AppUser.full_name).where(AppUser.username == username))
+    assert name is not None
+    return name
 
 
 def branch(db: Session, code: str) -> Branch:

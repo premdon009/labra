@@ -18,6 +18,7 @@ from labra.core.ids import utcnow
 from labra.core.models import AuditLog
 from labra.core.registry import Platform
 from labra.seed import DEMO_PASSWORD
+from tests.frontdesk import full_name
 
 
 def _as(db: Session, platform: Platform, username: str) -> Principal:
@@ -145,7 +146,7 @@ def test_a_stale_catalog_edit_names_who_changed_it(seeded: Session, platform: Pl
     data = catalog.TestInput(code="lipid", name="Lipids", department_id=test.department_id)
     with pytest.raises(ConflictError) as exc:
         catalog.save_test(seeded, admin, data, test.id, old_version)
-    assert "Anil Kumar changed this record at" in exc.value.public_message
+    assert f"{full_name(seeded, 'anil')} changed this record at" in exc.value.public_message
     assert test.name == "Lipid panel"
 
 

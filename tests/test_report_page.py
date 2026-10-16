@@ -40,9 +40,9 @@ def test_the_band_repeats_and_the_signatory_signs_once_at_the_end() -> None:
     texts = [page.extract_text() for page in pages]
     assert len(texts) == 3
     for number, text in enumerate(texts, start=1):
-        assert "Asha Testcase" in text and "B2/V/2627/000123" in text
+        assert "Patient Name" in text and "B2/V/2627/000123" in text
         assert f"Report B2/R/2627/000123 v1 · Page {number} of 3" in text
-    assert ["Dr. Sample Signatory" in text for text in texts] == [False, False, True]
+    assert ["Signatory Name" in text for text in texts] == [False, False, True]
     assert ["End of report" in text for text in texts] == [False, False, True]
 
 
