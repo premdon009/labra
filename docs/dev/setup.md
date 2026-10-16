@@ -1,5 +1,5 @@
 ---
-items: [W01, W08, W23]
+items: [W01, W08, W23, W25]
 ---
 
 # Developer setup
@@ -11,7 +11,8 @@ items: [W01, W08, W23]
 | Docker with Compose | tests (throwaway Postgres) and the full stack | Docker Engine, or Docker Desktop with WSL integration on |
 | gitleaks | secret scan in pre-commit and the gate | package manager or GitHub release |
 | osv-scanner | vulnerability scan of `uv.lock` | package manager or GitHub release |
-| git-cliff | changelog drafts (releases only) | `uvx git-cliff` |
+| shellcheck | lints `scripts/*.sh` in pre-commit and the gate | `sudo apt-get install shellcheck` or package manager |
+| git-cliff | changelog drafts (releases only) | `uv tool install git-cliff==2.14.2` (puts it on `PATH`) |
 | Pango, HarfBuzz (with its subset library) and fontconfig | PDFs: reports, bills, letterheads (WeasyPrint) | `sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig`, the Dockerfile's list |
 
 `scripts/check_tools.sh` prints what's present and which versions. Missing required tools fail the gate; missing optional ones show as warnings.

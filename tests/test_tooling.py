@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import warnings
@@ -322,6 +323,51 @@ def test_a_sqlalchemy_or_pypdf_deprecation_fails_the_test_that_hits_it(
 ) -> None:
     with pytest.raises(category, match="deprecated"):
         warnings.warn(message, category, stacklevel=1)
+
+
+def _check_shell(script: Path, path: str | None = None) -> subprocess.CompletedProcess[str]:
+    env = os.environ | ({"PATH": path} if path is not None else {})
+    return subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "check_shell.sh"), str(script)],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+
+@pytest.mark.item("W25")
+def test_shellcheck_findings_fail_the_shell_check(tmp_path: Path) -> None:
+    if shutil.which("shellcheck") is None:
+        pytest.skip("shellcheck is not installed")
+    script = tmp_path / "greet.sh"
+    script.write_text("#!/usr/bin/env bash\necho $1\n", encoding="utf-8")
+    loose = _check_shell(script)
+    assert loose.returncode == 1
+    assert "SC2086" in loose.stdout
+    script.write_text('#!/usr/bin/env bash\necho "$1"\n', encoding="utf-8")
+    assert _check_shell(script).returncode == 0
+
+
+@pytest.mark.item("W25")
+def test_the_shell_check_is_unchecked_without_shellcheck(tmp_path: Path) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    dirname = shutil.which("dirname")
+    assert dirname is not None
+    (bin_dir / "dirname").symlink_to(dirname)
+    script = tmp_path / "greet.sh"
+    script.write_text('#!/usr/bin/env bash\necho "$1"\n', encoding="utf-8")
+    result = _check_shell(script, path=str(bin_dir))
+    assert result.returncode == 2
+    assert "shellcheck not installed" in result.stderr
+
+
+@pytest.mark.item("W25")
+def test_the_gate_and_pre_commit_run_the_shell_check() -> None:
+    assert "scripts/check_shell.sh" in (ROOT / "scripts" / "ci_local.sh").read_text("utf-8")
+    hooks = (ROOT / ".pre-commit-config.yaml").read_text("utf-8")
+    assert "entry: scripts/warn_ok.sh scripts/check_shell.sh" in hooks
 
 
 NOW = datetime(2026, 10, 14, 12, 0, tzinfo=UTC)

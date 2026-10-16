@@ -56,6 +56,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - CI installs the PDF libraries the image has and runs the tests on Ubuntu 26.04, the OS the PDF snapshots were made on.
 - Uploaded SVGs are parsed with Python's own XML parser, which refuses DTDs and entities; `defusedxml` is no longer a dependency.
 - SQLAlchemy and pypdf deprecation warnings fail the tests.
+- The gate and pre-commit lint the shell scripts with shellcheck.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 
 ### Fixed

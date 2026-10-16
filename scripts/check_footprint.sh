@@ -3,7 +3,7 @@
 # user folders and default machine hostnames. Tests may use fake values on purpose.
 # Usage: check_footprint.sh [FILE...]   (no files: every file git doesn't ignore)
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 pattern='/home/[a-z_][a-z0-9_-]*/|/Users/[A-Za-z][A-Za-z0-9._-]*/|[A-Za-z]:\\Users\\[A-Za-z]|DESKTOP-[A-Z0-9]{7}|LAPTOP-[A-Z0-9]{7}'
 

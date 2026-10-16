@@ -14,6 +14,7 @@ version_of() {
     docker) docker version --format '{{.Client.Version}}' 2>/dev/null ;;
     incus) incus version 2>/dev/null | head -1 ;;
     gitleaks) gitleaks version 2>/dev/null ;;
+    shellcheck) shellcheck --version 2>/dev/null | sed -n 's/^version: //p' ;;
     *) "$1" --version 2>/dev/null | head -1 ;;
   esac
 }

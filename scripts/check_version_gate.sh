@@ -2,7 +2,7 @@
 # Labra stays on 0.x until the maintainers approve 1.0. Refuse a version >= 1.0.0
 # in pyproject.toml unless LABRA_ALLOW_MAJOR=1 is set for that commit.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 version=$(grep -m1 -E '^version = ' pyproject.toml | cut -d'"' -f2)
 major=${version%%.*}

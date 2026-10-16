@@ -5,7 +5,7 @@
 # Usage: check_banned_terms.sh [FILE...]   (no files: every file git doesn't ignore)
 # Exit 0 clean, 1 found, 2 unchecked (no list on this machine).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 list=${LABRA_BANNED_TERMS:-$HOME/.config/labra/banned-terms.txt}
 if [[ ! -s $list ]]; then

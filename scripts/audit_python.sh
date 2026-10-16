@@ -2,7 +2,7 @@
 # Known-vulnerability check of the locked Python dependencies with pip-audit.
 # Exit 0 clean, 1 vulnerable, 2 unchecked (offline or tool error).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 req=$(mktemp)
 trap 'rm -f "$req"' EXIT

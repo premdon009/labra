@@ -33,6 +33,11 @@ repos:
         entry: scripts/warn_ok.sh scripts/check_banned_terms.sh
         language: system
         types: [text]
+      - id: shellcheck
+        name: shell scripts (shellcheck)
+        entry: scripts/warn_ok.sh scripts/check_shell.sh
+        language: system
+        types: [shell]
       - id: changelog-dates
         name: changelog headings dated
         entry: scripts/check_changelog_dates.sh

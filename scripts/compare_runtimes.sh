@@ -87,6 +87,8 @@ ensure_archive() {
 measure_runtime() {
   local rt=$1
   local log=$out/smoke-$rt.log
+  local procs
+  read -ra procs <<<"${ENGINE[$rt]}"
   echo "== $rt"
   local version
   # Docker's client and engine versions can differ (Docker Desktop); the others are one binary.
@@ -98,7 +100,7 @@ measure_runtime() {
   "$rt" load -i "$archive" >/dev/null 2>&1 || { echo "   could not load the image"; return 1; }
   pull "$rt"
   local idle
-  idle=$(bench rss ${ENGINE[$rt]})
+  idle=$(bench rss "${procs[@]}")
 
   "$ROOT/scripts/stack_smoke.sh" --compose "$rt compose" --image "$image" --keep >"$log" 2>&1
   local smoke=$?
@@ -126,7 +128,7 @@ measure_runtime() {
   local stack busy
   sleep 5
   stack=$(stack_mem)
-  busy=$(bench rss ${ENGINE[$rt]})
+  busy=$(bench rss "${procs[@]}")
 
   local hz rz
   hz=$(bench load --port "$LABRA_HTTPS_PORT" --path /healthz --duration "$duration" \
@@ -238,10 +240,10 @@ for line in open(sys.argv[1]):
 
 for rt in $runtimes; do
   if [[ $rt == incus ]]; then
-    command -v incus >/dev/null 2>&1 && incus info >/dev/null 2>&1 || {
+    if ! { command -v incus >/dev/null 2>&1 && incus info >/dev/null 2>&1; }; then
       echo "== incus: not installed or not reachable, skipped"
       continue
-    }
+    fi
     ensure_archive || { echo "no image archive; build failed (see $out)"; exit 1; }
     tested=$((tested + 1))
     measure_incus || failed=$((failed + 1))

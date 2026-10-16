@@ -122,7 +122,7 @@ check "/healthz through the proxy" 200 "$(code "$(url /healthz)")"
 check "/readyz: database, migrations, disk" '*"database":"ok","migrations":"ok","disk":"ok"*' \
   "$(https "$(url /readyz)")"
 check "/metrics kept off the network" 404 "$(code "$(url /metrics)")"
-headers=$(https -D - -o /dev/null "$(url /login)" | tr -d '\r' | tr 'A-Z' 'a-z')
+headers=$(https -D - -o /dev/null "$(url /login)" | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 for h in strict-transport-security content-security-policy x-frame-options \
   x-content-type-options referrer-policy; do
   check "header $h" yes "$(grep -q "^$h:" <<<"$headers" && echo yes || echo no)"

@@ -17,8 +17,10 @@
 # runs are kept, and the newest failed run is never removed. Each tests stage also appends
 # to history.tsv there, which scripts/flaky_report.py reads.
 # Another CI system points LABRA_CI_LOGS at its artifact directory and collects it.
+# The stage_* functions are called by name ("stage_$s"), which shellcheck can't see.
+# shellcheck disable=SC2329
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 STAGES=(preflight hygiene lint types imports services tests tracker manual docs audit stack)
 only=() fast=0 dry=0 quiet=0
@@ -52,6 +54,8 @@ new_run_dir() {
 prune_runs() {
   local runs=() keep_failed="" d i
   local stamp='[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z'
+  # $stamp is left unquoted on purpose: it is the glob.
+  # shellcheck disable=SC2231
   for d in "$LOGS_ROOT"/$stamp "$LOGS_ROOT"/$stamp-*; do
     [[ -d $d ]] && runs+=("${d##*/}")
   done
@@ -84,13 +88,14 @@ stage_preflight() {
 stage_hygiene() {
   local worst=0 rc
   for check in scripts/check_footprint.sh scripts/check_changelog_dates.sh \
-               scripts/check_version_gate.sh scripts/check_banned_terms.sh; do
+               scripts/check_version_gate.sh scripts/check_banned_terms.sh \
+               scripts/check_shell.sh; do
     echo "-- $check"
     $check; rc=$?
     ((rc == 1)) && worst=1
     ((rc == 2 && worst == 0)) && worst=2
   done
-  return $worst
+  return "$worst"
 }
 # Third-party tools may exit 2 on errors, so their failures are mapped to 1 explicitly.
 stage_lint() {
@@ -152,7 +157,7 @@ stage_audit() {
     ((rc == 1)) && worst=1
     ((rc == 2 && worst == 0)) && worst=2
   done
-  return $worst
+  return "$worst"
 }
 stage_stack() {
   local rt rc
