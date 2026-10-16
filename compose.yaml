@@ -8,6 +8,7 @@
 #   docker compose --profile tailscale up -d    with Tailscale or Headscale instead
 #   docker compose --profile netbird up -d      with NetBird (cloud or self-hosted) instead
 #   docker compose -f compose.yaml -f deploy/nginx/compose.nginx.yaml up -d    nginx, not Caddy
+#   docker compose --profile jobs run --rm backup backup    one backup (host timers run this)
 #
 # `podman compose` and `nerdctl compose` take the same arguments (docs/dev/runtimes.md).
 # Secrets are files in ${LABRA_SECRETS_DIR:-./secrets}/ (never committed).
@@ -155,9 +156,33 @@ services:
       - netbird_state:/var/lib/netbird
     depends_on: [proxy]
 
+  # One-shot jobs: backups, the restore drill (ADR-0013). Under a profile, so `up -d` never
+  # starts it; the host timers from scripts/install_timers.sh run it and it exits.
+  backup:
+    image: ${LABRA_BACKUP_IMAGE:-ghcr.io/premdon009/labra-backup:0.1.0}
+    build: deploy/backup
+    profiles: [jobs]
+    restart: "no"
+    environment:
+      LABRA_BACKUP_REPO_DRIVE: ${LABRA_BACKUP_REPO_DRIVE:-}
+      LABRA_BACKUP_REPO_USB: ${LABRA_BACKUP_REPO_USB:-}
+      LABRA_HEARTBEAT_URL_BACKUP: ${LABRA_HEARTBEAT_URL_BACKUP:-}
+      LABRA_HEARTBEAT_URL_DRILL: ${LABRA_HEARTBEAT_URL_DRILL:-}
+    # Read as uid 10001, like database_url: world-readable files inside the 0700 secrets folder.
+    secrets: [database_url, restic_password, rclone_conf]
+    volumes:
+      - files:/data/files:ro
+      - backup_cache:/backup/cache
+      # The USB disk's mount point on the host. When the disk isn't mounted the folder is
+      # empty, so the USB copy fails and alerts while the Drive copy still runs.
+      - ${LABRA_BACKUP_USB_DIR:-/mnt/labra-backup}:/backup/usb
+    networks: [db, egress]
+
 networks:
   db:
     internal: true
+  # Internet access for the backup job only (Google Drive, the heartbeat monitor).
+  egress:
   edge:
     ipam:
       config:
@@ -171,9 +196,14 @@ volumes:
   caddy_config:
   tailscale_state:
   netbird_state:
+  backup_cache:
 
 secrets:
   db_password:
     file: ${LABRA_SECRETS_DIR:-./secrets}/db_password
   database_url:
     file: ${LABRA_SECRETS_DIR:-./secrets}/database_url
+  restic_password:
+    file: ${LABRA_SECRETS_DIR:-./secrets}/restic_password
+  rclone_conf:
+    file: ${LABRA_SECRETS_DIR:-./secrets}/rclone.conf

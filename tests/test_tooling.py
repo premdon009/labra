@@ -545,6 +545,70 @@ def test_dated_vendored_row_matches_its_manifest_version(
     ]
 
 
+BINARY_DOCKERFILE = """\
+FROM docker.io/library/debian:13@sha256:abc AS fetch
+ARG TOOL_VERSION=1.2.0
+ARG TOOL_SHA256_AMD64={amd}
+ARG TOOL_SHA256_ARM64={arm}
+"""
+
+
+@pytest.mark.item("M16")
+@pytest.mark.parametrize(
+    ("pinned", "arm", "want"),
+    [
+        ("1.2.0 · 2026-09-01", "b" * 64, []),
+        ("1.1.0 · 2026-09-01", "b" * 64,
+         ["DEPENDENCIES.md:1: tool pinned 1.1.0, deploy/x/Dockerfile downloads 1.2.0"]),
+        ("1.2.0 · 2026-09-01", "",
+         ["deploy/x/Dockerfile:2: tool needs ARG TOOL_SHA256_ARM64=<sha256>"]),
+        (None, "b" * 64, ["deploy/x/Dockerfile:2: binary tool has no row in docs/DEPENDENCIES.md"]),
+    ],
+)  # fmt: skip
+def test_a_downloaded_binary_matches_its_row_and_has_a_checksum_per_arch(
+    pinned: str | None, arm: str, want: list[str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    dockerfile = tmp_path / "deploy" / "x" / "Dockerfile"
+    dockerfile.parent.mkdir(parents=True)
+    dockerfile.write_text(BINARY_DOCKERFILE.format(amd="a" * 64, arm=arm))
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "BINARY_FILES", (dockerfile,))
+    register = f"| `tool` | binary | P | MIT | {pinned} | — |\n" if pinned else ""
+    assert audit.check_binaries(audit.parse_register(register)) == want
+
+
+@pytest.mark.item("M16")
+def test_a_binary_row_with_nothing_downloading_it_is_dropped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    monkeypatch.setattr(audit, "BINARY_FILES", (tmp_path / "missing",))
+    rows = audit.parse_register("| `gone` | binary | P | MIT | 1.0 · 2026-09-01 | — |\n")
+    assert audit.check_binaries(rows) == [
+        "DEPENDENCIES.md:1: binary gone isn't downloaded anywhere; drop the row"
+    ]
+    assert audit.check_age(rows, [], {}, set(), NOW) == []
+    undated = audit.parse_register("| `gone` | binary | P | MIT | 1.0 | — |\n")
+    assert audit.check_age(undated, [], {}, set(), NOW) == [
+        "DEPENDENCIES.md:1: gone: Pinned needs the release date, as `1.0 · YYYY-MM-DD`"
+    ]
+
+
+@pytest.mark.item("M16")
+def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
+    # Backups run only when a host timer asks (ADR-0013); `up -d` must not start the job.
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    m = re.search(r"^  backup:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
+    assert m is not None
+    service = m.group(1)
+    assert "profiles: [jobs]" in service
+    assert 'restart: "no"' in service
+    assert "files:/data/files:ro" in service
+    assert "edge" not in service
+    assert re.search(r"^  egress:\n(?!    internal: true)", compose, re.M)
+
+
 @pytest.mark.item("W20")
 @pytest.mark.parametrize(
     "url", ["sqlite:///labra.db", "mysql+pymysql://labra:hunter2@db.example/labra"]

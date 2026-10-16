@@ -4,10 +4,11 @@
 # it never touches ./secrets or a stack that is already running.
 #
 #   scripts/stack_smoke.sh [--compose "docker compose"|"podman compose"|"podman-compose"|
-#                           "nerdctl compose"] [--proxy caddy|nginx] [--image REF] [--keep]
+#                           "nerdctl compose"] [--proxy caddy|nginx] [--image REF]
+#                          [--backup-image REF] [--keep]
 #
-# Without --compose, the first reachable of docker, podman and nerdctl is used. The image must
-# already exist locally (scripts/build_image.sh). With --keep the stack stays up and its settings
+# Without --compose, the first reachable of docker, podman and nerdctl is used. Both images must
+# already exist locally (scripts/build_image.sh, and again with --backup). With --keep the stack stays up and its settings
 # are left in <work>/stack.env for scripts/compare_runtimes.sh.
 # Exit 0 pass, 1 fail, 2 unchecked (no runtime).
 set -uo pipefail
@@ -16,14 +17,16 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 compose_cmd=
 proxy=caddy
 image=localhost/labra:dev
+backup_image=localhost/labra-backup:dev
 keep=false
 while (($#)); do
   case $1 in
     --compose) compose_cmd=$2; shift 2 ;;
     --proxy) proxy=$2; shift 2 ;;
     --image) image=$2; shift 2 ;;
+    --backup-image) backup_image=$2; shift 2 ;;
     --keep) keep=true; shift ;;
-    -h | --help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -54,10 +57,11 @@ dc() { "${compose[@]}" -p "$project" "${files[@]}" "$@"; }
 
 cleanup() {
   if [[ $keep == false ]]; then
-    dc down -v >/dev/null 2>&1
+    dc --profile jobs down -v >/dev/null 2>&1
     rm -rf "$work"
   else
-    declare -p project compose_cmd proxy LABRA_IMAGE LABRA_SECRETS_DIR LABRA_SITE \
+    declare -p project compose_cmd proxy LABRA_IMAGE LABRA_BACKUP_IMAGE LABRA_BACKUP_USB_DIR \
+      LABRA_SECRETS_DIR LABRA_SITE \
       LABRA_HTTP_PORT LABRA_HTTPS_PORT LABRA_EDGE_SUBNET >"$work/stack.env"
     echo "Kept: project $project, settings in $work/stack.env"
   fi
@@ -72,8 +76,10 @@ mkdir -m 700 "$secrets"
 openssl rand -hex 24 | tr -d '\n' >"$secrets/db_password"
 printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(<"$secrets/db_password")" \
   >"$secrets/database_url"
+openssl rand -hex 24 | tr -d '\n' >"$secrets/restic_password"
+printf '[drive]\ntype = local\n' >"$secrets/rclone.conf"
 chmod 600 "$secrets/db_password"
-chmod 644 "$secrets/database_url"
+chmod 644 "$secrets/database_url" "$secrets/restic_password" "$secrets/rclone.conf"
 if [[ $proxy == nginx ]]; then
   mkdir -m 700 "$secrets/tls"
   openssl req -x509 -newkey rsa:2048 -nodes -days 7 -subj "/CN=$site" \
@@ -82,7 +88,9 @@ if [[ $proxy == nginx ]]; then
   chmod 644 "$secrets/tls/labra.crt"
 fi
 
+mkdir "$work/usb"
 export LABRA_IMAGE=$image LABRA_SECRETS_DIR=$secrets LABRA_SITE=$site
+export LABRA_BACKUP_IMAGE=$backup_image LABRA_BACKUP_USB_DIR=$work/usb
 export LABRA_HTTP_PORT=$http_port LABRA_HTTPS_PORT=$https_port
 export LABRA_EDGE_SUBNET=172.29.$((RANDOM % 200 + 20)).0/24
 
@@ -156,6 +164,10 @@ check "admin page after sign-in" 200 "$(code -b "$jar" "$(url /admin/branches)")
 check "forged CSRF token refused" 403 "$(code -b "$jar" \
   -d "username=admin&password=x&csrf_token=forged" "$(url /login)")"
 check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/null | head -1)"
+check "backup job not started by up" 0 "$(dc ps -a --format '{{.Service}}' 2>/dev/null |
+  grep -c '^backup$')"
+check "backup job runs on request" '*restic 0.*' \
+  "$(dc --profile jobs run --rm --no-deps backup version 2>/dev/null | tr '\n' ' ')"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"

@@ -29,14 +29,16 @@ person's machine.
    - `version` in `pyproject.toml`, then `uv lock` so `uv.lock` matches
    - `CHANGELOG.md`: rename `[Unreleased]` to `## [0.1.0rc1] - YYYY-MM-DD` and start a new
      empty `[Unreleased]`
-   - for a final release, the default image in `compose.yaml` (`ghcr.io/premdon009/labra:<version>`)
+   - for a final release, the default images in `compose.yaml`
+     (`ghcr.io/premdon009/labra:<version>` and `ghcr.io/premdon009/labra-backup:<version>`)
 4. Tag and push the tag:
    ```sh
    git tag -a v0.1.0rc1 -m "v0.1.0rc1"
    git push origin master v0.1.0rc1
    ```
 5. The `release` workflow checks that the tag matches `pyproject.toml`, runs the tag gate and
-   the full local gate, then builds amd64 and arm64 images on GHCR:
+   the full local gate, then builds amd64 and arm64 images on GHCR, `labra` and
+   `labra-backup`, with the same tags:
 
    | Tag | Image tags |
    |---|---|

@@ -25,9 +25,11 @@ is a fix for a published advisory, recorded under [Age exceptions](#age-exceptio
 - Python: `pyproject.toml` sets `[tool.uv] exclude-newer = "7 days"`, so `uv lock`, `uv add` and
   `uv lock --upgrade-package <name>` only pick releases old enough. `--check` reads each
   package's upload time from `uv.lock`.
-- Actions, images and vendored files: the **Pinned** cell holds the version and its release
-  date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created date of
-  an image's digest, and the npm publish date of a vendored file. Update the date whenever the
+- Actions, images, binaries and vendored files: the **Pinned** cell holds the version and its
+  release date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created
+  date of an image's digest, the GitHub release date of a binary, and the npm publish date of a
+  vendored file. A binary's row matches the `ARG <NAME>_VERSION` in the Dockerfile that
+  downloads it, beside an `ARG <NAME>_SHA256_<ARCH>` for amd64 and arm64. Update the date whenever the
   SHA, digest or version changes. An Action's `# vX.Y.Z` comment must match its row.
 - CLI tools and services aren't pinned by the repository. Install a release at least 7 days old.
 
@@ -83,7 +85,7 @@ the next release.
 | `basecoat-css` | vendored | P | MIT | 1.0.2 · 2026-07-06 | 1.0.2 | 3 | Watch | single maintainer, young | consistent components without a JS framework; vendored, so a stop can't break the app | own CSS · medium | 2026-10-09 |
 | `noto-sans` | font | P | OFL-1.1 | 2.015 · 2024-11-20 | 2.015 · 2024-11-20 | — | Stable | company | report and bill text, ₹ included; the same output on every machine (`static/vendor/`, licence text beside it) | DejaVu Sans · low | 2026-10-14 |
 | `noto-sans-devanagari` | font | P | OFL-1.1 | 2.007 · 2026-09-09 | 2.007 · 2026-09-09 | — | Active | company | patient names in Hindi or Marathi on reports and bills | Lohit Devanagari · low | 2026-10-14 |
-| `postgres` | image | P | PostgreSQL | 18 · 2026-10-06 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030 | — | 2026-10-09 |
+| `postgres` | image | P | PostgreSQL | 18 · 2026-10-06 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030. Also the backup image's base, so `pg_dump` matches the server (ADR-0013) | — | 2026-10-16 |
 | `caddy` | image | P | Apache-2.0 | 2 · 2026-10-05 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx, tested · low | 2026-10-09 |
 | `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 · 2026-10-05 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale, NetBird or WireGuard · medium | 2026-10-09 |
 | `nginx` | image | P | BSD-2-Clause | 1.30 · 2026-10-06 | 1.30 | — | Active | company | proxy alternative to Caddy (`deploy/nginx/`, ADR-0009) | Caddy · low | 2026-10-09 |
@@ -91,6 +93,8 @@ the next release.
 | `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 · 2026-10-01 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
 | `python` | image | P | PSF-2.0 | 3.14-slim · 2026-10-06 | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
 | `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
+| `restic` | binary | P | BSD-2-Clause | 0.19.1 · 2026-07-05 | 0.19.1 · 2026-07-05 | 3 | Active | team | encrypted, deduplicated backup snapshots (`deploy/backup/`, ADR-0013); release binary checked by SHA-256 | Borg · medium | 2026-10-16 |
+| `rclone` | binary | P | MIT | 1.75.2 · 2026-10-09 | 1.75.2 · 2026-10-09 | many | Active | team | restic's way to Google Drive (`rclone:` backend, ADR-0013); release binary checked by SHA-256 | restic's own S3, B2 or SFTP backends · low | 2026-10-16 |
 | `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |
 | `actions/upload-artifact` | action | P | MIT | v7.0.1 · 2026-04-10 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
 | `astral-sh/setup-uv` | action | P | MIT | v7.6.0 · 2026-03-16 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
@@ -117,6 +121,7 @@ the next release.
 | `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
 | `NetBird` | service | P | — | — | — | — | Active | company | control plane for the `netbird` profile; self-hostable (AGPL-3.0, run as a separate service) | Tailscale or WireGuard · low | 2026-10-09 |
 | `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups (`LABRA_HEARTBEAT=http`); self-hostable | Uptime Kuma · low | 2026-10-09 |
+| `Google Drive` | service | P | — | — | — | — | Active | company | the off-site backup copy, encrypted by restic before it leaves the lab (ADR-0013); the lab's own account | any rclone remote: S3, B2, SFTP · low | 2026-10-16 |
 
 ## Age exceptions
 
@@ -127,3 +132,4 @@ an exception is no longer needed; then drop its row and the entry.
 
 | Component | Version | Advisory | Why it can't wait | Added |
 |---|---|---|---|---|
+| `rclone` | 1.75.2 | GHSA-3rqf-7h69-gg5v | the first backup image is built now; 1.75.1 has five advisories published with this fix (backend credential headers leaked on redirect among them), and the row expires on 2026-10-17 | 2026-10-16 |
