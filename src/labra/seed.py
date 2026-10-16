@@ -209,10 +209,10 @@ def seed(
         lab_settings.set_value(db, "lab.state_code", DEMO_STATE_CODE, None)
     fake = Faker("en_IN")
     fake.seed_instance(FAKER_SEED)
-    signatory_name, qualification, reg_no = DEMO_SIGNATORY
+    signatory_user, qualification, reg_no = DEMO_SIGNATORY
     for username, can_login, roles in CAST:
         full_name = fake.name()
-        if username == signatory_name:
+        if username == signatory_user:
             full_name = f"Dr {full_name}"
         make_user(
             db,
@@ -222,7 +222,7 @@ def seed(
             [(branches[b].id, r) for b, r in roles],
             can_login,
         )
-    signatory = db.scalars(select(AppUser).where(AppUser.username == signatory_name)).one()
+    signatory = db.scalars(select(AppUser).where(AppUser.username == signatory_user)).one()
     if not signatory.qualification:
         signatory.qualification, signatory.council_reg_no = qualification, reg_no
     # Staff who appear on records but never sign in, e.g. home-collection phlebotomists.
