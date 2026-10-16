@@ -31,7 +31,10 @@ class HttpHeartbeat:
     @classmethod
     def from_settings(cls, settings: Settings) -> Self:
         prefix = "LABRA_HEARTBEAT_URL_"
-        urls = {k[len(prefix) :].lower(): v for k, v in os.environ.items() if k.startswith(prefix)}
+        # Compose passes every job's variable through, so an empty one means "not set".
+        urls = {
+            k[len(prefix) :].lower(): v for k, v in os.environ.items() if k.startswith(prefix) and v
+        }
         for job, url in urls.items():
             if not url.startswith("https://"):
                 raise ConfigError(f"Heartbeat URL for '{job}' must use https.")

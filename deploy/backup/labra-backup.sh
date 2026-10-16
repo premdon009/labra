@@ -16,6 +16,9 @@
 #   labra-backup log-run KIND STARTED OK DETAIL add a run log row and ping the job's monitor
 #   labra-backup init                           create the repositories that don't exist yet
 #   labra-backup snapshots                      list the snapshots in every repository
+#   labra-backup watchdog                       fetch LABRA_WATCHDOG_URL (default: the app's
+#                                               /healthz) and ping the watchdog check only
+#                                               when it answers, so silence means trouble
 #   labra-backup repos                          the names of the configured repositories
 #   labra-backup version                        tool versions
 #
@@ -295,6 +298,21 @@ cmd_log_run() {
   heartbeat "$1" "$3" "$4"
 }
 
+# Pings only on success: a dead server, line or tunnel sends nothing, and the monitor's
+# grace period turns that silence into one alert instead of one per blip.
+cmd_watchdog() {
+  local url=${LABRA_WATCHDOG_URL:-http://web:8000/healthz} body
+  if ! body=$(curl -fsS -m 20 "$url" 2>&1); then
+    log "watchdog: $url did not answer: $body"
+    return 1
+  fi
+  if [[ $body != *'"status":"ok"'* ]]; then
+    log "watchdog: $url answered without status ok: ${body:0:200}"
+    return 1
+  fi
+  heartbeat watchdog true "$url answered"
+}
+
 cmd_init() {
   local name location failed=0
   rclone_config
@@ -331,6 +349,7 @@ case $cmd in
   restore) cmd_restore "$@" ;;
   drop-database) cmd_drop_database "$@" ;;
   log-run) cmd_log_run "$@" ;;
+  watchdog) cmd_watchdog ;;
   repos) repos | cut -d= -f1 ;;
   version) pg_dump --version; restic version; rclone version | head -1 ;;
   help | -h | --help) sed -n '2,/^set /p' "$0" | sed '$d; s/^# \{0,1\}//' ;;

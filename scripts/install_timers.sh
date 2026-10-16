@@ -5,8 +5,9 @@
 #                                  [--tz Asia/Kolkata] [--user USER] [--dry-run]
 #
 # Backups run every --interval inside lab hours, plus a nightly run at 23:30 that also
-# applies the retention; 24h means the nightly run only. The restore drill runs at 03:00 on
-# the first Sunday of each month. Defaults come from LABRA_BACKUP_INTERVAL and
+# applies the retention; 24h means the nightly run only. The audit check runs at 02:30, the
+# disk check hourly, the watchdog every 5 minutes, and the restore drill at 03:00 on the
+# first Sunday of each month. Defaults come from LABRA_BACKUP_INTERVAL and
 # LABRA_BACKUP_LAB_HOURS, then 15m and 07:00-21:00. --user is the account that runs the jobs
 # (it must be able to run containers); default root. --dry-run prints the unit files instead
 # of installing them. Run it again to change the schedule.
@@ -26,7 +27,7 @@ while (($#)); do
     --tz) tz=$2; shift 2 ;;
     --user) user=$2; shift 2 ;;
     --dry-run) dry=true; shift ;;
-    -h | --help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -98,6 +99,12 @@ declare -A units=(
   [labra-backup-nightly.timer]=$(timer "nightly backup" "OnCalendar=*-*-* 23:30:00 $tz" true)
   [labra-drill.service]=$(service "restore drill" "drill.sh")
   [labra-drill.timer]=$(timer "restore drill" "OnCalendar=Sun *-*-01..07 03:00:00 $tz" true)
+  [labra-verify.service]=$(service "audit log check" "labra.sh audit verify")
+  [labra-verify.timer]=$(timer "audit log check" "OnCalendar=*-*-* 02:30:00 $tz" true)
+  [labra-disk.service]=$(service "disk check" "labra.sh check-disk")
+  [labra-disk.timer]=$(timer "disk check" "OnCalendar=*-*-* *:50:00 $tz" false)
+  [labra-watchdog.service]=$(service "watchdog" "watchdog.sh")
+  [labra-watchdog.timer]=$(timer "watchdog" "OnCalendar=*-*-* *:00/5:00" false)
 )
 if [[ -n $lab ]]; then
   units[labra-backup.service]=$(service "backup" "backup.sh backup")

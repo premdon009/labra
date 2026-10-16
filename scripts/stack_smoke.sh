@@ -227,6 +227,16 @@ dc --profile jobs run --rm --no-deps -T --entrypoint sh backup -c 'chmod -R u+w 
 check "drill fails on a damaged repository" 1 "$(drill; echo $?)"
 check "failed drill logged" f "$(last_drill)"
 check "failed drill names the damaged copy" 1 "$(grep -c '^usb: restore failed' "$work/drill.log")"
+
+# The nightly audit check, the disk check and the watchdog, through the wrappers the timers run.
+last_run() { sql "select ok from ops_run where kind = '$1' order by id desc limit 1"; }
+check "audit check from the timer's wrapper" 0 "$("$ROOT/scripts/labra.sh" audit verify >/dev/null 2>&1; echo $?)"
+check "audit check logged" t "$(last_run verify)"
+check "disk check" 0 "$("$ROOT/scripts/labra.sh" check-disk >/dev/null 2>&1; echo $?)"
+check "disk check logged" t "$(last_run disk)"
+check "watchdog reaches the app" 0 "$("$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
+check "watchdog fails when nothing answers" 1 \
+  "$(LABRA_WATCHDOG_URL=http://web:9/healthz "$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"

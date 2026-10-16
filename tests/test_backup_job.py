@@ -45,7 +45,12 @@ case $tool in
         else
           cat >>"$STUBS/sql.log"; printf '%s\\n' "$@" >>"$STUBS/sql.log"
         fi ;;
-  curl) cat >"$STUBS/ping.body"; printf '%s\\n' "${@: -1}" >>"$STUBS/pings.log" ;;
+  curl) if [[ " $* " == *" --data-binary "* ]]; then
+          cat >"$STUBS/ping.body"; printf '%s\\n' "${@: -1}" >>"$STUBS/pings.log"
+        else
+          [[ -f $STUBS/healthz ]] || { echo "curl: (7) Failed to connect" >&2; exit 7; }
+          cat "$STUBS/healthz"
+        fi ;;
 esac
 """
 
@@ -325,6 +330,42 @@ def test_a_failed_drill_is_logged_and_alerts(job) -> None:
     assert _log(job.stubs, "pings.log").strip() == "https://hc.example.test/ping/drill/fail"
 
 
+# Watchdog
+
+WATCHDOG = {"LABRA_HEARTBEAT_URL_WATCHDOG": "https://hc.example.test/ping/watchdog"}
+
+
+@pytest.mark.item("EC-E02")
+def test_the_watchdog_pings_when_the_app_answers(job) -> None:
+    (job.stubs / "healthz").write_text('{"status":"ok","version":"0.1.0"}')
+    assert job("watchdog", **WATCHDOG).returncode == 0
+    assert "curl -fsS -m 20 http://web:8000/healthz" in _log(job.stubs, "calls.log")
+    assert _log(job.stubs, "pings.log").strip() == "https://hc.example.test/ping/watchdog"
+
+
+@pytest.mark.item("EC-E02")
+def test_the_watchdog_checks_the_public_address_when_given(job) -> None:
+    (job.stubs / "healthz").write_text('{"status":"ok","version":"0.1.0"}')
+    url = "https://lab.example.test/healthz"
+    assert job("watchdog", LABRA_WATCHDOG_URL=url, **WATCHDOG).returncode == 0
+    assert f"curl -fsS -m 20 {url}" in _log(job.stubs, "calls.log")
+
+
+@pytest.mark.item("EC-E02")
+@pytest.mark.parametrize(
+    "answer",
+    [None, "<html>Sign in to continue</html>", '{"status":"error"}'],
+    ids=["no answer", "a login page", "not ok"],
+)
+def test_the_watchdog_stays_silent_when_the_app_does_not_answer_ok(job, answer) -> None:
+    if answer is not None:
+        (job.stubs / "healthz").write_text(answer)
+    result = job("watchdog", **WATCHDOG)
+    assert result.returncode == 1
+    assert "watchdog:" in result.stderr
+    assert _log(job.stubs, "pings.log") == ""  # silence is the alarm, never /fail
+
+
 # Timers
 
 
@@ -364,8 +405,19 @@ def test_every_15_minutes_in_lab_hours_plus_a_nightly_run_with_retention() -> No
     assert "backup.sh backup --prune --tag nightly" in result.stdout
     drill = _calendars(result.stdout, "labra-drill.timer")
     assert drill == ["Sun *-*-01..07 03:00:00 Asia/Kolkata"]  # the first Sunday of the month
+    checks = {
+        unit: _calendars(result.stdout, f"labra-{unit}.timer")
+        for unit in ("verify", "disk", "watchdog")
+    }
+    assert checks == {
+        "verify": ["*-*-* 02:30:00 Asia/Kolkata"],
+        "disk": ["*-*-* *:50:00 Asia/Kolkata"],
+        "watchdog": ["*-*-* *:00/5:00"],
+    }
+    assert "labra.sh audit verify" in result.stdout and "labra.sh check-disk" in result.stdout
     if analyze := shutil.which("systemd-analyze"):
-        for spec in [*_calendars(result.stdout, "labra-backup.timer"), *drill]:
+        specs = [*_calendars(result.stdout, "labra-backup.timer"), *drill]
+        for spec in specs + [s for found in checks.values() for s in found]:
             check = subprocess.run([analyze, "calendar", spec], capture_output=True, check=False)  # noqa: S603
             assert check.returncode == 0, spec
 

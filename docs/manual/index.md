@@ -12,6 +12,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
 | EC-A07 | Upload safety: type sniffed | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | EC-B05 | Released reports and issued bills are immutable | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| EC-B06 | Append-only audit log with a hash chain | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-B07 | Idempotent form submits | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
@@ -19,6 +20,8 @@ Every feature Labra has, and the manual page that explains it.
 | EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D02 | Monthly restore drill, automated, result logged | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D03 | Written targets: RPO ≤ 15 min | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D05 | Postgres: `fsync` on, checksums on, disk-space alert at 80% | [Alerts and nightly checks](admin/alerts-and-checks.md) |
+| EC-E02 | Uptime monitor | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |

@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07]
+items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02]
 ---
 
 # Running the stack
@@ -94,10 +94,11 @@ Compose passes through:
 | `LABRA_SECRETS_DIR` | `./secrets` | where the secret files are |
 | `LABRA_HTTP_PORT`, `LABRA_HTTPS_PORT` | `80`, `443` | published ports (rootless runtimes: see [Container runtimes](runtimes.md)) |
 | `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the proxy network; the app trusts forwarded addresses only from it |
+| `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
+| `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
 
-Anything else, such as heartbeat URLs (`LABRA_HEARTBEAT_URL_<JOB>`) or the
-`LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the top of `compose.yaml`. Run
-`docker compose exec web labra check-config` after changing them.
+Anything else, such as the `LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the
+top of `compose.yaml`. Run `docker compose exec web labra check-config` after changing them.
 
 ## Exports
 
@@ -148,6 +149,23 @@ web image.
 disk missing, then runs the drill, a refused restore, a `--replace` restore and a drill of a
 damaged repository. The [Backups and restore](../manual/admin/backups-and-restore.md) page is the
 administrator's guide; [Restore from backup](../runbooks/restore-from-backup.md) is the runbook.
+
+### Nightly checks and the watchdog
+
+`install_timers.sh` also installs three checks:
+
+```bash
+scripts/labra.sh audit verify   # 02:30 nightly: the audit hash chain, logged as kind verify
+scripts/labra.sh check-disk     # hourly: fails at 80% used (--percent N to change it)
+scripts/watchdog.sh             # every 5 minutes: fetches /healthz, pings only when it answers ok
+```
+
+`labra.sh` runs any `labra` command in the running `web` container. The watchdog runs in the
+backup image without the backup lock, and fetches `LABRA_WATCHDOG_URL` (default
+`http://web:8000/healthz`; set it to the public address so the tunnel is checked too). Each
+check pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY`, `_DISK` or `_WATCHDOG` when
+`LABRA_HEARTBEAT=http`. An empty URL means "not set". The administrator's guide is
+[Alerts and nightly checks](../manual/admin/alerts-and-checks.md).
 
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.

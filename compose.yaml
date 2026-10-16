@@ -25,6 +25,9 @@ x-labra: &labra
     LABRA_FILES_DIR: /data/files
     LABRA_EXPORT_DIR: /data/export
     LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
+    # The nightly audit check and the disk alert (scripts/install_timers.sh); empty is unset.
+    LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
+    LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
     LABRA_MAILER: ${LABRA_MAILER:-console}
   secrets: [database_url]
   volumes:
@@ -157,8 +160,8 @@ services:
       - netbird_state:/var/lib/netbird
     depends_on: [proxy]
 
-  # One-shot jobs: backups, the restore drill (ADR-0013). Under a profile, so `up -d` never
-  # starts it; the host timers from scripts/install_timers.sh run it and it exits.
+  # One-shot jobs: backups, the restore drill, the watchdog (ADR-0013). Under a profile, so
+  # `up -d` never starts it; the host timers from scripts/install_timers.sh run it and it exits.
   backup: &backup
     image: ${LABRA_BACKUP_IMAGE:-ghcr.io/premdon009/labra-backup:0.1.0}
     build: deploy/backup
@@ -169,6 +172,8 @@ services:
       LABRA_BACKUP_REPO_USB: ${LABRA_BACKUP_REPO_USB:-}
       LABRA_HEARTBEAT_URL_BACKUP: ${LABRA_HEARTBEAT_URL_BACKUP:-}
       LABRA_HEARTBEAT_URL_DRILL: ${LABRA_HEARTBEAT_URL_DRILL:-}
+      LABRA_HEARTBEAT_URL_WATCHDOG: ${LABRA_HEARTBEAT_URL_WATCHDOG:-}
+      LABRA_WATCHDOG_URL: ${LABRA_WATCHDOG_URL:-}
     # Read as uid 10001, like database_url: world-readable files inside the 0700 secrets folder.
     secrets: [database_url, restic_password, rclone_conf]
     volumes:

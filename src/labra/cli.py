@@ -7,6 +7,8 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sqlalchemy.orm import Session
 
 from labra.core.errors import ConfigError, LabraError
@@ -59,6 +61,23 @@ def cmd_check_config(_: argparse.Namespace) -> int:
     return 0
 
 
+def _record_run(kind: str, started: "datetime", *, ok: bool, detail: str) -> None:
+    """One row in the run log, which the System page reads. A database that can't take it is
+    reported, but the job's own result stands."""
+    from sqlalchemy.exc import SQLAlchemyError
+    from sqlalchemy.orm import Session
+
+    from labra.core.db import get_engine
+    from labra.ops.service import record_run
+
+    try:
+        with Session(get_engine()) as db:
+            record_run(db, kind, started, ok=ok, detail=detail)
+            db.commit()
+    except SQLAlchemyError as exc:
+        sys.stderr.write(f"Run log not written: {type(exc).__name__}\n")
+
+
 def cmd_audit_verify(args: argparse.Namespace) -> int:
     from sqlalchemy import create_engine, make_url
     from sqlalchemy.orm import Session
@@ -66,9 +85,11 @@ def cmd_audit_verify(args: argparse.Namespace) -> int:
     from labra.core import audit
     from labra.core.config import get_settings
     from labra.core.db import get_engine
+    from labra.core.ids import utcnow
     from labra.core.metrics import count_job
     from labra.core.registry import get_platform
 
+    started = utcnow()
     if args.database:
         # A copy on the same server, such as the restore drill's; the drill reports the result.
         url = make_url(get_settings().database_url.get_secret_value())
@@ -90,7 +111,44 @@ def cmd_audit_verify(args: argparse.Namespace) -> int:
     if not args.database:
         count_job("audit_verify", result.ok)
         get_platform().heartbeat.ping("audit_verify", ok=result.ok, detail=detail)
+        _record_run("verify", started, ok=result.ok, detail=detail)
     return 0 if result.ok else 1
+
+
+def cmd_check_disk(args: argparse.Namespace) -> int:
+    """Alert before the server's disk fills: Postgres stops writing on a full disk."""
+    from labra.core.config import get_settings
+    from labra.core.health import DISK_ALERT_PERCENT, disk_use
+    from labra.core.ids import utcnow
+    from labra.core.metrics import count_job
+    from labra.core.registry import get_platform
+
+    started = utcnow()
+    settings = get_settings()
+    alert = args.percent or DISK_ALERT_PERCENT
+    ok, lines, seen = True, [], set()
+    for path in [settings.files_dir, *([settings.export_dir] if settings.export_dir else [])]:
+        try:
+            device = path.stat().st_dev
+            use = disk_use(path)
+        except OSError as exc:
+            ok = False
+            lines.append(f"{path}: can't be read ({exc.strerror})")
+            continue
+        if device in seen:
+            continue
+        seen.add(device)
+        line = f"{path}: {int(use.percent)}% used, {use.free / 1e9:.1f} GB free"
+        if use.percent >= alert:
+            ok = False
+            line += f" (the alert is at {alert}%)"
+        lines.append(line)
+    detail = "; ".join(lines)
+    _out(("Disk space OK: " if ok else "DISK SPACE LOW: ") + detail)
+    count_job("check_disk", ok)
+    get_platform().heartbeat.ping("disk", ok=ok, detail=detail)
+    _record_run("disk", started, ok=ok, detail=detail)
+    return 0 if ok else 1
 
 
 def cmd_create_admin(args: argparse.Namespace) -> int:
@@ -221,6 +279,12 @@ def _day(value: str) -> date:
         raise argparse.ArgumentTypeError("use YYYY-MM-DD, such as 2026-10-14") from None
 
 
+def _percent(value: str) -> int:
+    if value.isdigit() and 1 <= int(value) <= 99:
+        return int(value)
+    raise argparse.ArgumentTypeError("a whole number from 1 to 99")
+
+
 def cmd_seed(_: argparse.Namespace) -> int:
     from labra.seed import run
 
@@ -260,6 +324,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--database", metavar="NAME", help="check a copy on the same server (the restore drill)"
     )
     verify.set_defaults(func=cmd_audit_verify)
+
+    disk = sub.add_parser("check-disk", help="fail when the server's disk is nearly full")
+    disk.add_argument(
+        "--percent", type=_percent, help="share used that raises the alert (default 80)"
+    )
+    disk.set_defaults(func=cmd_check_disk)
 
     branch = sub.add_parser("add-branch", help="add a branch (for first setup)")
     branch.add_argument("--code", required=True)

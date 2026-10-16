@@ -6,6 +6,7 @@ has room.
 """
 
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
@@ -20,6 +21,7 @@ from labra.core.db import get_session
 from labra.core.migrate import current_revisions, head_revisions
 
 MIN_FREE_BYTES = 500 * 1024 * 1024
+DISK_ALERT_PERCENT = 80
 
 router = APIRouter(include_in_schema=False)
 
@@ -51,6 +53,21 @@ def check_disk(path: Path, min_free: int = MIN_FREE_BYTES) -> str:
     except OSError:
         return "missing"
     return "ok" if free >= min_free else "low"
+
+
+@dataclass(frozen=True)
+class DiskUse:
+    percent: float
+    free: int
+    total: int
+
+
+def disk_use(path: Path) -> DiskUse:
+    """How full the disk holding `path` is, counted as `df` does: the share kept back for root
+    is left out, so 100% means ordinary programs can't write any more."""
+    usage = shutil.disk_usage(path)
+    usable = usage.used + usage.free
+    return DiskUse(100 * usage.used / usable if usable else 100.0, usage.free, usage.total)
 
 
 @router.get("/readyz")

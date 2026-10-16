@@ -118,6 +118,7 @@ There is no screen to show.
   pings it. A failed run pings its `/fail` address with the reason, and a run that never
   happens sends no ping. Either way the service emails or messages you. Set the check's
   period to the backup interval, so a server that is off is noticed too.
+  [Alerts and nightly checks](alerts-and-checks.md) sets up every check in one go.
 - **Alerts for the monthly check:** set `LABRA_HEARTBEAT_URL_DRILL` the same way, with the
   check's period set to one month plus a few days' grace.
 - **The USB disk isn't plugged in:** the run still copies to Google Drive, then counts as
