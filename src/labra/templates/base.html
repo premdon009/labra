@@ -77,6 +77,7 @@
       {% endif %}
       {% if principal.can('setting.view') %}
       <a href="/admin/settings" {% if request.url.path.startswith('/admin/settings') %}aria-current="page"{% endif %}>Settings</a>
+      <a href="/admin/system" {% if request.url.path.startswith('/admin/system') %}aria-current="page"{% endif %}>System</a>
       {% endif %}
     </nav>
   </aside>

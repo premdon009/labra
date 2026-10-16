@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02]
+items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -94,6 +94,7 @@ Compose passes through:
 | `LABRA_SECRETS_DIR` | `./secrets` | where the secret files are |
 | `LABRA_HTTP_PORT`, `LABRA_HTTPS_PORT` | `80`, `443` | published ports (rootless runtimes: see [Container runtimes](runtimes.md)) |
 | `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the proxy network; the app trusts forwarded addresses only from it |
+| `LABRA_CERT_CHECK_HOST` | `proxy:443` | where the System page reads the HTTPS certificate's expiry (by the `LABRA_SITE` name); empty switches it off |
 | `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
 | `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
 

@@ -237,6 +237,9 @@ check "disk check logged" t "$(last_run disk)"
 check "watchdog reaches the app" 0 "$("$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
 check "watchdog fails when nothing answers" 1 \
   "$(LABRA_WATCHDOG_URL=http://web:9/healthz "$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
+system=$(https -b "$jar" "$(url /admin/system)")
+check "System page reads the proxy's certificate" yes "$(grep -q 'Valid until' <<<"$system" && echo yes)"
+check "System page shows the failed drill" yes "$(grep -q 'usb: restore failed' <<<"$system" && echo yes)"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"

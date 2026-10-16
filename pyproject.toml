@@ -203,6 +203,7 @@ containers = [
     "labra.results",
     "labra.printing",
     "labra.reports",
+    "labra.ops",
 ]
 layers = ["routes", "service", "models"]
 

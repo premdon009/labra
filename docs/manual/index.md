@@ -23,6 +23,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-D05 | Postgres: `fsync` on, checksums on, disk-space alert at 80% | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-E02 | Uptime monitor | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
+| EC-E04 | `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry | [System](admin/system.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
 | EC-F03 | Pagination everywhere | [Methods and comment presets](admin/methods.md) |
@@ -32,6 +33,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
 | EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
+| EC-G01 | SemVer 0.x, `CHANGELOG.md` with dated entries | [System](admin/system.md) |
 | EC-J01 | Keyboard-first front desk | [Sample labels and collection](frontdesk/labels.md) |
 | EC-J01 | Keyboard-first front desk | [New visit](frontdesk/new-visit.md) |
 | EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |

@@ -29,6 +29,9 @@ x-labra: &labra
     LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
     LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
     LABRA_MAILER: ${LABRA_MAILER:-console}
+    # The System page reads the HTTPS certificate's expiry from the proxy, by the LAN name.
+    LABRA_CERT_CHECK_HOST: ${LABRA_CERT_CHECK_HOST-proxy:443}
+    LABRA_CERT_CHECK_NAME: ${LABRA_SITE:-labra.lan}
   secrets: [database_url]
   volumes:
     - files:/data/files
