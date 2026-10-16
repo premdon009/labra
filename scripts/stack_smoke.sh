@@ -61,6 +61,8 @@ cleanup() {
     dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra \
       /backup/usb/drive >/dev/null 2>&1
     dc --profile jobs down -v >/dev/null 2>&1
+    [[ -z ${engine:-} ]] || "$engine" rmi -f localhost/labra-smoke:next \
+      localhost/labra-smoke:broken >/dev/null 2>&1
     rm -rf "$work"
   else
     declare -p project compose_cmd proxy LABRA_IMAGE LABRA_BACKUP_IMAGE LABRA_BACKUP_USB_DIR \
@@ -243,6 +245,53 @@ check "System page shows the failed drill" yes "$(grep -q 'usb: restore failed' 
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"
+
+# An upgrade, then one to an image whose migration fails, which must roll back by itself.
+engine=${compose[0]%-compose}
+export LABRA_ENGINE=$engine LABRA_ENV_FILE=$work/env LABRA_UPGRADE_WAIT=90
+# The drill above damaged the USB copy; a fresh one, so the pre-upgrade backups succeed.
+dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra >/dev/null 2>&1
+bk init
+mkdir "$work/next" "$work/broken"
+printf 'FROM %s\nLABEL org.labra.smoke=next\n' "$image" >"$work/next/Dockerfile"
+versions=$(dc exec -T web python -c \
+  'import labra, pathlib; print(pathlib.Path(labra.__file__).parent / "migrations" / "versions")' |
+  tail -1)
+cat >"$work/broken/9999_smoke_broken.py" <<PY
+revision = "9999_smoke_broken"
+down_revision = "$(sql 'select version_num from alembic_version')"
+branch_labels = None
+depends_on = None
+
+from alembic import op
+
+
+def upgrade() -> None:
+    op.execute("select 1/0")
+
+
+def downgrade() -> None:
+    pass
+PY
+printf 'FROM %s\nCOPY 9999_smoke_broken.py %s/\n' "$image" "$versions" >"$work/broken/Dockerfile"
+"$engine" build -q -t localhost/labra-smoke:next "$work/next" >"$work/build.log" 2>&1
+"$engine" build -q -t localhost/labra-smoke:broken "$work/broken" >>"$work/build.log" 2>&1
+upgrade() { "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
+web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(dc ps -q web | tail -1)"; }
+backups="select count(*) from ops_run where kind = 'backup' and ok"
+before=$(sql "$backups")
+check "upgrade to a new image" 0 "$(upgrade localhost/labra-smoke:next; echo $?)"
+check "web runs the new image" localhost/labra-smoke:next "$(web_image)"
+check "upgrade logged" t "$(last_run upgrade)"
+check "pre-upgrade backup taken" $((before + 1)) "$(sql "$backups")"
+dc exec -T web labra add-branch --code B8 --name "Branch eight" --kind collection_centre >/dev/null 2>&1
+check "an upgrade whose migration fails rolls back" 4 "$(upgrade localhost/labra-smoke:broken; echo $?)"
+check "web runs the previous image again" localhost/labra-smoke:next "$(web_image)"
+check "failed upgrade logged" f "$(last_run upgrade)"
+check "data from before the upgrade kept" 1 "$(sql "select count(*) from branch where code = 'B8'")"
+check "the image in use is kept for the next start" "LABRA_IMAGE=localhost/labra-smoke:next" \
+  "$(cat "$work/env")"
+check "sign in after the rollback" 303 "$(sign_in)"
 
 echo "$((fails == 0 ? 1 : 0)) stack ($proxy on ${compose[*]}): $fails failed" |
   sed 's/^1 /PASS  /; s/^0 /FAIL  /'

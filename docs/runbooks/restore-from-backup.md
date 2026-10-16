@@ -30,6 +30,7 @@ again.
 | The server is dead, stolen or won't start | [A new server](#a-new-server) |
 | The server runs, but the data is damaged or a mistake has to be undone | [The same server](#the-same-server) |
 | The monthly drill alert came | [When the drill fails](#when-the-drill-fails) |
+| An upgrade failed and so did its rollback (`THE ROLLBACK FAILED`) | [The same server](#the-same-server), step 3 only |
 
 ## A new server
 
@@ -111,6 +112,11 @@ About 1–2 hours, most of it installing the operating system and Docker.
 
    If anything fails, the database is left as it was and the message says why.
 4. Steps 7 and 10 of *A new server*.
+
+After a failed upgrade whose rollback failed too, `scripts/upgrade.sh` names the snapshot it
+took just before (for example `usb:4f3e2d1c`) and has already put the old version back in
+`.env`. Skip steps 1 and 2, and restore that snapshot from that copy:
+`scripts/restore.sh --replace --from usb 4f3e2d1c`.
 
 ## When the drill fails
 

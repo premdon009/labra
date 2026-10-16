@@ -34,6 +34,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
 | EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
 | EC-G01 | SemVer 0.x, `CHANGELOG.md` with dated entries | [System](admin/system.md) |
+| EC-G03 | Upgrade script: takes a backup → pulls the pinned image → runs migrations → health check → automatic rollback to the previous image + restore if the health check fails | [System](admin/system.md) |
 | EC-J01 | Keyboard-first front desk | [Sample labels and collection](frontdesk/labels.md) |
 | EC-J01 | Keyboard-first front desk | [New visit](frontdesk/new-visit.md) |
 | EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
