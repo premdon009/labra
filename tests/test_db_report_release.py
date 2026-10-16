@@ -272,8 +272,10 @@ def test_the_check_page_shows_the_version_and_nothing_about_the_patient(
     old = db_client.get(f"/v/{first.verify_token}")
     assert "Superseded" in old.text
     for page in (shown.text, old.text):
-        for private in ("Sunita", "Testcase", visit.visit_no, "Lipid", "420"):
+        for private in ("Sunita", "Testcase", visit.visit_no, "Lipid"):
             assert private not in page
+        # The result on its own; a report number such as …/000420 is meant to be shown.
+        assert re.search(r"(?<!\d)420(?!\d)", page) is None
         assert "Main menu" not in page
     assert db_client.get("/v/" + "A" * 22).status_code == 404
 
