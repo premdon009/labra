@@ -16,6 +16,7 @@ Every feature Labra has, and the manual page that explains it.
 | EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [New visit](frontdesk/new-visit.md) |
+| EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
@@ -90,6 +91,7 @@ Every feature Labra has, and the manual page that explains it.
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
 | M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | [Test catalog](admin/catalog.md) |
+| M16 | Backups: Google Drive + USB via restic | [Backups and restore](admin/backups-and-restore.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Settings](admin/settings.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
@@ -118,3 +120,4 @@ Every feature Labra has, and the manual page that explains it.
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Data export](admin/data-export.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |
+| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | [Backups and restore](admin/backups-and-restore.md) |

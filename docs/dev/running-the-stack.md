@@ -112,6 +112,31 @@ docker compose cp web:/data/export ./export-copy
 
 The [Data export](../manual/admin/data-export.md) page of the manual explains the files.
 
+## Backups
+The `backup` service ([ADR-0013](../adr/0013-backup-runner.md)) sits under the `jobs` profile,
+so `up -d` never starts it. `scripts/backup.sh` runs one job in it, one at a time:
+
+```bash
+scripts/backup.sh init        # create the repositories (once)
+scripts/backup.sh backup      # one backup: pg_dump + /data/files into every repository
+scripts/backup.sh snapshots   # list them
+sudo scripts/install_timers.sh --dry-run   # the systemd timers it would install
+```
+
+It needs two more secrets beside `database_url`, both mode 0644 inside the 0700 folder,
+because the job runs as uid 10001 like the app:
+
+- `restic_password`: the repository password. Keep a paper copy; without it no backup opens.
+- `rclone.conf`: an rclone config with a remote named `drive`. For a test, `[drive]` with
+  `type = local` stores the "Drive" repository on a local path.
+
+`LABRA_BACKUP_REPO_DRIVE` (for example `rclone:drive:labra-backup`) and
+`LABRA_BACKUP_REPO_USB` (`/backup/usb/labra`, the host's `LABRA_BACKUP_USB_DIR` inside the
+container) choose the repositories; leave one empty to skip it. Each run adds a row to
+`ops_run` and pings `LABRA_HEARTBEAT_URL_BACKUP`. `scripts/stack_smoke.sh` takes real backups
+into both kinds of repository, then one with the USB disk missing. The
+[Backups and restore](../manual/admin/backups-and-restore.md) page is the administrator's guide.
+
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.
 - `/readyz`: database reachable, migrations at head, enough free disk for the files folder.

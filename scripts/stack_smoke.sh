@@ -57,6 +57,9 @@ dc() { "${compose[@]}" -p "$project" "${files[@]}" "$@"; }
 
 cleanup() {
   if [[ $keep == false ]]; then
+    # The backup job wrote the repositories as its own uid; it removes them too.
+    dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra \
+      /backup/usb/drive >/dev/null 2>&1
     dc --profile jobs down -v >/dev/null 2>&1
     rm -rf "$work"
   else
@@ -88,7 +91,8 @@ if [[ $proxy == nginx ]]; then
   chmod 644 "$secrets/tls/labra.crt"
 fi
 
-mkdir "$work/usb"
+# The USB disk is a folder here; the backup job writes it as uid 10001 on every runtime.
+mkdir -m 777 "$work/usb"
 export LABRA_IMAGE=$image LABRA_SECRETS_DIR=$secrets LABRA_SITE=$site
 export LABRA_BACKUP_IMAGE=$backup_image LABRA_BACKUP_USB_DIR=$work/usb
 export LABRA_HTTP_PORT=$http_port LABRA_HTTPS_PORT=$https_port
@@ -168,6 +172,27 @@ check "backup job not started by up" 0 "$(dc ps -a --format '{{.Service}}' 2>/de
   grep -c '^backup$')"
 check "backup job runs on request" '*restic 0.*' \
   "$(dc --profile jobs run --rm --no-deps backup version 2>/dev/null | tr '\n' ' ')"
+
+# A real backup into both repositories: rclone's local backend stands in for Google Drive.
+bk() {
+  dc --profile jobs run --rm --no-deps -T -e LABRA_BACKUP_REPO_USB="${usb_repo:-/backup/usb/labra}" \
+    -e LABRA_BACKUP_REPO_DRIVE=rclone:drive:/backup/usb/drive backup "$@" >>"$work/backup.log" 2>&1
+}
+runs() {
+  dc exec -T db psql -U labra -d labra -Atc \
+    "select ok, snapshot, coalesce(bytes_added, 0) from ops_run where kind = 'backup' order by id" \
+    2>/dev/null
+}
+check "backup repositories created" 0 "$(bk init; echo $?)"
+check "backup into both repositories" 0 "$(bk backup; echo $?)"
+check "backup run logged with both snapshots" 't|drive:* usb:*|*' "$(runs | tail -1)"
+echo "INFO  first backup added $(runs | tail -1 | cut -d'|' -f3) bytes across both repositories"
+check "second backup adds little" yes "$(bk backup && (($(runs | tail -1 | cut -d'|' -f3) < 1000000)) &&
+  echo yes || echo no)"
+check "nightly run applies the retention" 0 "$(bk backup --prune --tag nightly; echo $?)"
+check "both repositories list three snapshots" 2 "$(bk snapshots; grep -c '^3 snapshots$' "$work/backup.log")"
+check "missing USB disk fails the run, Drive still copied" 1 "$(usb_repo=/backup/usb/unplugged bk backup; echo $?)"
+check "failed run logged with the Drive snapshot" 'f|drive:*|*' "$(runs | tail -1)"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"

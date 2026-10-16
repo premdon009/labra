@@ -34,6 +34,7 @@ nav = [
       "manual/admin/letterhead-and-margins.md",
       "manual/admin/starter-catalog.md",
       "manual/admin/data-export.md",
+      "manual/admin/backups-and-restore.md",
     ] },
     { "Front desk" = [
       "manual/frontdesk/new-visit.md",
