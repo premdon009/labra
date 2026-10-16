@@ -524,13 +524,14 @@ Every step above wrote an `audit_log` row, and every outsourcing step an `order_
                   ▼                                    ▼
           ┌──────────────── Mini PC at main lab (Docker Compose) ───────────────┐
           │ caddy ─► labra-web (FastAPI + Jinja2/HTMX, admin at /admin)         │
-          │          labra-worker (Procrastinate: PDFs, alerts, backups, mail)  │
-          │          postgres 18 (data + job queue)   /data/files (PDFs, logos) │
+          │          postgres 18 (data)               /data/files (PDFs, logos) │
+          │ host systemd timers ─► one-shot `backup` container (pg_dump, restic)│
           └──────────────────────────────┬──────────────────────────────────────┘
-                                         │ nightly restic (encrypted)
+                                         │ restic every 15 min in lab hours (encrypted)
                                          ▼
-                                Backblaze B2 / S3 storage
+                                Google Drive (rclone) + USB disk
 ```
+- **No worker process in the minimal version** (§1a): PDFs render inside the web request, and backups, the restore drill and the nightly checks run from host systemd timers as one-shot containers (ADR-0013). A job queue (Procrastinate) comes back only with an expansion item that needs one.
 - **One application split into modules** (`src/labra/<module>/` with `models.py`, `schemas.py`, `service.py`, `routes.py`, `templates/`). Modules: `core` (settings, numbering, files), `auth`, `org` (branches, users), `patients`, `catalog`, `pricing`, `orders`, `samples`, `routing`, `outsourcing`, `results`, `reports`, `billing`, `sync` (offline), `audit`, `admin`, `fhir` (later), `plugins`.
 - **Routes stay thin:** they only handle HTTP. All rules live in `service.py`, so the offline sync path and the API share the same code.
 - **Cloud variant:** the same Compose file on Lightsail Mumbai / DigitalOcean Bangalore (2 GB). There the main lab is online-only; branches still get the offline counter.
@@ -1244,7 +1245,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-H02` ruff (lint + format), pyright strict on `service` and `billing`, pytest against real Postgres (testcontainers) *(CI)*
 - [ ] **P** `EC-H03` One Playwright end-to-end test of the full day; PDF snapshot tests for report and bill *(CI)*
 - [ ] **P** `EC-H04` Single local gate script = same as CI (`scripts/ci_local.sh`)
-- [ ] **P** `EC-H05` Branch protection on `main`: CI must pass, PR required
+- [ ] **P** `EC-H05` Branch protection on `master`: CI must pass, PR required
 - [ ] **1** `EC-H06` Mutation testing on the money module (mutmut), occasional
 - [ ] **1** `EC-H07` Accessibility checks (axe via Playwright) on the main screens *(CI)*
 
@@ -1335,7 +1336,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 | **3** | Front desk | M03, M04, M18, M07, M07.1, M23, M08 (M18.1 is gate P2 and waits) | B01, B04, B07, C01, F03, J01, J02; the bill and front-desk parts of B05 and J03, which close in Run 5 with released reports | `frontdesk/new-visit`, `frontdesk/find-patient`, `frontdesk/bills-and-receipts`, `frontdesk/dues-and-payments`, `frontdesk/labels`, `getting-started/keyboard-shortcuts`, `admin/currency` |
 | **4** | Lab | M09, M10, M11, M11.1, M11.2, M11.3, M07.4, the outsourcing timeline of M21 (delivery tracking closes in Run 5), the `test.sent_out` and `test.performed` events of M26 | C02; the upload part of A07; the results part of F01 | `lab/worklist`, `lab/receiving-samples`, `lab/entering-results`, `lab/calculated-values`, `lab/critical-values`, `lab/outsourcing`, `admin/external-labs` |
 | **5** | Reports + owner | M17, M12, M12.1, M20, M19, M13, the delivery tracking of M21, the `report.released` event and both exports of M26 (M17.1 and M20.1 are gate P2 and wait) | A06, K03, H03 (full-day Playwright + PDF snapshots); the SVG and image part of A07; the report parts of B05 and J03 | `reports/releasing`, `reports/options`, `reports/print-vs-digital`, `reports/delivery`, `reports/amended`, `frontdesk/patient-history`, `owner/daily-collection`, `owner/dues-pending-outsourcing`, `admin/letterhead-and-margins`, `admin/data-export` |
-| **6** | Install, backups, pilot prep | M16, W06, W07, **M25.3**, then W09 (the pilot week itself, after the run) | A11, A12, D01–D03, D06, D07, E02, E04, F01 (laptop budgets), G03, H05, L01–L03 | `admin/backups-and-restore`, `troubleshooting/*`, runbooks (`docs/runbooks/`), `install/laptop.md`, manual PDF, "A day at the lab" (§1e) |
+| **6** | Install, backups, pilot prep | M16, W06, W07, **M25.3**, the backup heartbeat of W16, then W09 (the pilot week itself, after the run). W10 is not in Run 6 (owner, 2026-10-16); it stays gate P and is done before the pilot tag | A11, A12, D01–D03, D05 (disk alert), D06, D07, E02, E04, F01 (laptop budgets), G03, H05 (after the owner's go), L01–L03, and the nightly verify timer of B06 | `admin/backups-and-restore`, `admin/system`, `troubleshooting/*`, runbooks (`docs/runbooks/`), `install/laptop.md`, manual PDF, "A day at the lab" (§1e) |
 
 **New sub-items:** Run 1 splits M25 into M25.1, M25.2 and M25.3, following the §0 dotted-ID rule. Each is added to `docs/TRACKER.md` in the same commit:
 - **M25.1:** manual site (Zensical), page template, `manual_page=` route registry gate, staleness gate.
@@ -1490,7 +1491,7 @@ Runs 2–6 each get their own detailed steps when they start: one plan-mode pass
 5. **Safety:** exports contain patient data. They're written only to the encrypted data volume, every export is audited, admin role only, and they're never served over the tunnel.
 
 ### 17.3 Backups: 15 minutes, and why backups stay `pg_dump` (not Parquet)
-- **Interval:** `BACKUP_INTERVAL` takes `15m` / `30m` / `2h` / `4h` / `24h`. Default: **every 15 min during lab hours, plus nightly.** EC-D03's RPO becomes **≤ 15 min**.
+- **Interval:** `BACKUP_INTERVAL` takes `15m` / `30m` / `2h` / `4h` / `24h`. Default: **every 15 min during lab hours, plus nightly.** EC-D03's RPO becomes **≤ 15 min**. Lab hours are `LABRA_BACKUP_LAB_HOURS`, default `07:00-21:00` IST; the nightly run is at 23:30 and is the only one that prunes. Outside lab hours nobody writes, so the RPO still holds (owner, 2026-10-16). Timers and the backup container: ADR-0013.
 - **Format:** `pg_dump` **plain format, uncompressed**. The custom (`-Fc`) format compresses internally and defeats restic's deduplication. restic does the compression (zstd, typically 5–10x on SQL text).
 - **Why Parquet is not the backup:** Parquet is the **export** format only, for four reasons:
   - **Not faithful:** it loses constraints, triggers (the audit-log append-only trigger), sequences, the hash-chain guarantees, JSONB/NUMERIC exactness and roles. A restore would need custom code, which is a second thing that can break.
@@ -1545,7 +1546,8 @@ Runs 2–6 each get their own detailed steps when they start: one plan-mode pass
 | M26 report and test events | 4–5 |
 | M26 accounting export, full export | 5 |
 | M26.1 Parquet monthly archive, W10.1 warm standby | after the pilot (P2) |
-| M16 15-min backups + retention, W10 standby + failover/failback drill | 6 |
+| M16 15-min backups + retention | 6 |
+| W10 cold standby + failover/failback rehearsal | after Run 6, before the pilot tag (owner, 2026-10-16) |
 | ADR-0007 | 1 |
 | ADR-0008, platform ports (§17.6) | 1 |
 
@@ -1651,7 +1653,7 @@ Runs 2–6 each get their own detailed steps when they start: one plan-mode pass
 | 1 | Gains W12. M25.2 moves to P2, so Run 1 ships hand-taken screenshots. |
 | 4 | M22 moves to P2. |
 | 5 | M17.1, M20.1 and M26.1 move to P2. |
-| 6 | W10.1 and M25.3 move to P2. W10 is the cold runbook plus one rehearsal. |
+| 6 | W10.1 and M25.3 move to P2. W10 is the cold runbook plus one rehearsal. Owner, 2026-10-16: M25.3 is built in Run 6 after all, and W10 moves out of Run 6 (still gate P). |
 
 §1e Step 8 (the TV board) and the TV part of the Playwright test follow M22 into P2.
 

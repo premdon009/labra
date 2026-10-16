@@ -45,12 +45,12 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W03~~ | ~~Docker Compose stack: web, postgres, caddy, cloudflared (§1a)~~ | P | done | 2026-10-09 · f5ec4d0 |
 | ~~W04~~ | ~~Foundation: settings, number series, file store~~ | P | done | 2026-10-09 · 662312a |
 | ~~W05~~ | ~~Synthetic seed data and dummy datasets~~ | P | done | 2026-10-09 · 144d19c |
-| W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | todo | |
-| W07 | Restore-drill script and runbooks | P | todo | |
+| W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | doing | Run 6 |
+| W07 | Restore-drill script and runbooks | P | doing | Run 6 |
 | ~~W08~~ | ~~Local gate script matching CI (`scripts/ci_local.sh`)~~ | P | done | 2026-10-09 · c0b6258 |
 | ~~W08.1~~ | ~~Tracker tooling (§0 items 1–3): status column + strike-through, `scripts/check_tracker.py` rules and progress rewrite, pilot/release tag gate~~ | P | done | 2026-10-09 · c0b6258 |
 | W09 | Pilot: one week running in parallel with the current system (§1a build order 5) | P | todo | |
-| W10 | Cold standby: cold-restore runbook + `failover.sh` / `failback.sh`, rehearsed once on a rented India-region VPS (§17.4) | P | todo | |
+| W10 | Cold standby: cold-restore runbook + `failover.sh` / `failback.sh`, rehearsed once on a rented India-region VPS (§17.4) | P | todo | not in Run 6 (owner, 2026-10-16); before the pilot tag |
 | W10.1 | Warm standby: VPS restores the newest snapshot nightly (§17.4) | P2 | todo | |
 | W11 | Multi-arch Docker images (amd64 + arm64), no provider-specific services (§17) | P | doing | amd64 image built locally; arm64 needs QEMU, unrun until CI |
 | W12 | Release pipeline: git-cliff changelog, GHCR images with version tags, `rc` tag for the pilot, `docs/dev/releasing.md` (§18.3) | P | doing | release workflow unrun until the first tag |
@@ -100,7 +100,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M14.1~~ | ~~Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test~~ | P | done | 2026-10-13 · 9123107 |
 | ~~M14.2~~ | ~~A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
-| M16 | Backups: Google Drive + USB via restic | P | todo | |
+| M16 | Backups: Google Drive + USB via restic | P | doing | Run 6 |
 | ~~M17~~ | ~~Letterhead and margin calibration (§7.2)~~ | P | done | 2026-10-14 · cd556ef |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
 | ~~M18~~ | ~~Fast front desk: one-screen visit~~ | P | done | 2026-10-13 · 21d84e9 |
@@ -117,7 +117,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
-| M25.3 | In-app `?` help and printable manual PDF | P2 | todo | |
+| M25.3 | In-app `?` help and printable manual PDF | P2 | doing | Run 6 (owner, 2026-10-16) |
 | ~~M26~~ | ~~Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17)~~ | P | done | 2026-10-14 · 0585060 (outsourcing events 2026-10-13) |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
 
