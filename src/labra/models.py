@@ -27,6 +27,7 @@ from labra.core.models import (
     StoredFile,
 )
 from labra.extlabs.models import ExternalLab, ExternalLabRate
+from labra.ops.models import OpsRun
 from labra.org.models import AppUser, Branch, Role, RolePermission, UserBranchRole
 from labra.patients.models import Patient, Referrer
 from labra.printing.models import LetterheadLayout
@@ -63,6 +64,7 @@ __all__ = [
     "LocalCredential",
     "LoginAttempt",
     "NumberSeries",
+    "OpsRun",
     "OrderItem",
     "OrderTest",
     "OrderTestEvent",

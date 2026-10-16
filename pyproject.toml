@@ -156,6 +156,7 @@ source_modules = [
     "labra.printing",
     "labra.reports",
     "labra.owner",
+    "labra.ops",
     "labra.exports",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
@@ -183,6 +184,7 @@ forbidden_modules = [
     "labra.printing",
     "labra.reports",
     "labra.owner",
+    "labra.ops",
     "labra.exports",
     "labra.web",
 ]
@@ -209,6 +211,12 @@ name = "Owner figure layers (no tables of its own)"
 type = "layers"
 containers = ["labra.owner"]
 layers = ["routes", "service"]
+
+[[tool.importlinter.contracts]]
+name = "Run log layers"
+type = "layers"
+containers = ["labra.ops"]
+layers = ["service", "models"]
 
 [[tool.importlinter.contracts]]
 name = "The front desk and external labs don't depend on the lab bench"
@@ -264,6 +272,7 @@ source_modules = [
     "labra.printing",
     "labra.reports",
     "labra.owner",
+    "labra.ops",
     "labra.web",
     "labra.app",
 ]
