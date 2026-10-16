@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19]
+items: [W03, W16, W17, W19, W07]
 ---
 
 # Running the stack
@@ -120,6 +120,8 @@ so `up -d` never starts it. `scripts/backup.sh` runs one job in it, one at a tim
 scripts/backup.sh init        # create the repositories (once)
 scripts/backup.sh backup      # one backup: pg_dump + /data/files into every repository
 scripts/backup.sh snapshots   # list them
+scripts/drill.sh              # the monthly drill: each repository into a scratch database
+scripts/restore.sh [--from usb|drive] [--replace] [SNAPSHOT]   # put the data back
 sudo scripts/install_timers.sh --dry-run   # the systemd timers it would install
 ```
 
@@ -133,9 +135,19 @@ because the job runs as uid 10001 like the app:
 `LABRA_BACKUP_REPO_DRIVE` (for example `rclone:drive:labra-backup`) and
 `LABRA_BACKUP_REPO_USB` (`/backup/usb/labra`, the host's `LABRA_BACKUP_USB_DIR` inside the
 container) choose the repositories; leave one empty to skip it. Each run adds a row to
-`ops_run` and pings `LABRA_HEARTBEAT_URL_BACKUP`. `scripts/stack_smoke.sh` takes real backups
-into both kinds of repository, then one with the USB disk missing. The
-[Backups and restore](../manual/admin/backups-and-restore.md) page is the administrator's guide.
+`ops_run` and pings `LABRA_HEARTBEAT_URL_BACKUP` (the drill: `LABRA_HEARTBEAT_URL_DRILL`).
+
+`restore.sh` stops `web`, runs the job in the `restore` service (the same image, with the files
+volume writable) and starts the stack again. The load is one `psql -1` transaction, and every
+table's row count is checked against the dump's `COPY` blocks. It refuses a database that
+already has tables unless `--replace` is given. The drill restores into `labra_drill`, a name
+the job insists ends in `_drill`, and runs `labra audit verify --database labra_drill` from the
+web image.
+
+`scripts/stack_smoke.sh` takes real backups into both kinds of repository and one with the USB
+disk missing, then runs the drill, a refused restore, a `--replace` restore and a drill of a
+damaged repository. The [Backups and restore](../manual/admin/backups-and-restore.md) page is the
+administrator's guide; [Restore from backup](../runbooks/restore-from-backup.md) is the runbook.
 
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.

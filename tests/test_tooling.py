@@ -599,7 +599,7 @@ def test_a_binary_row_with_nothing_downloading_it_is_dropped(
 def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     # Backups run only when a host timer asks (ADR-0013); `up -d` must not start the job.
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
-    m = re.search(r"^  backup:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
+    m = re.search(r"^  backup: &backup\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
     assert m is not None
     service = m.group(1)
     assert "profiles: [jobs]" in service
@@ -607,6 +607,16 @@ def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     assert "files:/data/files:ro" in service
     assert "edge" not in service
     assert re.search(r"^  egress:\n(?!    internal: true)", compose, re.M)
+    # The restore job is the same service with the files writable, and nothing else changed.
+    m = re.search(r"^  restore:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
+    assert m is not None
+    restore = [line.strip() for line in m.group(1).splitlines() if line.strip()]
+    assert restore[0] == "<<: *backup"
+    assert "- files:/data/files" in restore
+    assert [line for line in restore if not line.startswith(("#", "-"))] == [
+        "<<: *backup",
+        "volumes:",
+    ]
 
 
 @pytest.mark.item("W20")

@@ -3,14 +3,19 @@
 from datetime import timedelta
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from labra.cli import main
+from labra.core import audit
+from labra.core.config import get_settings
 from labra.core.errors import ValidationFailedError
 from labra.core.ids import utcnow
+from labra.core.registry import Platform
 from labra.ops.models import KINDS
 from labra.ops.service import DETAIL_MAX, last_runs, record_run
+from tests.fakes import RecordingHeartbeat
 
 
 @pytest.mark.item("M16")
@@ -57,3 +62,26 @@ def test_a_long_detail_is_cut_to_fit(db: Session) -> None:
     assert run.detail is not None
     assert len(run.detail) == DETAIL_MAX
     assert run.detail.endswith("…")
+
+
+@pytest.mark.item("W07")
+def test_audit_verify_checks_a_copy_by_name_and_leaves_the_ping_to_the_drill(
+    pg_engine: Engine,
+    committed_engine: Engine,
+    platform: Platform,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with Session(committed_engine) as copy:
+        audit.record(copy, "drill.test", "branch")
+        audit.record(copy, "drill.test", "branch")
+        copy.commit()
+    url = pg_engine.url.render_as_string(hide_password=False)
+    monkeypatch.setenv("LABRA_DATABASE_URL", url)
+    get_settings.cache_clear()
+    with pytest.raises(SystemExit) as done:
+        main(["audit", "verify", "--database", str(committed_engine.url.database)])
+    assert done.value.code == 0
+    assert "Audit log intact: 2 rows checked." in capsys.readouterr().out
+    assert isinstance(platform.heartbeat, RecordingHeartbeat)
+    assert platform.heartbeat.pings == []

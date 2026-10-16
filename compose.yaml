@@ -9,6 +9,7 @@
 #   docker compose --profile netbird up -d      with NetBird (cloud or self-hosted) instead
 #   docker compose -f compose.yaml -f deploy/nginx/compose.nginx.yaml up -d    nginx, not Caddy
 #   docker compose --profile jobs run --rm backup backup    one backup (host timers run this)
+#   scripts/restore.sh, scripts/drill.sh        a restore, the monthly drill (the restore service)
 #
 # `podman compose` and `nerdctl compose` take the same arguments (docs/dev/runtimes.md).
 # Secrets are files in ${LABRA_SECRETS_DIR:-./secrets}/ (never committed).
@@ -158,7 +159,7 @@ services:
 
   # One-shot jobs: backups, the restore drill (ADR-0013). Under a profile, so `up -d` never
   # starts it; the host timers from scripts/install_timers.sh run it and it exits.
-  backup:
+  backup: &backup
     image: ${LABRA_BACKUP_IMAGE:-ghcr.io/premdon009/labra-backup:0.1.0}
     build: deploy/backup
     profiles: [jobs]
@@ -177,6 +178,15 @@ services:
       # empty, so the USB copy fails and alerts while the Drive copy still runs.
       - ${LABRA_BACKUP_USB_DIR:-/mnt/labra-backup}:/backup/usb
     networks: [db, egress]
+
+  # The same job image for scripts/restore.sh. Only a restore writes the files back, so only
+  # it mounts them writable.
+  restore:
+    <<: *backup
+    volumes:
+      - files:/data/files
+      - backup_cache:/backup/cache
+      - ${LABRA_BACKUP_USB_DIR:-/mnt/labra-backup}:/backup/usb
 
 networks:
   db:

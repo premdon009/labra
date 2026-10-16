@@ -160,10 +160,14 @@ dc exec -T web labra add-branch --code MAIN --name "Main lab" --kind main_lab >/
 printf '%s\n%s\n' "$password" "$password" |
   dc exec -T web labra create-admin --username admin --full-name "Smoke Admin" >/dev/null 2>&1
 jar=$work/cookies
-token=$(https -c "$jar" -b "$jar" "$(url /login)" |
-  sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' | head -1)
-check "sign in" "303" "$(code -c "$jar" -b "$jar" \
-  -d "username=admin&password=$password&csrf_token=$token" "$(url /login)")"
+sign_in() {
+  local token
+  rm -f "$jar"
+  token=$(https -c "$jar" -b "$jar" "$(url /login)" |
+    sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' | head -1)
+  code -c "$jar" -b "$jar" -d "username=admin&password=$password&csrf_token=$token" "$(url /login)"
+}
+check "sign in" "303" "$(sign_in)"
 check "admin page after sign-in" 200 "$(code -b "$jar" "$(url /admin/branches)")"
 check "forged CSRF token refused" 403 "$(code -b "$jar" \
   -d "username=admin&password=x&csrf_token=forged" "$(url /login)")"
@@ -193,6 +197,36 @@ check "nightly run applies the retention" 0 "$(bk backup --prune --tag nightly; 
 check "both repositories list three snapshots" 2 "$(bk snapshots; grep -c '^3 snapshots$' "$work/backup.log")"
 check "missing USB disk fails the run, Drive still copied" 1 "$(usb_repo=/backup/usb/unplugged bk backup; echo $?)"
 check "failed run logged with the Drive snapshot" 'f|drive:*|*' "$(runs | tail -1)"
+
+# The monthly drill and a restore, through the host scripts the runbook uses.
+export LABRA_COMPOSE="${compose[*]} -p $project ${files[*]}"
+export LABRA_BACKUP_REPO_USB=/backup/usb/labra LABRA_BACKUP_REPO_DRIVE=rclone:drive:/backup/usb/drive
+sql() { dc exec -T db psql -U labra -d labra -Atc "$1" 2>/dev/null; }
+drill() { "$ROOT/scripts/drill.sh" >>"$work/drill.log" 2>&1; }
+restore() { "$ROOT/scripts/restore.sh" "$@" >>"$work/restore.log" 2>&1; }
+last_drill() { sql "select ok from ops_run where kind = 'drill' order by id desc limit 1"; }
+b9="select count(*) from branch where code = 'B9'"
+check "restore drill of both repositories" 0 "$(drill; echo $?)"
+check "drill logged as passed" t "$(last_drill)"
+check "drill checked the audit log in both copies" 2 "$(grep -c '^[a-z]*: Audit log intact' "$work/drill.log")"
+check "drill leaves no scratch database" 0 \
+  "$(sql "select count(*) from pg_database where datname = 'labra_drill'")"
+dc exec -T web labra add-branch --code B9 --name "Branch nine" --kind collection_centre >/dev/null 2>&1
+check "restore refuses a database that holds data" 3 "$(restore; echo $?)"
+check "refused restore changed nothing" 1 "$(sql "$b9")"
+check "restore --replace from the newest snapshot" 0 "$(restore --replace; echo $?)"
+check "restore checked the audit log" '*Audit log intact*' "$(tail -3 "$work/restore.log")"
+check "data written after the backup is gone" 0 "$(sql "$b9")"
+for _ in $(seq 60); do
+  [[ $(code "$(url /readyz)") == 200 ]] && break
+  sleep 1
+done
+check "sign in after the restore" 303 "$(sign_in)"
+dc --profile jobs run --rm --no-deps -T --entrypoint sh backup -c 'chmod -R u+w /backup/usb/labra/data &&
+  find /backup/usb/labra/data -type f -exec truncate -s 64 {} +' >/dev/null 2>&1
+check "drill fails on a damaged repository" 1 "$(drill; echo $?)"
+check "failed drill logged" f "$(last_drill)"
+check "failed drill names the damaged copy" 1 "$(grep -c '^usb: restore failed' "$work/drill.log")"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"

@@ -17,6 +17,8 @@ Every feature Labra has, and the manual page that explains it.
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [New visit](frontdesk/new-visit.md) |
 | EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D02 | Monthly restore drill, automated, result logged | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D03 | Written targets: RPO ≤ 15 min | [Backups and restore](admin/backups-and-restore.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
@@ -120,4 +122,5 @@ Every feature Labra has, and the manual page that explains it.
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Data export](admin/data-export.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |
+| W07 | Restore-drill script and runbooks | [Backups and restore](admin/backups-and-restore.md) |
 | W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | [Backups and restore](admin/backups-and-restore.md) |

@@ -5,10 +5,11 @@
 #                                  [--tz Asia/Kolkata] [--user USER] [--dry-run]
 #
 # Backups run every --interval inside lab hours, plus a nightly run at 23:30 that also
-# applies the retention. 24h means the nightly run only. Defaults come from
-# LABRA_BACKUP_INTERVAL and LABRA_BACKUP_LAB_HOURS, then 15m and 07:00-21:00. --user is the
-# account that runs the jobs (it must be able to run containers); default root. --dry-run
-# prints the unit files instead of installing them. Run it again to change the schedule.
+# applies the retention; 24h means the nightly run only. The restore drill runs at 03:00 on
+# the first Sunday of each month. Defaults come from LABRA_BACKUP_INTERVAL and
+# LABRA_BACKUP_LAB_HOURS, then 15m and 07:00-21:00. --user is the account that runs the jobs
+# (it must be able to run containers); default root. --dry-run prints the unit files instead
+# of installing them. Run it again to change the schedule.
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -61,7 +62,7 @@ calendar() {
 }
 
 service() {
-  local what=$1 args=$2
+  local what=$1 command=$2
   cat <<UNIT
 [Unit]
 Description=Labra $what (ADR-0013)
@@ -71,7 +72,7 @@ After=network-online.target docker.service
 [Service]
 Type=oneshot
 User=$user
-ExecStart=$ROOT/scripts/backup.sh $args
+ExecStart=$ROOT/scripts/$command
 UNIT
 }
 
@@ -93,11 +94,13 @@ UNIT
 
 lab=$(calendar)
 declare -A units=(
-  [labra-backup-nightly.service]=$(service "nightly backup" "backup --prune --tag nightly")
+  [labra-backup-nightly.service]=$(service "nightly backup" "backup.sh backup --prune --tag nightly")
   [labra-backup-nightly.timer]=$(timer "nightly backup" "OnCalendar=*-*-* 23:30:00 $tz" true)
+  [labra-drill.service]=$(service "restore drill" "drill.sh")
+  [labra-drill.timer]=$(timer "restore drill" "OnCalendar=Sun *-*-01..07 03:00:00 $tz" true)
 )
 if [[ -n $lab ]]; then
-  units[labra-backup.service]=$(service "backup" "backup")
+  units[labra-backup.service]=$(service "backup" "backup.sh backup")
   units[labra-backup.timer]=$(timer "backup" "$lab" false)
 fi
 

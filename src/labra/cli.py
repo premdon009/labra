@@ -59,24 +59,37 @@ def cmd_check_config(_: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_audit_verify(_: argparse.Namespace) -> int:
+def cmd_audit_verify(args: argparse.Namespace) -> int:
+    from sqlalchemy import create_engine, make_url
     from sqlalchemy.orm import Session
 
     from labra.core import audit
+    from labra.core.config import get_settings
     from labra.core.db import get_engine
     from labra.core.metrics import count_job
     from labra.core.registry import get_platform
 
-    with Session(get_engine()) as db:
-        result = audit.verify(db)
-    count_job("audit_verify", result.ok)
+    if args.database:
+        # A copy on the same server, such as the restore drill's; the drill reports the result.
+        url = make_url(get_settings().database_url.get_secret_value())
+        engine = create_engine(url.set(database=args.database))
+    else:
+        engine = get_engine()
+    try:
+        with Session(engine) as db:
+            result = audit.verify(db)
+    finally:
+        if args.database:
+            engine.dispose()
     detail = f"{result.checked} rows checked"
     if result.ok:
         _out(f"Audit log intact: {detail}.")
     else:
         detail += f"; row {result.first_bad_id}: {result.reason}"
         _out(f"AUDIT LOG DAMAGED: {detail}.")
-    get_platform().heartbeat.ping("audit_verify", ok=result.ok, detail=detail)
+    if not args.database:
+        count_job("audit_verify", result.ok)
+        get_platform().heartbeat.ping("audit_verify", ok=result.ok, detail=detail)
     return 0 if result.ok else 1
 
 
@@ -242,9 +255,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     audit_cmd = sub.add_parser("audit", help="audit log tasks")
     audit_sub = audit_cmd.add_subparsers(dest="audit_command", required=True)
-    audit_sub.add_parser("verify", help="check the audit log hash chain").set_defaults(
-        func=cmd_audit_verify
+    verify = audit_sub.add_parser("verify", help="check the audit log hash chain")
+    verify.add_argument(
+        "--database", metavar="NAME", help="check a copy on the same server (the restore drill)"
     )
+    verify.set_defaults(func=cmd_audit_verify)
 
     branch = sub.add_parser("add-branch", help="add a branch (for first setup)")
     branch.add_argument("--code", required=True)
