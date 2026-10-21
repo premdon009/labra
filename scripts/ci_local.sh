@@ -163,8 +163,11 @@ stage_stack() {
   local rt rc
   for rt in docker podman; do
     "$rt" info >/dev/null 2>&1 || continue
-    scripts/build_image.sh --builder "$rt"; rc=$?
-    ((rc == 0)) || return $((rc == 2 ? 2 : 1))
+    for flags in "" --backup; do
+      scripts/build_image.sh --builder "$rt" ${flags:+"$flags"}; rc=$?
+      ((rc == 0)) || return $((rc == 2 ? 2 : 1))
+    done
+    scripts/check_image.sh localhost/labra-backup:dev --runtime "$rt" --backup || return 1
     scripts/stack_smoke.sh --compose "$rt compose"
     return
   done

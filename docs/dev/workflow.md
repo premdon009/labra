@@ -13,6 +13,9 @@ items: [W01, W08.1]
 6. **End-of-work audit:** re-read the tracker rows and the plan, review the whole diff against them, and confirm every fix has a test that would fail on the old code.
 7. Set rows to `done` with the date and PR number; open the PR; merge when CI is green.
 
+## `master` is protected
+Changes reach `master` only through a pull request whose `gate` and `image` checks are green and up to date with `master`. Nobody pushes to it directly, administrators included, and it is never force-pushed or deleted. GitHub's branch protection enforces this once `EC-H05` is ticked in the checklist; until then, follow it by hand.
+
 A SQLAlchemy or pypdf deprecation warning fails the test that hits it (`filterwarnings` in `pyproject.toml`). Move to the replacement the warning names; don't silence it. A `ResourceWarning` fails too: close the cursor, file or response with `with` (a streamed query that may return early, such as `yield_per`, needs `with db.execute(...) as rows`).
 
 If the plan turns out to be ambiguous, stop and ask rather than guess. Improvements noticed along the way that aren't part of the items go in the PR description as suggestions, not into the diff.

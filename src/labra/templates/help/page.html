@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · Manual{% endblock %}
+{% block alone_class %} app-alone-wide{% endblock %}
+{% block content %}
+<nav class="manual-path" aria-label="Manual"><a href="/manual/">User manual</a> ▸ {{ page.section }}</nav>
+<article class="manual">
+{{ page.html|safe }}
+</article>
+{% endblock %}

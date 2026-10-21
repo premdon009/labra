@@ -1,5 +1,5 @@
 ---
-items: [W12, W11]
+items: [W12, W11, EC-G03]
 ---
 
 # Releasing
@@ -29,14 +29,16 @@ person's machine.
    - `version` in `pyproject.toml`, then `uv lock` so `uv.lock` matches
    - `CHANGELOG.md`: rename `[Unreleased]` to `## [0.1.0rc1] - YYYY-MM-DD` and start a new
      empty `[Unreleased]`
-   - for a final release, the default image in `compose.yaml` (`ghcr.io/premdon009/labra:<version>`)
+   - for a final release, the default images in `compose.yaml`
+     (`ghcr.io/premdon009/labra:<version>` and `ghcr.io/premdon009/labra-backup:<version>`)
 4. Tag and push the tag:
    ```sh
    git tag -a v0.1.0rc1 -m "v0.1.0rc1"
    git push origin master v0.1.0rc1
    ```
 5. The `release` workflow checks that the tag matches `pyproject.toml`, runs the tag gate and
-   the full local gate, then builds amd64 and arm64 images on GHCR:
+   the full local gate, then builds amd64 and arm64 images on GHCR, `labra` and
+   `labra-backup`, with the same tags:
 
    | Tag | Image tags |
    |---|---|
@@ -48,5 +50,29 @@ person's machine.
 
 ## Labs install from a release
 Labs use the `compose.yaml` attached to a release, never the one on `master`, and it names an
-exact image version. Postgres is pinned by digest and never on a rolling tag. Upgrading means
-taking the next release's `compose.yaml`, after a backup.
+exact image version. Postgres is pinned by digest and never on a rolling tag.
+
+## Labs upgrade with one command
+`scripts/upgrade.sh 0.2.0` moves a running lab to another release and rolls back by itself
+when the new version doesn't come up ([System](../manual/admin/system.md) has the steps for
+labs):
+
+1. Pulls the image and checks the disk. If either fails, nothing has changed.
+2. Stops the web app, then takes a backup tagged `pre-upgrade`. Nothing is written after it,
+   so a rollback loses no work.
+3. Starts the stack on the new image: migrations, then the app, which must answer `/readyz`
+   within `LABRA_UPGRADE_WAIT` seconds (default 180).
+4. If that fails, restores the backup over the database (`restore --replace`, the whole
+   schema in one transaction), starts the old image and checks the audit log. Exit 4.
+5. If the rollback fails too, exit 5, naming the snapshot for
+   [Restore from backup](../runbooks/restore-from-backup.md#the-same-server).
+
+The image in use is written to `LABRA_IMAGE` in `.env`, so a later `docker compose up -d`
+keeps it. Every upgrade, good or rolled back, is a row in the run log. A release whose
+`compose.yaml` changed beyond the image tags says so in its changelog: the lab copies the
+new `compose.yaml` and `scripts/` first, keeping `.env` and the secrets, then runs the
+upgrade. The rollback never runs down-migrations: putting the pre-upgrade backup back is
+the way back, whatever the migrations did.
+
+`scripts/ci_local.sh --only stack` proves it: an upgrade to a rebuilt image, then one to an
+image with a migration that fails, which must roll back with the data intact.

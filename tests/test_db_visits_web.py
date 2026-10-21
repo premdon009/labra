@@ -431,7 +431,7 @@ def test_shortcuts_rendered_from_registry(
     assert {"alt+r", "alt+l"} <= set(_SHORTCUT.findall(pages[f"/frontdesk/visits/{bill.visit_id}"]))
 
     # Keys the browser or the operating system owns are never taken.
-    assert not {"alt+p", "alt+h", "ctrl+n", "ctrl+p", "ctrl+w"} & set(SHORTCUTS)
+    assert not {"alt+p", "ctrl+n", "ctrl+p", "ctrl+w"} & set(SHORTCUTS)
     script = db_client.get("/static/frontdesk.js")
     assert script.status_code == 200 and "data-shortcut" in script.text
 

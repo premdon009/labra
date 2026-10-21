@@ -125,6 +125,16 @@ def test_http_heartbeat_needs_https(monkeypatch: pytest.MonkeyPatch) -> None:
         HttpHeartbeat.from_settings(Settings())
 
 
+@pytest.mark.item("EC-E02")
+def test_an_empty_heartbeat_url_means_not_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Compose passes every job's variable through, empty when the lab has no check for it.
+    monkeypatch.setenv("LABRA_HEARTBEAT_URL_DISK", "")
+    monkeypatch.setenv("LABRA_HEARTBEAT_URL_BACKUP", "https://hc.example.test/ping/abc")
+    assert HttpHeartbeat.from_settings(Settings()).urls == {
+        "backup": "https://hc.example.test/ping/abc"
+    }
+
+
 def test_http_heartbeat_unreachable_only_warns() -> None:
     # Port 9 on localhost refuses; a failed ping must never fail the job itself.
     HttpHeartbeat({"backup": "https://127.0.0.1:9/ping"}, timeout=1).ping("backup")

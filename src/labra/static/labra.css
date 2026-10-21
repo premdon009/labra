@@ -12,6 +12,23 @@
 #content { padding: 1.25rem; flex: 1; }
 .app-foot { padding: 0.5rem 1rem; font-size: 0.8rem; opacity: 0.7; }
 .app-alone { max-width: 26rem; margin: 10vh auto; padding: 1rem; }
+.app-alone-wide { max-width: 52rem; margin-top: 1rem; }
+.app-alone-help { text-align: right; margin: 0 0 0.5rem; }
+/* The manual inside the app: Markdown has no classes, so its elements are styled here. */
+.manual-path { font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.75rem; }
+.manual { max-width: 52rem; line-height: 1.55; }
+.manual h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 1rem; }
+.manual h2 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+.manual h3 { font-size: 1.05rem; font-weight: 600; margin: 1.2rem 0 0.4rem; }
+.manual p, .manual ul, .manual ol, .manual table, .manual pre { margin: 0 0 0.75rem; }
+.manual ul { list-style: disc; padding-left: 1.5rem; }
+.manual ol { list-style: decimal; padding-left: 1.5rem; }
+.manual a { text-decoration: underline; }
+.manual code { font-size: 0.9em; background: var(--muted, #f3f4f6); padding: 0 0.2em; border-radius: 0.2rem; }
+.manual pre { background: var(--muted, #f3f4f6); padding: 0.6rem; overflow-x: auto; }
+.manual pre code { padding: 0; }
+.manual table { border-collapse: collapse; display: block; overflow-x: auto; }
+.manual th, .manual td { border: 1px solid var(--border, #e5e7eb); padding: 0.3rem 0.5rem; text-align: left; vertical-align: top; }
 .page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; }
 .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }

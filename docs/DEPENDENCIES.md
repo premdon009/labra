@@ -25,9 +25,11 @@ is a fix for a published advisory, recorded under [Age exceptions](#age-exceptio
 - Python: `pyproject.toml` sets `[tool.uv] exclude-newer = "7 days"`, so `uv lock`, `uv add` and
   `uv lock --upgrade-package <name>` only pick releases old enough. `--check` reads each
   package's upload time from `uv.lock`.
-- Actions, images and vendored files: the **Pinned** cell holds the version and its release
-  date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created date of
-  an image's digest, and the npm publish date of a vendored file. Update the date whenever the
+- Actions, images, binaries and vendored files: the **Pinned** cell holds the version and its
+  release date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created
+  date of an image's digest, the GitHub release date of a binary, and the npm publish date of a
+  vendored file. A binary's row matches the `ARG <NAME>_VERSION` in the Dockerfile that
+  downloads it, beside an `ARG <NAME>_SHA256_<ARCH>` for amd64 and arm64. Update the date whenever the
   SHA, digest or version changes. An Action's `# vX.Y.Z` comment must match its row.
 - CLI tools and services aren't pinned by the repository. Install a release at least 7 days old.
 
@@ -39,15 +41,15 @@ the next release.
 
 | Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status | Backing | Why we use it | Alternative · exit cost | Reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `fastapi` | runtime | P | MIT | 0.142.2 | 0.143.0 · 2026-10-08 | 90 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
-| `starlette` | runtime | P | BSD-3-Clause | 1.7.0 | 1.8.0 · 2026-10-13 | 23 | Active | team | under FastAPI | — | 2026-10-09 |
-| `uvicorn` | runtime | P | BSD-3-Clause | 0.54.0 | 0.54.0 · 2026-09-25 | 23 | Active | team | ASGI server | Granian · low | 2026-10-09 |
-| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.1 · 2026-10-11 | 20 | Active | company | validation, under FastAPI | — | 2026-10-09 |
-| `pydantic-settings` | runtime | P | MIT | 2.15.0 | 2.15.0 · 2026-08-07 | 7 | Active | company | typed settings from the environment and secret files | own env parsing · low | 2026-10-09 |
-| `sqlalchemy` | runtime | P | MIT | 2.1.3 | 2.1.4 · 2026-10-07 | 20 | Active | team | ORM and Core | — | 2026-10-09 |
+| `fastapi` | runtime | P | MIT | 0.142.2 | 0.156.4 · 2026-10-20 | 111 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
+| `starlette` | runtime | P | BSD-3-Clause | 1.7.0 | 1.9.0 · 2026-10-18 | 24 | Active | team | under FastAPI | — | 2026-10-09 |
+| `uvicorn` | runtime | P | BSD-3-Clause | 0.54.0 | 0.54.0 · 2026-09-25 | 22 | Active | team | ASGI server | Granian · low | 2026-10-09 |
+| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.1 · 2026-10-11 | 18 | Active | company | validation, under FastAPI | — | 2026-10-09 |
+| `pydantic-settings` | runtime | P | MIT | 2.15.0 | 2.16.1 · 2026-10-20 | 9 | Active | company | typed settings from the environment and secret files | own env parsing · low | 2026-10-09 |
+| `sqlalchemy` | runtime | P | MIT | 2.1.3 | 2.1.5 · 2026-10-16 | 22 | Active | team | ORM and Core | — | 2026-10-09 |
 | `alembic` | runtime | P | MIT | 1.20.0 | 1.20.0 · 2026-09-11 | 12 | Active | team | database migrations | — | 2026-10-09 |
-| `psycopg` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 10 | Active | team | the reference Postgres driver; licence exception (ADR-0002) | pg8000 (BSD) · low | 2026-10-09 |
-| `psycopg-binary` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 10 | Active | team | prebuilt psycopg with libpq | build psycopg from source · low | 2026-10-09 |
+| `psycopg` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 9 | Active | team | the reference Postgres driver; licence exception (ADR-0002) | pg8000 (BSD) · low | 2026-10-09 |
+| `psycopg-binary` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 9 | Active | team | prebuilt psycopg with libpq | build psycopg from source · low | 2026-10-09 |
 | `jinja2` | runtime | P | BSD-3-Clause | 3.1.6 | 3.1.6 · 2025-03-05 | 0 | Watch | team | page templates and the sandbox (EC-A08); no release for 19 months | none at the same fit; plain features only · very high | 2026-10-09 |
 | `python-multipart` | runtime | P | Apache-2.0 | 0.0.32 | 0.0.32 · 2026-06-04 | 12 | Active | team | form parsing | — | 2026-10-09 |
 | `argon2-cffi` | runtime | P | MIT | 25.1.0 | 25.1.0 · 2025-06-03 | 0 | Stable | single maintainer (long-standing) | password hashing with rehash on login (EC-A01) | hashlib.scrypt · low | 2026-10-09 |
@@ -57,24 +59,25 @@ the next release.
 | `python-barcode` | runtime | P | MIT | 0.16.1 | 0.16.1 · 2025-08-27 | 0 | Stable | single maintainer (long-standing) | Code 128 patterns for sample labels; drawn as SVG by our template, no Pillow | own Code 128 encoder (~150 lines) · low | 2026-10-12 |
 | `weasyprint` | runtime | P | BSD-3-Clause | 70.0 | 70.0 · 2026-09-08 | 5 | Active | team | report and bill PDFs from HTML and CSS: paged media, running headers, page counters; no browser; system Pango and HarfBuzz in the image; fetches nothing from the network (own URL fetcher) | Chromium print through Playwright · medium | 2026-10-14 |
 | `pyphen` | runtime | P | MPL-1.1 | 0.18.1 | 0.18.1 · 2026-08-14 | 2 | Active | single maintainer (long-standing) | hyphenation, required by WeasyPrint; tri-licensed GPL-2.0+ OR LGPL-2.1+ OR MPL-1.1, used under MPL-1.1, imported unmodified (licence exception); its 50 bundled dictionaries carry mixed licences, some GPL-only, and Labra never hyphenates | none while WeasyPrint needs it; leaves only with WeasyPrint (ADR-0012) · medium | 2026-10-14 |
-| `pypdf` | runtime | P | BSD-3-Clause | 6.19.0 | 6.20.1 · 2026-10-12 | 45 | Active | team | stamps a vector PDF letterhead under each page, appends outside lab PDFs with their JavaScript and actions removed, de-duplicates objects | pikepdf (MPL-2.0) · low | 2026-10-14 |
+| `pypdf` | runtime | P | BSD-3-Clause | 6.19.0 | 6.21.1 · 2026-10-17 | 46 | Active | team | stamps a vector PDF letterhead under each page, appends outside lab PDFs with their JavaScript and actions removed, de-duplicates objects | pikepdf (MPL-2.0) · low | 2026-10-14 |
 | `pypdfium2` | runtime | P | Apache-2.0 OR BSD-3-Clause | 5.14.0 | 5.14.0 · 2026-10-04 | 18 | Active | single maintainer | PNG preview of a PDF page in the letterhead editor | the `pdftoppm` command · low | 2026-10-14 |
-| `pillow` | runtime | P | MIT-CMU | 12.3.0 | 12.3.0 · 2026-07-01 | 5 | Active | team | re-encodes letterhead and signature images: resize, strip metadata, JPEG or palette PNG | the `vips` command · low | 2026-10-14 |
+| `markdown` | runtime | P | BSD-3-Clause | 3.11 | 3.11.2 · 2026-10-19 | 7 | Active | team | the manual inside the app and its PDF, made from the same Markdown files as the website, with the built-in extensions only | mistune (BSD-3-Clause), or HTML built into the image from the site · medium | 2026-10-16 |
+| `pillow` | runtime | P | MIT-CMU | 13.0.0 | 13.0.0 · 2026-10-16 | 5 | Active | team | re-encodes letterhead and signature images: resize, strip metadata, JPEG or palette PNG | the `vips` command · low | 2026-10-14 |
 | `segno` | runtime | P | BSD-3-Clause | 1.6.6 | 1.6.6 · 2025-03-12 | 0 | Stable | single maintainer (long-standing) | QR code on reports, drawn as inline SVG | own QR encoder · medium | 2026-10-14 |
-| `duckdb` | runtime | P | MIT | 1.5.6 | 1.5.6 · 2026-09-28 | 90 | Active | foundation | writes the Parquet files of the full data export; no extensions are loaded, so it never downloads anything | pyarrow · low | 2026-10-14 |
+| `duckdb` | runtime | P | MIT | 1.5.6 | 1.5.6 · 2026-09-28 | 95 | Active | foundation | writes the Parquet files of the full data export; no extensions are loaded, so it never downloads anything | pyarrow · low | 2026-10-14 |
 | `faker` | seed | P | MIT | 40.41.0 | 40.43.0 · 2026-10-09 | 64 | Active | team | synthetic demo data (`labra seed`) | hand-written lists · low | 2026-10-09 |
-| `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.13.1 · 2026-09-23 | 18 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |
+| `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.15.1 · 2026-10-19 | 21 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |
 | `pytest` | dev | P | MIT | 9.1.1 | 9.1.1 · 2026-06-19 | 6 | Active | team | tests | — | 2026-10-09 |
 | `pytest-cov` | dev | P | MIT | 7.1.0 | 7.1.0 · 2026-03-21 | 1 | Stable | team | coverage (EC-H01) | coverage run · low | 2026-10-09 |
 | `pytest-rerunfailures` | dev | P | MPL-2.0 | 16.7 | 16.7 · 2026-09-17 | 7 | Active | team | re-runs a failed test once in the gate, to tell flaky from broken (W08) | gate re-run logic · low | 2026-10-14 |
 | `testcontainers` | dev | P | Apache-2.0 | 4.15.0 | 4.15.0 · 2026-07-24 | 9 | Active | company | real Postgres in tests | a Compose test service · low | 2026-10-09 |
-| `ruff` | dev | P | MIT | 0.16.10 | 0.17.0 · 2026-10-09 | 49 | Active | company | lint and format | — | 2026-10-09 |
+| `ruff` | dev | P | MIT | 0.16.10 | 0.17.1 · 2026-10-15 | 49 | Active | company | lint and format | — | 2026-10-09 |
 | `pyright` | dev | P | MIT | 1.1.414 | 1.1.414 · 2026-09-10 | 8 | Active | company | type checks; ty is pre-1.0, re-check at gate 1 | ty · low | 2026-10-09 |
 | `import-linter` | dev | P | BSD-2-Clause | 2.15 | 2.15 · 2026-09-04 | 10 | Active | single maintainer | keeps domain code off adapters (ADR-0008) | a small AST check · low | 2026-10-09 |
 | `pip-audit` | dev | P | Apache-2.0 | 2.10.1 | 2.10.1 · 2026-06-10 | 2 | Active | foundation | known-vulnerability scan of Python packages | osv-scanner alone · low | 2026-10-09 |
 | `pre-commit` | dev | P | MIT | 4.6.2 | 4.7.0 · 2026-10-12 | 7 | Active | team | runs the gates before each commit | git hooks by hand · low | 2026-10-09 |
-| `zensical` | dev | P | MIT | 0.0.68 | 0.0.70 · 2026-10-12 | 67 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
-| `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.169.1 · 2026-10-14 | 135 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
+| `zensical` | dev | P | MIT | 0.0.68 | 0.0.71 · 2026-10-16 | 68 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
+| `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.170.5 · 2026-10-20 | 138 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
 | `playwright` | dev | P | Apache-2.0 | 1.63.0 | 1.64.0 · 2026-10-13 | 9 | Active | company | the front-desk browser test (keys, 1366×768); browsers installed separately | Selenium · medium | 2026-10-12 |
 | `pdfplumber` | dev | P | MIT | 0.11.10 | 0.11.10 · 2026-06-15 | 3 | Active | single maintainer | tests read words and their positions from rendered PDFs (§7.2 content box, PDF snapshots) | pdfminer.six directly · low | 2026-10-14 |
 | `hatchling` | build | P | MIT | — | — | — | Active | team | builds the wheel | setuptools · low | 2026-10-09 |
@@ -83,7 +86,7 @@ the next release.
 | `basecoat-css` | vendored | P | MIT | 1.0.2 · 2026-07-06 | 1.0.2 | 3 | Watch | single maintainer, young | consistent components without a JS framework; vendored, so a stop can't break the app | own CSS · medium | 2026-10-09 |
 | `noto-sans` | font | P | OFL-1.1 | 2.015 · 2024-11-20 | 2.015 · 2024-11-20 | — | Stable | company | report and bill text, ₹ included; the same output on every machine (`static/vendor/`, licence text beside it) | DejaVu Sans · low | 2026-10-14 |
 | `noto-sans-devanagari` | font | P | OFL-1.1 | 2.007 · 2026-09-09 | 2.007 · 2026-09-09 | — | Active | company | patient names in Hindi or Marathi on reports and bills | Lohit Devanagari · low | 2026-10-14 |
-| `postgres` | image | P | PostgreSQL | 18 · 2026-10-06 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030 | — | 2026-10-09 |
+| `postgres` | image | P | PostgreSQL | 18 · 2026-10-06 | 18 | — | Active | foundation | the database; 18 for support until Nov 2030. Also the backup image's base, so `pg_dump` matches the server (ADR-0013) | — | 2026-10-16 |
 | `caddy` | image | P | Apache-2.0 | 2 · 2026-10-05 | 2 | — | Active | company | HTTPS, security headers, reverse proxy | nginx, tested · low | 2026-10-09 |
 | `cloudflare/cloudflared` | image | P | Apache-2.0 | 2026.10.0 · 2026-10-05 | 2026.10.0 · 2026-10-05 | — | Active | company | reach the lab from branches without opening ports; service lock-in | Tailscale, NetBird or WireGuard · medium | 2026-10-09 |
 | `nginx` | image | P | BSD-2-Clause | 1.30 · 2026-10-06 | 1.30 | — | Active | company | proxy alternative to Caddy (`deploy/nginx/`, ADR-0009) | Caddy · low | 2026-10-09 |
@@ -91,6 +94,8 @@ the next release.
 | `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 · 2026-10-01 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
 | `python` | image | P | PSF-2.0 | 3.14-slim · 2026-10-06 | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
 | `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
+| `restic` | binary | P | BSD-2-Clause | 0.19.1 · 2026-07-05 | 0.19.1 · 2026-07-05 | 3 | Active | team | encrypted, deduplicated backup snapshots (`deploy/backup/`, ADR-0013); release binary checked by SHA-256 | Borg · medium | 2026-10-16 |
+| `rclone` | binary | P | MIT | 1.75.2 · 2026-10-09 | 1.75.2 · 2026-10-09 | many | Active | team | restic's way to Google Drive (`rclone:` backend, ADR-0013); release binary checked by SHA-256 | restic's own S3, B2 or SFTP backends · low | 2026-10-16 |
 | `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |
 | `actions/upload-artifact` | action | P | MIT | v7.0.1 · 2026-04-10 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
 | `astral-sh/setup-uv` | action | P | MIT | v7.6.0 · 2026-03-16 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
@@ -117,6 +122,7 @@ the next release.
 | `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
 | `NetBird` | service | P | — | — | — | — | Active | company | control plane for the `netbird` profile; self-hostable (AGPL-3.0, run as a separate service) | Tailscale or WireGuard · low | 2026-10-09 |
 | `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups (`LABRA_HEARTBEAT=http`); self-hostable | Uptime Kuma · low | 2026-10-09 |
+| `Google Drive` | service | P | — | — | — | — | Active | company | the off-site backup copy, encrypted by restic before it leaves the lab (ADR-0013); the lab's own account | any rclone remote: S3, B2, SFTP · low | 2026-10-16 |
 
 ## Age exceptions
 
@@ -127,3 +133,5 @@ an exception is no longer needed; then drop its row and the entry.
 
 | Component | Version | Advisory | Why it can't wait | Added |
 |---|---|---|---|---|
+| `pillow` | 13.0.0 | GHSA-pchr-8j38-3x4p | 12.3.0 has the advisories fixed in 13.0.0 (two critical: stale image storage, JPEG decoder overflow); Labra decodes uploaded logos and signatures with it; the breaking changes in 13.0.0 touch nothing Labra calls | 2026-10-21 |
+| `certifi` | 2026.10.19 | PYSEC-2026-4320 | 2026.7.22 has a 9.1 advisory; a development dependency only (through requests, for pip-audit and testcontainers), but the audit stage fails every gate run until it is updated | 2026-10-21 |

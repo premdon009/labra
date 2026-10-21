@@ -8,15 +8,26 @@ Every feature Labra has, and the manual page that explains it.
 |---|---|---|
 | EC-A01 | Passwords hashed with argon2 | [Signing in](getting-started/login.md) |
 | EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Signing in](getting-started/login.md) |
+| EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Sign-in problems](troubleshooting/sign-in-problems.md) |
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
 | EC-A07 | Upload safety: type sniffed | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | EC-B05 | Released reports and issued bills are immutable | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| EC-B06 | Append-only audit log with a hash chain | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-B07 | Idempotent form submits | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [New visit](frontdesk/new-visit.md) |
+| EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D02 | Monthly restore drill, automated, result logged | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D03 | Written targets: RPO ≤ 15 min | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D03 | Written targets: RPO ≤ 15 min | [Working on paper](troubleshooting/working-on-paper.md) |
+| EC-D05 | Postgres: `fsync` on, checksums on, disk-space alert at 80% | [Alerts and nightly checks](admin/alerts-and-checks.md) |
+| EC-D07 | Main lab works with the WAN unplugged | [Labra won't open](troubleshooting/labra-wont-open.md) |
+| EC-E02 | Uptime monitor | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
+| EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Labra won't open](troubleshooting/labra-wont-open.md) |
+| EC-E04 | `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry | [System](admin/system.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
 | EC-F03 | Pagination everywhere | [Methods and comment presets](admin/methods.md) |
@@ -26,14 +37,21 @@ Every feature Labra has, and the manual page that explains it.
 | EC-F03 | Pagination everywhere | [Dues and payments](frontdesk/dues-and-payments.md) |
 | EC-F03 | Pagination everywhere | [Find or register a patient](frontdesk/find-patient.md) |
 | EC-F03 | Pagination everywhere | [Referrers](frontdesk/referrers.md) |
+| EC-G01 | SemVer 0.x, `CHANGELOG.md` with dated entries | [System](admin/system.md) |
+| EC-G03 | Upgrade script: takes a backup → pulls the pinned image → runs migrations → health check → automatic rollback to the previous image + restore if the health check fails | [System](admin/system.md) |
 | EC-J01 | Keyboard-first front desk | [Sample labels and collection](frontdesk/labels.md) |
 | EC-J01 | Keyboard-first front desk | [New visit](frontdesk/new-visit.md) |
 | EC-J01 | Keyboard-first front desk | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
 | EC-J02 | Works in Chrome/Edge on a 1366×768 screen | [New visit](frontdesk/new-visit.md) |
 | EC-J03 | Clear empty, loading and error states | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | EC-K03 | Draft → preview → publish for templates and letterheads | [Letterhead and margins](admin/letterhead-and-margins.md) |
+| EC-L02 | User manual | [A day at the lab](getting-started/a-day-at-the-lab.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Labra won't open](troubleshooting/labra-wont-open.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Sign-in problems](troubleshooting/sign-in-problems.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Working on paper](troubleshooting/working-on-paper.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
+| M01 | Login and roles | [Sign-in problems](troubleshooting/sign-in-problems.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Screen layout](getting-started/screen-layout.md) |
 | M01.2 | Staff without login (collected/delivered by) | [Staff and roles](admin/users-and-roles.md) |
@@ -90,6 +108,7 @@ Every feature Labra has, and the manual page that explains it.
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Test catalog](admin/catalog.md) |
 | M14.1 | Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test | [Methods and comment presets](admin/methods.md) |
 | M14.2 | A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save | [Test catalog](admin/catalog.md) |
+| M16 | Backups: Google Drive + USB via restic | [Backups and restore](admin/backups-and-restore.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Letterhead and margins](admin/letterhead-and-margins.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Settings](admin/settings.md) |
 | M17 | Letterhead and margin calibration (§7.2) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
@@ -115,6 +134,12 @@ Every feature Labra has, and the manual page that explains it.
 | M23.1 | Admin price headings use the currency symbol from settings | [Prices](admin/prices.md) |
 | M24 | Starter catalog import: the tests the lab already reports (Appendix A), ranges cited (§1c) | [Starter catalog](admin/starter-catalog.md) |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
+| M25.3 | In-app `?` help and printable manual PDF | [Help and the manual](getting-started/help.md) |
+| M25.3 | In-app `?` help and printable manual PDF | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
+| M25.4 | The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks` | [Help and the manual](getting-started/help.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Data export](admin/data-export.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M27 | Change my own password: the current one, then a new one twice; a wrong current password counts towards the sign-in lockout; other sessions end; audited | [Changing my password](getting-started/change-password.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |
+| W07 | Restore-drill script and runbooks | [Backups and restore](admin/backups-and-restore.md) |
+| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | [Backups and restore](admin/backups-and-restore.md) |

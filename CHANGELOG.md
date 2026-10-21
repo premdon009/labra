@@ -44,8 +44,20 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - `report.released` events in the outbox.
 - The branch and settings screens warn when bills would print no place of supply, and the main lab's GST state code must be two digits or empty.
 - Tests for the security headers and a scan of the templates for inline code; a browser test of releasing, printing and handing over; snapshot tests for the report and bill PDFs.
+- Backups to Google Drive and a USB disk with restic, every 15 minutes in lab hours and nightly, run by host timers in a one-shot backup container, with a run log and an alert on a missed or failed run.
+- `scripts/restore.sh` to restore a backup on the same or a new server, and a monthly restore drill that checks the tables and the audit log.
+- Nightly audit log check, an hourly disk check that alerts at 80% used, and a watchdog that alerts when Labra can't be reached.
+- **Admin ▸ System** page: version, last backup, drill and checks, disk space, database size, pending migrations and certificate expiry.
+- `scripts/upgrade.sh` takes a backup, upgrades, and rolls back to the old image and data when the new version doesn't come up.
+- The user manual inside the app: **Alt+H** or the Help link opens the screen's page, and the whole manual downloads as a PDF.
+- Laptop budgets checked against a capped stack with 50,000 synthetic patients.
+- Install guide for the main lab's laptop, runbooks (restore, laptop dead, branch internet down, forgotten administrator password, certificate and tunnel, disk full), troubleshooting pages and "A day at the lab".
+- `labra set-password` gives someone a new password at the server.
+- The runbooks are in the app's manual and its PDF, so they open with the internet down.
+- Anyone signed in can change their own password from the **Password** link in the header; their other sessions end.
 
 ### Changed
+- Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.
 - Admin price headings use the currency symbol from settings.
@@ -59,6 +71,8 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The gate and pre-commit lint the shell scripts with shellcheck.
 - The demo seed draws every person's name from Faker and the letterhead preview samples show role labels, so no person's name is written in the code.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
+- Pillow 13.0.0 and certifi 2026.10.19, for published advisories.
+- The stack smoke test checks that Postgres runs with fsync and data checksums on.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.
@@ -69,3 +83,5 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - A form that carries a row version that isn't a number is refused as out of date instead of failing.
 - Previous and Next work on the departments and specimens screen after a refused save.
 - The demo signatory's degree is printed once, as a qualification, not in the name as well.
+- The System page counts the HTTPS certificate as renewing itself only when Caddy issued it, so a short certificate made by hand now warns before it runs out.
+- A restore on a new server puts the stored files back: the backup image owns the folder they go into. The row counts are checked inside the restore's transaction, so a short backup leaves the database as it was, and stored files that fail after the database loaded are reported as an incomplete restore with Labra left stopped.

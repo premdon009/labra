@@ -14,6 +14,7 @@
   {% endif %}
   {% if principal.can('setting.view') %}
   <a class="card" href="/admin/settings"><header><h2>Settings</h2><p>Lab-wide and per-branch settings.</p></header></a>
+  <a class="card" href="/admin/system"><header><h2>System</h2><p>Backups, disk space, version and certificate.</p></header></a>
   {% endif %}
 </div>
 {% endblock %}

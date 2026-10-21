@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19]
+items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -94,10 +94,12 @@ Compose passes through:
 | `LABRA_SECRETS_DIR` | `./secrets` | where the secret files are |
 | `LABRA_HTTP_PORT`, `LABRA_HTTPS_PORT` | `80`, `443` | published ports (rootless runtimes: see [Container runtimes](runtimes.md)) |
 | `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the proxy network; the app trusts forwarded addresses only from it |
+| `LABRA_CERT_CHECK_HOST` | `proxy:443` | where the System page reads the HTTPS certificate's expiry (by the `LABRA_SITE` name); empty switches it off |
+| `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
+| `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
 
-Anything else, such as heartbeat URLs (`LABRA_HEARTBEAT_URL_<JOB>`) or the
-`LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the top of `compose.yaml`. Run
-`docker compose exec web labra check-config` after changing them.
+Anything else, such as the `LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the
+top of `compose.yaml`. Run `docker compose exec web labra check-config` after changing them.
 
 ## Exports
 
@@ -111,6 +113,65 @@ docker compose cp web:/data/export ./export-copy
 ```
 
 The [Data export](../manual/admin/data-export.md) page of the manual explains the files.
+
+## Backups
+The `backup` service ([ADR-0013](../adr/0013-backup-runner.md)) sits under the `jobs` profile,
+so `up -d` never starts it. `scripts/backup.sh` runs one job in it, one at a time:
+
+```bash
+scripts/backup.sh init        # create the repositories (once)
+scripts/backup.sh backup      # one backup: pg_dump + /data/files into every repository
+scripts/backup.sh snapshots   # list them
+scripts/drill.sh              # the monthly drill: each repository into a scratch database
+scripts/restore.sh [--from usb|drive] [--replace] [SNAPSHOT]   # put the data back
+sudo scripts/install_timers.sh --dry-run   # the systemd timers it would install
+```
+
+It needs two more secrets beside `database_url`, both mode 0644 inside the 0700 folder,
+because the job runs as uid 10001 like the app:
+
+- `restic_password`: the repository password. Keep a paper copy; without it no backup opens.
+- `rclone.conf`: an rclone config with a remote named `drive`. For a test, `[drive]` with
+  `type = local` stores the "Drive" repository on a local path.
+
+`LABRA_BACKUP_REPO_DRIVE` (for example `rclone:drive:labra-backup`) and
+`LABRA_BACKUP_REPO_USB` (`/backup/usb/labra`, the host's `LABRA_BACKUP_USB_DIR` inside the
+container) choose the repositories; leave one empty to skip it. Each run adds a row to
+`ops_run` and pings `LABRA_HEARTBEAT_URL_BACKUP` (the drill: `LABRA_HEARTBEAT_URL_DRILL`).
+
+`restore.sh` stops `web`, runs the job in the `restore` service (the same image, with the files
+volume writable) and starts the stack again. The load is one `psql -1` transaction, and every
+table's row count is checked against the dump's `COPY` blocks. It refuses a database that
+already has tables unless `--replace` is given. The drill restores into `labra_drill`, a name
+the job insists ends in `_drill`, and runs `labra audit verify --database labra_drill` from the
+web image.
+
+`scripts/stack_smoke.sh` takes real backups into both kinds of repository and one with the USB
+disk missing, then runs the drill, a refused restore, a `--replace` restore and a drill of a
+damaged repository. The [Backups and restore](../manual/admin/backups-and-restore.md) page is the
+administrator's guide; [Restore from backup](../runbooks/restore-from-backup.md) is the runbook.
+
+### Nightly checks and the watchdog
+
+`install_timers.sh` also installs three checks:
+
+```bash
+scripts/labra.sh audit verify   # 02:30 nightly: the audit hash chain, logged as kind verify
+scripts/labra.sh check-disk     # hourly: fails at 80% used (--percent N to change it)
+scripts/watchdog.sh             # every 5 minutes: fetches /healthz, pings only when it answers ok
+```
+
+`labra.sh` runs any `labra` command in the running `web` container. The watchdog runs in the
+backup image without the backup lock, and fetches `LABRA_WATCHDOG_URL` (default
+`http://web:8000/healthz`; set it to the public address so the tunnel is checked too). Each
+check pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY`, `_DISK` or `_WATCHDOG` when
+`LABRA_HEARTBEAT=http`. An empty URL means "not set". The administrator's guide is
+[Alerts and nightly checks](../manual/admin/alerts-and-checks.md).
+
+## Logs
+Every long-running service keeps at most five 10 MB log files (`x-logging` in `compose.yaml`,
+the `json-file` driver), so the engine's own default doesn't matter and no `daemon.json` is
+needed. `docker compose logs <service>` reads them.
 
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.

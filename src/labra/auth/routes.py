@@ -10,7 +10,12 @@ from labra.auth.models import UserSession
 from labra.auth.principal import Principal
 from labra.core.config import get_settings
 from labra.core.db import get_session
-from labra.core.errors import AuthenticationError, PermissionDeniedError
+from labra.core.errors import (
+    AuthenticationError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationFailedError,
+)
 from labra.core.ids import utcnow
 from labra.core.registry import get_platform
 from labra.web.templating import page, render
@@ -102,6 +107,54 @@ def switch_branch(
         raise PermissionDeniedError()
     service.switch_branch(db, session, target)
     return RedirectResponse("/", status_code=303)
+
+
+def _password_login() -> None:
+    if get_platform().identity.kind != "password":
+        raise NotFoundError("passwords are kept by the sign-in provider")
+
+
+@router.get("/account/password", response_class=HTMLResponse)
+@page("getting-started/change-password", "auth/change_password.html")
+def change_password_page(
+    request: Request, _: Annotated[Principal, Depends(signed_in)], changed: bool = False
+) -> Response:
+    _password_login()
+    return render(request, "auth/change_password.html", {"errors": {}, "changed": changed})
+
+
+@router.post("/account/password")
+def change_password(
+    request: Request,
+    db: DB,
+    session: Annotated[UserSession | None, Depends(optional_session)],
+    _: Annotated[Principal, Depends(signed_in)],
+    current: Annotated[str, Form()] = "",
+    new: Annotated[str, Form()] = "",
+    again: Annotated[str, Form()] = "",
+) -> Response:
+    _password_login()
+    if session is None:
+        raise AuthenticationError()
+    try:
+        service.change_own_password(
+            db,
+            get_platform().identity,
+            session,
+            current,
+            new,
+            again,
+            client_ip(request),
+            utcnow(),
+        )
+    except ValidationFailedError as exc:
+        return render(
+            request,
+            "auth/change_password.html",
+            {"errors": exc.errors, "changed": False},
+            status_code=422,
+        )
+    return RedirectResponse("/account/password?changed=1", status_code=303)
 
 
 @router.get("/", response_class=HTMLResponse)

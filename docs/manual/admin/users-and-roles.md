@@ -38,7 +38,8 @@ To add a signatory's signature:
    **Remove the signature**.
 
 To change someone, select **Edit** on their row. To reset a password, type a **New
-password** and save; they are signed out everywhere. When someone leaves, untick **Still
+password** and save; they are signed out everywhere, and can then choose their own on
+[Changing my password](../getting-started/change-password.md). When someone leaves, untick **Still
 works here**. Their name stays on the records they made.
 
 ## Screenshot

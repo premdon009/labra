@@ -11,6 +11,8 @@
 - a font row (OFL-1.1) vendors anything but font files and their licence text
 - a workflow `uses:` isn't pinned by a 40-character commit SHA
 - an image in compose.yaml or the Dockerfile has no digest
+- a release binary a Dockerfile downloads (`ARG <NAME>_VERSION`) has no `binary` row with that
+  version, or lacks a SHA-256 for amd64 or arm64
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
 - a pinned version is younger than MIN_AGE (uv.lock upload time, or the date in the Pinned
   cell of an Action, image or vendored row) and no Age exceptions row names its advisory
@@ -41,7 +43,11 @@ IMAGE_FILES = (
     ROOT / "compose.yaml",
     ROOT / "Dockerfile",
     ROOT / "deploy/nginx/compose.nginx.yaml",
+    ROOT / "deploy/backup/Dockerfile",
 )
+# Dockerfiles that download release binaries, each pinned by version and per-arch SHA-256.
+BINARY_FILES = (ROOT / "deploy/backup/Dockerfile",)
+BINARY_ARCHES = ("AMD64", "ARM64")
 
 ALLOWED = {
     "MIT", "MIT-CMU", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "0BSD",
@@ -61,7 +67,7 @@ NAME_CELL_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
 
 # Minimum release age: no pinned version younger than this, unless it fixes a published advisory.
 MIN_AGE = timedelta(days=7)
-DATED_KINDS = {"action", "image", "vendored", "font"}
+DATED_KINDS = {"action", "image", "vendored", "font", "binary"}
 ADVISORY_RE = re.compile(r"^(GHSA(-[0-9a-z]{4}){3}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
 EXCEPTIONS_HEADING = "## Age exceptions"
 
@@ -319,6 +325,42 @@ def check_images(rows: list[Row]) -> list[str]:
     return problems
 
 
+def check_binaries(rows: list[Row]) -> list[str]:
+    known = {r.name: r for r in rows if r.kind == "binary"}
+    used: set[str] = set()
+    problems = []
+    for path in BINARY_FILES:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        args = dict(re.findall(r"^ARG\s+(\w+)=(\S*)", text, re.M))
+        for n, line in enumerate(text.splitlines(), 1):
+            m = re.match(r"ARG\s+(\w+)_VERSION=(\S*)", line)
+            if not m:
+                continue
+            key, version = m.groups()
+            name = key.lower()
+            used.add(name)
+            where = f"{path.relative_to(ROOT)}:{n}"
+            for arch in BINARY_ARCHES:
+                if not re.fullmatch(r"[0-9a-f]{64}", args.get(f"{key}_SHA256_{arch}", "")):
+                    problems.append(f"{where}: {name} needs ARG {key}_SHA256_{arch}=<sha256>")
+            row = known.get(name)
+            if row is None:
+                problems.append(f"{where}: binary {name} has no row in docs/DEPENDENCIES.md")
+            elif row.version != version:
+                problems.append(
+                    f"DEPENDENCIES.md:{row.line}: {name} pinned {row.version}, "
+                    f"{path.relative_to(ROOT)} downloads {version}"
+                )
+    problems += [
+        f"DEPENDENCIES.md:{r.line}: binary {r.name} isn't downloaded anywhere; drop the row"
+        for r in known.values()
+        if r.name not in used
+    ]
+    return problems
+
+
 def check_vendored(rows: list[Row]) -> list[str]:
     known = {r.name: r for r in rows if r.kind in {"vendored", "font"}}
     manifest = json.loads((VENDOR / "manifest.json").read_text(encoding="utf-8"))
@@ -475,6 +517,7 @@ def check(rows: list[Row], exceptions: list[AgeException] | None = None) -> list
         + check_python(rows)
         + check_actions(rows)
         + check_images(rows)
+        + check_binaries(rows)
         + check_vendored(rows)
         + check_age(rows, exceptions or [], lock_packages(), exempt_packages(), datetime.now(UTC))
     )

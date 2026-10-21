@@ -18,8 +18,11 @@ nav = [
     "manual/index.md",
     { "Getting started" = [
       "manual/getting-started/login.md",
+      "manual/getting-started/change-password.md",
       "manual/getting-started/screen-layout.md",
       "manual/getting-started/keyboard-shortcuts.md",
+      "manual/getting-started/help.md",
+      "manual/getting-started/a-day-at-the-lab.md",
     ] },
     { "Admin" = [
       "manual/admin/branches.md",
@@ -34,6 +37,9 @@ nav = [
       "manual/admin/letterhead-and-margins.md",
       "manual/admin/starter-catalog.md",
       "manual/admin/data-export.md",
+      "manual/admin/backups-and-restore.md",
+      "manual/admin/alerts-and-checks.md",
+      "manual/admin/system.md",
     ] },
     { "Front desk" = [
       "manual/frontdesk/new-visit.md",
@@ -63,16 +69,33 @@ nav = [
       "manual/owner/daily-collection.md",
       "manual/owner/dues-pending-outsourcing.md",
     ] },
+    { "Troubleshooting" = [
+      "manual/troubleshooting/labra-wont-open.md",
+      "manual/troubleshooting/sign-in-problems.md",
+      "manual/troubleshooting/working-on-paper.md",
+    ] },
+  ] },
+  { "Install" = [
+    "install/laptop.md",
   ] },
   { "Developers" = [
     "dev/setup.md",
     "dev/workflow.md",
     "dev/running-the-stack.md",
     "dev/runtimes.md",
+    "dev/performance.md",
     "dev/services.md",
     "dev/releasing.md",
     "dev/tooling-issues.md",
     "DEPENDENCIES.md",
+  ] },
+  { "Runbooks" = [
+    "runbooks/restore-from-backup.md",
+    "runbooks/laptop-dead.md",
+    "runbooks/branch-internet-down.md",
+    "runbooks/forgotten-admin-password.md",
+    "runbooks/certificate-and-tunnel.md",
+    "runbooks/disk-full.md",
   ] },
   { "Decisions" = [
     "adr/index.md",
@@ -88,6 +111,7 @@ nav = [
     "adr/0010-own-admin-screens.md",
     "adr/0011-svg-stdlib-parser.md",
     "adr/0012-pdf-engine.md",
+    "adr/0013-backup-runner.md",
   ] },
   { "Plan and progress" = [
     "design/v1-plan.md",

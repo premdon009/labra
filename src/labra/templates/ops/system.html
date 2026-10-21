@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}System{% endblock %}
+{% block content %}
+<div class="page-head"><h1>System</h1></div>
+{% set problems = jobs|selectattr('problem')|list|length + (1 if disk.problem else 0) + (1 if migrations.problem else 0) + (1 if cert.problem else 0) %}
+{% if problems %}
+<div class="alert" role="alert"><h2>{{ problems }} thing{{ 's' if problems != 1 }} need{{ 's' if problems == 1 }} attention, marked below.</h2></div>
+{% endif %}
+
+<h2>Labra</h2>
+<dl>
+  <dt>Version</dt><dd>{{ version }}</dd>
+  <dt>Database</dt>
+  <dd>
+    {{ db_bytes|filesizeformat }}.
+    {% if migrations.error %}<span class="badge-destructive">Migrations can't be read</span>
+    {% elif migrations.pending %}<span class="badge-destructive">{{ migrations.pending|length }} migration{{ 's' if migrations.pending|length != 1 }} not applied</span> Run <code>labra migrate</code>.
+    {% else %}Up to date ({{ migrations.current|sort|join(', ') }}).{% endif %}
+  </dd>
+  <dt>Disk space</dt>
+  <dd>
+    {% if disk.percent is none %}<span class="badge-destructive">Can't be read</span> {{ disk.error }}
+    {% else %}{{ disk.percent }}% used, {{ disk.free|filesizeformat }} free.
+    {% if disk.problem %}<span class="badge-destructive">Low</span> The alert is at {{ disk_alert }}%.{% endif %}{% endif %}
+  </dd>
+  <dt>HTTPS certificate</dt>
+  <dd>
+    {% if not cert.checked %}Not checked.
+    {% elif cert.error %}<span class="badge-destructive">Can't be read</span> {{ cert.error }}
+    {% elif cert.days_left < 0 %}<span class="badge-destructive">Expired</span> on {{ cert.expires|local_time }}.
+    {% else %}Valid until {{ cert.expires|local_time }}{% if cert.auto_renewed %}; the proxy renews it by itself.{% else %} ({{ cert.days_left }} day{{ 's' if cert.days_left != 1 }} left).{% if cert.problem %} <span class="badge-destructive">Renew soon</span>{% endif %}{% endif %}
+    {% endif %}
+  </dd>
+</dl>
+
+<h2>Scheduled jobs</h2>
+<table class="table">
+  <thead><tr><th>Job</th><th>Last good run</th><th>Last run</th><th>State</th><th>Overdue after</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for j in jobs %}
+    <tr>
+      <td>{{ j.label }}</td>
+      <td>{% if j.last_ok %}{{ j.last_ok.started_at|local_time }}{% else %}—{% endif %}</td>
+      <td>{% if j.last %}{{ j.last.started_at|local_time }}{% else %}—{% endif %}</td>
+      <td>
+        {% if j.state == 'failed' %}<span class="badge-destructive">Failed</span>
+        {% elif j.state == 'overdue' %}<span class="badge-destructive">Overdue</span>
+        {% elif j.state == 'never' and j.problem %}<span class="badge-destructive">Never run</span>
+        {% elif j.state == 'never' %}<span class="badge-outline">Never run</span>
+        {% else %}<span class="badge">OK</span>{% endif %}
+      </td>
+      <td>{{ j.overdue_after }}</td>
+      <td>{% if j.last and j.last.detail %}{{ j.last.detail|truncate(200) }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="muted">A job is overdue when its last good run started longer ago than the time shown. The alerts by email or Telegram come from the monitoring service, not from this page.</p>
+{% endblock %}

@@ -23,7 +23,19 @@ from labra.core.db import get_session
 from labra.core.errors import AuthenticationError, PermissionDeniedError
 from labra.core.ids import utcnow
 
-PUBLIC_PATHS = frozenset({"/login", "/healthz", "/readyz", "/metrics", "/static", "/v/{token}"})
+PUBLIC_PATHS = frozenset(
+    {
+        "/login",
+        "/healthz",
+        "/readyz",
+        "/metrics",
+        "/static",
+        "/v/{token}",
+        "/manual/",
+        "/manual/labra-manual.pdf",
+        "/manual/{name:path}/",
+    }
+)
 UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 CSRF_FAILED = "This form has expired. Reload the page and try again."
 

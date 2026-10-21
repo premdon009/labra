@@ -545,6 +545,114 @@ def test_dated_vendored_row_matches_its_manifest_version(
     ]
 
 
+BINARY_DOCKERFILE = """\
+FROM docker.io/library/debian:13@sha256:abc AS fetch
+ARG TOOL_VERSION=1.2.0
+ARG TOOL_SHA256_AMD64={amd}
+ARG TOOL_SHA256_ARM64={arm}
+"""
+
+
+@pytest.mark.item("M16")
+@pytest.mark.parametrize(
+    ("pinned", "arm", "want"),
+    [
+        ("1.2.0 · 2026-09-01", "b" * 64, []),
+        ("1.1.0 · 2026-09-01", "b" * 64,
+         ["DEPENDENCIES.md:1: tool pinned 1.1.0, deploy/x/Dockerfile downloads 1.2.0"]),
+        ("1.2.0 · 2026-09-01", "",
+         ["deploy/x/Dockerfile:2: tool needs ARG TOOL_SHA256_ARM64=<sha256>"]),
+        (None, "b" * 64, ["deploy/x/Dockerfile:2: binary tool has no row in docs/DEPENDENCIES.md"]),
+    ],
+)  # fmt: skip
+def test_a_downloaded_binary_matches_its_row_and_has_a_checksum_per_arch(
+    pinned: str | None, arm: str, want: list[str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    dockerfile = tmp_path / "deploy" / "x" / "Dockerfile"
+    dockerfile.parent.mkdir(parents=True)
+    dockerfile.write_text(BINARY_DOCKERFILE.format(amd="a" * 64, arm=arm))
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "BINARY_FILES", (dockerfile,))
+    register = f"| `tool` | binary | P | MIT | {pinned} | — |\n" if pinned else ""
+    assert audit.check_binaries(audit.parse_register(register)) == want
+
+
+@pytest.mark.item("M16")
+def test_a_binary_row_with_nothing_downloading_it_is_dropped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    monkeypatch.setattr(audit, "BINARY_FILES", (tmp_path / "missing",))
+    rows = audit.parse_register("| `gone` | binary | P | MIT | 1.0 · 2026-09-01 | — |\n")
+    assert audit.check_binaries(rows) == [
+        "DEPENDENCIES.md:1: binary gone isn't downloaded anywhere; drop the row"
+    ]
+    assert audit.check_age(rows, [], {}, set(), NOW) == []
+    undated = audit.parse_register("| `gone` | binary | P | MIT | 1.0 | — |\n")
+    assert audit.check_age(undated, [], {}, set(), NOW) == [
+        "DEPENDENCIES.md:1: gone: Pinned needs the release date, as `1.0 · YYYY-MM-DD`"
+    ]
+
+
+@pytest.mark.item("W29")
+def test_the_backup_image_owns_the_files_folder_it_restores_into() -> None:
+    # On a new server the restore is the first to mount the files volume, which takes the
+    # owner of the image's folder; without one it is root's, and the restore can't write.
+    dockerfile = (ROOT / "deploy" / "backup" / "Dockerfile").read_text()
+    run = dockerfile[dockerfile.index("RUN useradd ") :]
+    run = run[: run.index("\nENV ")]
+    assert re.search(r"mkdir -p [^&]*/data/files", run), run
+    assert re.search(r"chown -R labra [^&]*/data/files", run), run
+    assert "--uid 10001" in run
+
+
+@pytest.mark.item("W27")
+def test_every_service_rotates_its_logs() -> None:
+    # The engine's default keeps logs forever; each service caps its own (five 10 MB files).
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    m = re.search(r"^x-logging: &logging\n(.*?)(?=^\S)", compose, re.M | re.S)
+    assert m is not None
+    assert [line.strip() for line in m.group(1).splitlines() if line.strip()] == [
+        "driver: json-file",
+        "options:",
+        'max-size: "10m"',
+        'max-file: "5"',
+    ]
+    m = re.search(r"^x-labra: &labra\n(.*?)(?=^\S)", compose, re.M | re.S)
+    assert m is not None
+    assert re.search(r"^  logging: \*logging$", m.group(1), re.M)
+    services = compose[compose.index("\nservices:\n") : compose.index("\nnetworks:\n")]
+    blocks = re.findall(r"^  (\w+):[^\n]*\n(.*?)(?=^  \w|\Z)", services, re.M | re.S)
+    assert len(blocks) >= 9
+    for name, body in blocks:
+        assert re.search(r"^    (logging: \*logging|<<: \*labra|<<: \*backup)$", body, re.M), name
+
+
+@pytest.mark.item("M16")
+def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
+    # Backups run only when a host timer asks (ADR-0013); `up -d` must not start the job.
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    m = re.search(r"^  backup: &backup\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
+    assert m is not None
+    service = m.group(1)
+    assert "profiles: [jobs]" in service
+    assert 'restart: "no"' in service
+    assert "files:/data/files:ro" in service
+    assert "edge" not in service
+    assert re.search(r"^  egress:\n(?!    internal: true)", compose, re.M)
+    # The restore job is the same service with the files writable, and nothing else changed.
+    m = re.search(r"^  restore:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
+    assert m is not None
+    restore = [line.strip() for line in m.group(1).splitlines() if line.strip()]
+    assert restore[0] == "<<: *backup"
+    assert "- files:/data/files" in restore
+    assert [line for line in restore if not line.startswith(("#", "-"))] == [
+        "<<: *backup",
+        "volumes:",
+    ]
+
+
 @pytest.mark.item("W20")
 @pytest.mark.parametrize(
     "url", ["sqlite:///labra.db", "mysql+pymysql://labra:hunter2@db.example/labra"]

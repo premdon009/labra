@@ -22,7 +22,8 @@ area you can use.
 2. **Working at (top).** The branch you are working at now. New records are made for this
    branch. If you have roles at more than one branch, choose another one from the list and
    select **Switch**.
-3. **Help (top).** Opens the manual page for the screen you're on.
+3. **Help (top).** Opens the manual page for the screen you're on, inside Labra
+   ([Help and the manual](help.md)).
 4. **Your name and Sign out (top right).**
 
 ## Screenshot
@@ -35,10 +36,12 @@ area you can use.
   at**. A front-desk user at Branch 2 sees nothing from Branch 3.
 - If the home page says you have no role at any branch, ask an administrator to give you
   one on [Staff and roles](../admin/users-and-roles.md).
+- Administrators and branch managers also get a **System** card, which shows whether the
+  server, its backups and its disk are healthy ([System](../admin/system.md)).
 - If something goes wrong, Labra shows a reference such as `E-7F3K9Q2M`. Give it to whoever
   supports your Labra; it lets them find exactly what happened.
-- The **Help** link goes to the manual on the internet by default. A lab without internet
-  can host the manual itself and point Labra at it.
+- The **Help** link opens this manual inside Labra, so it works without the internet too
+  ([Help and the manual](help.md)).
 
 ## Related pages
 

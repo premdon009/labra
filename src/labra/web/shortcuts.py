@@ -25,5 +25,6 @@ SHORTCUTS: dict[str, Shortcut] = {
         Shortcut("alt+l", "Alt+L", "Print the sample labels", "Visit summary"),
         Shortcut("f2", "F2", "Open the referrer list", "New visit"),
         Shortcut("alt+w", "Alt+W", "Open the lab worklist", "Every screen"),
+        Shortcut("alt+h", "Alt+H", "Open this screen's help page", "Every screen"),
     )
 }
