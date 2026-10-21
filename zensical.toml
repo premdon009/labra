@@ -18,6 +18,7 @@ nav = [
     "manual/index.md",
     { "Getting started" = [
       "manual/getting-started/login.md",
+      "manual/getting-started/change-password.md",
       "manual/getting-started/screen-layout.md",
       "manual/getting-started/keyboard-shortcuts.md",
       "manual/getting-started/help.md",

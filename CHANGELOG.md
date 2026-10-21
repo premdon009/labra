@@ -54,6 +54,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Install guide for the main lab's laptop, runbooks (restore, laptop dead, branch internet down, forgotten administrator password, certificate and tunnel, disk full), troubleshooting pages and "A day at the lab".
 - `labra set-password` gives someone a new password at the server.
 - The runbooks are in the app's manual and its PDF, so they open with the internet down.
+- Anyone signed in can change their own password from the **Password** link in the header; their other sessions end.
 
 ### Changed
 - Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.

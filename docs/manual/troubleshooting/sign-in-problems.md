@@ -19,14 +19,15 @@ The messages appear on the sign-in screen ([Signing in](../getting-started/login
 |---|---|
 | *Wrong username or password.* | Check Caps Lock and the keyboard language, and type it again slowly. If you have forgotten it, ask an administrator to give you a new one. |
 | *Too many failed attempts. Wait 15 minutes, or ask an administrator.* | Five wrong tries lock your username on this PC for 15 minutes. Wait, then try once more. Other PCs aren't locked. |
-| It signs you in, then sends you back to the sign-in screen later | You were signed out: an administrator reset your password, or your session ended. Sign in again. |
+| It signs you in, then sends you back to the sign-in screen later | You were signed out: an administrator reset your password, you changed it on another PC, or your session ended. Sign in again. |
 | *Your connection is not private* before the sign-in screen | See [Labra won't open](labra-wont-open.md). Don't click past it. |
 
 To give someone a new password (administrators):
 
 1. **Menu ▸ Staff and roles**, **Edit** on their row.
 2. Type a **New password** of at least 10 characters and select **Save**. They are signed out
-   everywhere and sign in with the new one.
+   everywhere and sign in with the new one. They can then choose their own:
+   [Changing my password](../getting-started/change-password.md).
 
 ## Screenshot
 
@@ -45,4 +46,5 @@ There is no screen to show.
 ## Related pages
 
 - [Signing in](../getting-started/login.md)
+- [Changing my password](../getting-started/change-password.md)
 - [Staff and roles](../admin/users-and-roles.md)

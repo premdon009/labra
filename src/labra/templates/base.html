@@ -96,6 +96,7 @@
       <div class="app-user">
         {% if manual_url %}<a class="btn-sm-ghost" href="{{ manual_url }}" target="_blank" rel="noopener" {{ keys('alt+h') }}>Help</a>{% endif %}
         <span>{{ principal.full_name }}</span>
+        <a class="btn-sm-ghost" href="/account/password">Password</a>
         <form method="post" action="/logout">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button type="submit" class="btn-sm-outline">Sign out</button>

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from labra.auth.models import LoginAttempt, UserSession
 from labra.auth.principal import Principal
 from labra.core import audit
-from labra.core.errors import AuthenticationError, PermissionDeniedError
+from labra.core.errors import AuthenticationError, PermissionDeniedError, ValidationFailedError
 from labra.core.ports import IdentityProvider
 from labra.org.models import AppUser, Branch, RolePermission, UserBranchRole
 
@@ -24,6 +24,9 @@ TOUCH_EVERY = timedelta(minutes=1)
 
 BAD_LOGIN = "Wrong username or password."
 LOCKED = "Too many failed attempts. Wait 15 minutes, or ask an administrator."
+WRONG_CURRENT = "That isn't your current password."
+MISMATCH = "The two new passwords don't match."
+UNCHANGED = "The new password must differ from the current one."
 
 
 def hash_token(token: str) -> str:
@@ -145,12 +148,55 @@ def logout(db: Session, session: UserSession, now: datetime) -> None:
     db.commit()
 
 
-def end_all_sessions(db: Session, user_id: uuid.UUID, now: datetime) -> None:
-    """Sign a user out everywhere, after a password reset or when access is removed."""
-    for s in db.scalars(
-        select(UserSession).where(UserSession.user_id == user_id, UserSession.ended_at.is_(None))
-    ):
+def end_all_sessions(
+    db: Session, user_id: uuid.UUID, now: datetime, except_session_id: uuid.UUID | None = None
+) -> None:
+    """Sign a user out everywhere (but `except_session_id`), after a password reset or
+    change, or when access is removed."""
+    query = select(UserSession).where(
+        UserSession.user_id == user_id, UserSession.ended_at.is_(None)
+    )
+    if except_session_id is not None:
+        query = query.where(UserSession.id != except_session_id)
+    for s in db.scalars(query):
         s.ended_at = now
+
+
+def change_own_password(
+    db: Session,
+    identity: IdentityProvider,
+    session: UserSession,
+    current: str,
+    new: str,
+    again: str,
+    ip: str,
+    now: datetime,
+) -> None:
+    """The signed-in user's new password. A wrong current password counts as a failed sign-in,
+    so this form can't be used to guess it past the lockout."""
+    user = db.get(AppUser, session.user_id)
+    if user is None:
+        raise AuthenticationError()
+    if is_locked(db, user.username, ip, now):
+        raise ValidationFailedError({"current": LOCKED})
+    if not identity.verify_password(db, user.id, current):
+        db.add(LoginAttempt(username=user.username, ip=ip, at=now, ok=False))
+        db.flush()
+        if is_locked(db, user.username, ip, now):
+            audit.record(db, "auth.locked", "app_user", user.id)
+        db.commit()
+        raise ValidationFailedError({"current": WRONG_CURRENT})
+    problems = identity.password_problems(new)
+    if problems:
+        raise ValidationFailedError({"new": " ".join(problems)})
+    if new != again:
+        raise ValidationFailedError({"again": MISMATCH})
+    if new == current:
+        raise ValidationFailedError({"new": UNCHANGED})
+    identity.set_password(db, user.id, new)
+    end_all_sessions(db, user.id, now, except_session_id=session.id)
+    audit.record(db, "user.password_change", "app_user", user.id, user_id=user.id)
+    db.commit()
 
 
 def principal_for(db: Session, session: UserSession) -> Principal:

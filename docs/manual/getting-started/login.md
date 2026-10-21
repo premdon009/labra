@@ -39,11 +39,13 @@ To leave, select **Sign out** at the top right. Always sign out on a shared comp
 - **"This form has expired."** The page was open too long, or Labra was restarted. Reload
   the page and try again.
 - **Passwords** need at least 10 characters, and common ones such as `password123` are
-  refused. A short sentence is easy to remember and hard to guess.
+  refused. A short sentence is easy to remember and hard to guess. Change yours whenever you
+  like: [Changing my password](change-password.md).
 - Some staff appear on records but never sign in, such as home-collection phlebotomists.
   Their **Signs in to Labra** box is unticked, so their username is refused here.
 
 ## Related pages
 
 - [Screen layout](screen-layout.md)
+- [Changing my password](change-password.md)
 - [Staff and roles](../admin/users-and-roles.md)

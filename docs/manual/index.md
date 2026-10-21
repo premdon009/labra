@@ -139,6 +139,7 @@ Every feature Labra has, and the manual page that explains it.
 | M25.4 | The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks` | [Help and the manual](getting-started/help.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Data export](admin/data-export.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
+| M27 | Change my own password: the current one, then a new one twice; a wrong current password counts towards the sign-in lockout; other sessions end; audited | [Changing my password](getting-started/change-password.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |
 | W07 | Restore-drill script and runbooks | [Backups and restore](admin/backups-and-restore.md) |
 | W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | [Backups and restore](admin/backups-and-restore.md) |

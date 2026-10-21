@@ -62,5 +62,6 @@ What the messages mean:
 | `Use at least 10 characters.` or `This password is too common.` | Run it again with a longer or less common password. |
 | `service "web" is not running` | Start Labra first: `docker compose up -d`. |
 
-Every password change, at the server or on the Staff screen, is in the audit log as
-`user.password_reset`.
+Every password reset, at the server or on the Staff screen, is in the audit log as
+`user.password_reset`; a change someone makes to their own password is
+`user.password_change`.
