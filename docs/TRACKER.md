@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 21/30 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 44/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 21/30 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -219,7 +219,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | E Observability and support | EC-E01–E06 | 3/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 1/3 | 0/1 | — |
 | G Upgrades and migrations | EC-G01–G06 | 3/4 | 0/2 | — |
-| H Code quality and testing | EC-H01–H07 | 3/5 | 0/2 | — |
+| H Code quality and testing | EC-H01–H07 | 4/5 | 0/2 | — |
 | I Supply chain | EC-I01–I07 | 3/5 | 0/2 | — |
 | J Usability | EC-J01–J05 | 3/3 | 0/2 | — |
 | K Configuration safety | EC-K01–K05 | 3/3 | 0/2 | — |
