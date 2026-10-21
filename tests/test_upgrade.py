@@ -17,11 +17,13 @@ UPGRADE = ROOT / "scripts" / "upgrade.sh"
 OLD = "ghcr.io/premdon009/labra:0.1.0"
 NEW = "ghcr.io/premdon009/labra:0.2.0"
 
-# Both stand-ins append "<tool> LABRA_IMAGE=<image> <args>" to calls.log. A FAIL_<STEP> file
-# makes a step fail: PULL, DISK, BACKUP, UP_<image tag>, READY_<image tag>, RESTORE.
+# Both stand-ins append "<tool> LABRA_IMAGE=<image> <args>" to calls.log; a Compose call
+# handed the job lock's descriptor goes to leaks.log too. A FAIL_<STEP> file makes a step
+# fail: PULL, DISK, BACKUP, UP_<image tag>, READY_<image tag>, RESTORE.
 STUB = """#!/usr/bin/env bash
 tool=$(basename "$0")
 printf '%s LABRA_IMAGE=%s %s\\n' "$tool" "${LABRA_IMAGE-}" "$*" >>"$STUBS/calls.log"
+[[ $tool != compose || ! -e /proc/$$/fd/9 ]] || echo "$*" >>"$STUBS/leaks.log"
 fails() { [[ -f $STUBS/FAIL_$1 ]]; }
 tag=${LABRA_IMAGE##*:}
 case "$tool $*" in
@@ -126,6 +128,15 @@ def test_an_upgrade_backs_up_with_the_app_stopped_then_starts_the_new_image(
         f"LABRA_SITE=labra.lan\nLABRA_HEARTBEAT=http\nLABRA_IMAGE={NEW}\n"
     )
     assert stat.S_IMODE(upgrade.env_file.stat().st_mode) == 0o600
+
+
+@pytest.mark.item("W30")
+def test_no_compose_command_inherits_the_job_lock(upgrade: Upgrade) -> None:
+    upgrade.env_file.write_text("LABRA_IMAGE=old\n")
+    assert upgrade("0.2.0").returncode == 0
+    assert upgrade.called(" up -d --no-build")
+    leaks = upgrade.stubs / "leaks.log"
+    assert not leaks.exists(), leaks.read_text()
 
 
 @pytest.mark.item("EC-G03")

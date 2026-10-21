@@ -89,6 +89,10 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   `internal: true` network, so `migrate` can't find `db`. Podman 5.8.7 works.
 - **podman-compose 1.0.6** (Ubuntu 24.04) ignores `profiles`, so it starts every tunnel too.
   1.6.0 works; or use `podman compose` with the docker-compose provider.
+- **podman-compose** starts each container's monitor (`conmon`) as its own child, so a
+  container started by a script inherits the script's open files. The job scripts close
+  their lock before calling Compose (`9<&-`); without that, a container started by
+  `restore.sh` held the lock and the next backup, drill or restore waited for it.
 - **`podman compose`** prints a banner on stderr each time it hands over to a provider. Scripts
   that capture output should read stdout only.
 - **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with

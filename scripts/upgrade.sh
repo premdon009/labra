@@ -49,7 +49,9 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-dc() { "${compose[@]}" "$@"; }
+# 9<&-: what Compose starts must not hold the job lock, as podman-compose's container
+# monitors outlive this script.
+dc() { "${compose[@]}" "$@" 9<&-; }
 started=$(date -u +%FT%TZ)
 
 log_run() {

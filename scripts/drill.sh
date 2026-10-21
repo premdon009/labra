@@ -20,7 +20,9 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-job() { "${compose[@]}" --profile jobs run --rm -T backup "$@"; }
+# 9<&-: what Compose starts must not hold the job lock, as podman-compose's container
+# monitors outlive this script.
+job() { "${compose[@]}" --profile jobs run --rm -T backup "$@" 9<&-; }
 
 started=$(date -u +%FT%TZ)
 ok=true
@@ -36,7 +38,7 @@ for name in $names; do
   if out=$(job restore --from "$name" --scratch "$scratch" 2>&1); then
     lines+=("$name: $(tail -1 <<<"$out")")
     if out=$("${compose[@]}" run --rm --no-deps -T web labra audit verify --database "$scratch" \
-      2>&1); then
+      9<&- 2>&1); then
       lines+=("$name: $(tail -1 <<<"$out")")
     else
       ok=false
