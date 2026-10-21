@@ -85,3 +85,4 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The demo signatory's degree is printed once, as a qualification, not in the name as well.
 - The System page counts the HTTPS certificate as renewing itself only when Caddy issued it, so a short certificate made by hand now warns before it runs out.
 - A restore on a new server puts the stored files back: the backup image owns the folder they go into. The row counts are checked inside the restore's transaction, so a short backup leaves the database as it was, and stored files that fail after the database loaded are reported as an incomplete restore with Labra left stopped.
+- Rootless nerdctl starts on Ubuntu runners again (an AppArmor profile for RootlessKit). A stack smoke test that fails now prints each container's health checks, and a drill, restore or upgrade that hangs is stopped after 10 minutes with what was still running.

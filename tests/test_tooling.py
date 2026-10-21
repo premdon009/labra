@@ -310,6 +310,20 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
     assert "runs-on: ubuntu-26.04" in text
 
 
+@pytest.mark.item("W30")
+def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() -> None:
+    nerdctl = _job("portability.yml", "runtime").split("- name: nerdctl\n", 1)[1]
+    nerdctl = nerdctl.split("- name: ", 1)[0]
+    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in nerdctl
+    assert "userns," in nerdctl
+    steps = [
+        "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
+        "systemctl restart apparmor.service",
+        "containerd-rootless-setuptool.sh install",
+    ]
+    assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
+
+
 @pytest.mark.item("W01")
 @pytest.mark.parametrize(
     ("message", "category"),

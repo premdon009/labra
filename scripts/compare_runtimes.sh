@@ -108,7 +108,7 @@ measure_runtime() {
   state=$(sed -n 's/^Kept: .*settings in //p' "$log")
   if [[ -z $state ]]; then
     record kind=runtime runtime="$rt" version="$version" smoke=FAIL
-    tail -5 "$log"
+    sed 's/^/   /' "$log"
     return 1
   fi
   local compose_cmd project
@@ -183,7 +183,12 @@ measure_runtime() {
     readyz_rps="$(field "$rz" rps)" readyz_p95_ms="$(field "$rz" p95_ms)" \
     load_errors="$(($(field "$hz" errors) + $(field "$rz" errors)))" \
     restart_s="$restart" log_driver="${driver:-?}" trace="$trace" image_mib="$size"
-  grep -E '^(FAIL|PASS  stack)' "$log" | sed 's/^/   /'
+  # A failure shows the whole run: what Compose and the containers printed come before the FAILs.
+  if ((smoke == 0)); then
+    grep -E '^PASS  stack' "$log" | sed 's/^/   /'
+  else
+    sed 's/^/   /' "$log"
+  fi
   ((smoke == 0))
 }
 

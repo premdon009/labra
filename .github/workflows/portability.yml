@@ -65,6 +65,17 @@ jobs:
               curl -fsSLO "https://github.com/containerd/nerdctl/releases/download/v$NERDCTL_VERSION/$tarball"
               echo "$NERDCTL_SHA256  $tarball" | sha256sum -c
               sudo tar -C /usr/local -xzf "$tarball"
+              # Ubuntu's AppArmor refuses unprivileged user namespaces to any program without a
+              # profile that allows them; RootlessKit needs one.
+              sudo tee /etc/apparmor.d/usr.local.bin.rootlesskit >/dev/null <<'EOT'
+              abi <abi/4.0>,
+              include <tunables/global>
+              /usr/local/bin/rootlesskit flags=(unconfined) {
+                userns,
+                include if exists <local/usr.local.bin.rootlesskit>
+              }
+              EOT
+              sudo systemctl restart apparmor.service
               containerd-rootless-setuptool.sh install
               scripts/compare_runtimes.sh --runtimes nerdctl --builders "" --out results
           - name: incus

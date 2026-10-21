@@ -87,6 +87,15 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   1.6.0 works; or use `podman compose` with the docker-compose provider.
 - **`podman compose`** prints a banner on stderr each time it hands over to a provider. Scripts
   that capture output should read stdout only.
+- **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
+  `apparmor_restrict_unprivileged_userns is set to 1`: AppArmor refuses user namespaces to a
+  program without a profile. Give RootlessKit one, as `.github/workflows/portability.yml` does
+  (the `nerdctl` job), then run `containerd-rootless-setuptool.sh install`.
+- **A failed smoke test says why.** When the stack doesn't start, `scripts/stack_smoke.sh`
+  prints each container's state and what its last health checks printed; a drill, restore or
+  upgrade that hangs is stopped after `SMOKE_STEP_LIMIT` seconds (default 600) with the
+  Compose and engine commands still running. `scripts/compare_runtimes.sh` shows the whole log
+  of a failed run.
 - **Rootless ports below 1024** are refused. Use `LABRA_HTTP_PORT=8080 LABRA_HTTPS_PORT=8443`,
   or allow them once: `sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80` (and add it to
   `/etc/sysctl.d/`).

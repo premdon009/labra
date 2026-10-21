@@ -9,7 +9,8 @@
 #
 # Without --compose, the first reachable of docker, podman and nerdctl is used. Both images must
 # already exist locally (scripts/build_image.sh, and again with --backup). With --keep the stack stays up and its settings
-# are left in <work>/stack.env for scripts/compare_runtimes.sh.
+# are left in <work>/stack.env for scripts/compare_runtimes.sh. A drill, restore or upgrade that
+# hangs is stopped after SMOKE_STEP_LIMIT seconds (default 600) and fails its check.
 # Exit 0 pass, 1 fail, 2 unchecked (no runtime).
 set -uo pipefail
 
@@ -26,7 +27,7 @@ while (($#)); do
     --image) image=$2; shift 2 ;;
     --backup-image) backup_image=$2; shift 2 ;;
     --keep) keep=true; shift ;;
-    -h | --help) sed -n '2,13p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -54,6 +55,31 @@ site=labra.lan
 files=(-f "$ROOT/compose.yaml")
 [[ $proxy == nginx ]] && files+=(-f "$ROOT/deploy/nginx/compose.nginx.yaml")
 dc() { "${compose[@]}" -p "$project" "${files[@]}" "$@"; }
+engine=${compose[0]%-compose}
+# Checks print to the job's output (fd 3) even from a step whose output goes to its own log.
+exec 3>&1
+
+# Each container's state and, for one with a health check, what its last checks printed.
+report() {
+  local id
+  for id in $("$engine" ps -aq --filter "label=com.docker.compose.project=$project"); do
+    "$engine" inspect --format '{{.Name}}: {{.State.Status}}, exit {{.State.ExitCode}}
+{{- if .State.Health}}, {{.State.Health.Status}}{{range .State.Health.Log}}
+  check exit {{.ExitCode}}: {{.Output}}{{end}}{{end}}' "$id" 2>&1 | tail -c 2000
+  done
+}
+
+# A step that hangs is stopped after LIMIT seconds, with the container commands still running.
+limit=${SMOKE_STEP_LIMIT:-600}
+limit() {
+  timeout "$limit" "$@"
+  local rc=$?
+  if ((rc == 124)); then
+    echo "INFO  ${1##*/} still running after $limit s, stopped; left running:" >&3
+    pgrep -af 'compose|podman|docker|nerdctl' | sed 's/^/INFO    /' >&3
+  fi
+  return "$rc"
+}
 
 cleanup() {
   if [[ $keep == false ]]; then
@@ -105,6 +131,7 @@ started=${EPOCHREALTIME/./}
 if ! dc up -d --no-build >"$work/up.log" 2>&1; then
   tail -20 "$work/up.log"
   dc logs --tail 30 2>&1 | tail -40
+  report
   echo "FAIL  stack did not start"
   exit 1
 fi
@@ -161,7 +188,7 @@ print(get('/healthz'), get('/metrics'))" 2>/dev/null | tail -1)
 check "tunnel listener: app 200, /metrics 404" "200 404" "$tunnel"
 check "Postgres: fsync and data checksums on" "on on" \
   "$(dc exec -T db psql -U labra -d labra -Atc \
-    "select current_setting('fsync') || ' ' || current_setting('data_checksums')" 2>&1)"
+    "select current_setting('fsync') || ' ' || current_setting('data_checksums')" 2>/dev/null)"
 
 # First start, then sign in through the proxy.
 password=smoke-test-pass-$$
@@ -185,7 +212,6 @@ check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/
 # The laptop budgets: three users against about two years of patients, with the containers held
 # to 2 CPUs and 4 GB between them. Only a run on the real laptop counts; this one catches a
 # regression. The patients stay for the backups below, so those are a realistic size too.
-engine=${compose[0]%-compose}
 # compose.yaml caps every container's logs. Docker reports it as set; Podman and nerdctl
 # translate it to their own log drivers, so they are shown rather than checked.
 logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(dc ps -q web)" 2>&1)
@@ -254,8 +280,8 @@ check "the backup image can write to a new files volume" ok "$("$engine" run --r
 export LABRA_COMPOSE="${compose[*]} -p $project ${files[*]}"
 export LABRA_BACKUP_REPO_USB=/backup/usb/labra LABRA_BACKUP_REPO_DRIVE=rclone:drive:/backup/usb/drive
 sql() { dc exec -T db psql -U labra -d labra -Atc "$1" 2>/dev/null; }
-drill() { "$ROOT/scripts/drill.sh" >>"$work/drill.log" 2>&1; }
-restore() { "$ROOT/scripts/restore.sh" "$@" >>"$work/restore.log" 2>&1; }
+drill() { limit "$ROOT/scripts/drill.sh" >>"$work/drill.log" 2>&1; }
+restore() { limit "$ROOT/scripts/restore.sh" "$@" >>"$work/restore.log" 2>&1; }
 last_drill() { sql "select ok from ops_run where kind = 'drill' order by id desc limit 1"; }
 b9="select count(*) from branch where code = 'B9'"
 check "restore drill of both repositories" 0 "$(drill; echo $?)"
@@ -301,7 +327,6 @@ check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"
 check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"
 
 # An upgrade, then one to an image whose migration fails, which must roll back by itself.
-engine=${compose[0]%-compose}
 export LABRA_ENGINE=$engine LABRA_ENV_FILE=$work/env LABRA_UPGRADE_WAIT=90
 # The drill above damaged the USB copy; a fresh one, so the pre-upgrade backups succeed.
 dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra >/dev/null 2>&1
@@ -330,7 +355,7 @@ PY
 printf 'FROM %s\nCOPY 9999_smoke_broken.py %s/\n' "$image" "$versions" >"$work/broken/Dockerfile"
 "$engine" build -q -t localhost/labra-smoke:next "$work/next" >"$work/build.log" 2>&1
 "$engine" build -q -t localhost/labra-smoke:broken "$work/broken" >>"$work/build.log" 2>&1
-upgrade() { "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
+upgrade() { limit "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
 web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(dc ps -q web | tail -1)"; }
 backups="select count(*) from ops_run where kind = 'backup' and ok"
 before=$(sql "$backups")
