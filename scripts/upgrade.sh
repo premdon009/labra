@@ -60,9 +60,7 @@ log_run() {
 ready() {
   local tries=$((wait_for / 2 + 1))
   while ((tries--)); do
-    dc exec -T web python -c \
-      "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=4)" \
-      >/dev/null 2>&1 && return 0
+    dc exec -T web python -m labra.probe /readyz >/dev/null 2>&1 && return 0
     ((tries)) && sleep 2
   done
   return 1
@@ -77,7 +75,7 @@ keep_image() {
   mv "$tmp" "$env_file"
 }
 
-web=$(dc ps -q web)
+web=$(dc ps -q web | tail -1)
 if [[ -z $web ]]; then
   echo "The web app isn't running; start the stack first (docker compose up -d)." >&2
   exit 1

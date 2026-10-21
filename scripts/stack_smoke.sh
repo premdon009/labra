@@ -55,6 +55,8 @@ site=labra.lan
 files=(-f "$ROOT/compose.yaml")
 [[ $proxy == nginx ]] && files+=(-f "$ROOT/deploy/nginx/compose.nginx.yaml")
 dc() { "${compose[@]}" -p "$project" "${files[@]}" "$@"; }
+# One container of a service: nerdctl compose can list two.
+cid() { dc ps -q "$1" | tail -1; }
 engine=${compose[0]%-compose}
 # Checks print to the job's output (fd 3) even from a step whose output goes to its own log.
 exec 3>&1
@@ -214,7 +216,7 @@ check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/
 # regression. The patients stay for the backups below, so those are a realistic size too.
 # compose.yaml caps every container's logs. Docker reports it as set; Podman and nerdctl
 # translate it to their own log drivers, so they are shown rather than checked.
-logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(dc ps -q web)" 2>&1)
+logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(cid web)" 2>&1)
 if [[ $engine == docker ]]; then
   check "web's logs rotate" 'json-file 10m 5' "$(python3 -c '
 import json, sys
@@ -223,7 +225,7 @@ print(c["Type"], c["Config"].get("max-size"), c["Config"].get("max-file"))' "$lo
 else
   echo "INFO  web's log settings on $engine: $logs_config"
 fi
-cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(dc ps -q "$1")"; }
+cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(cid "$1")"; }
 capped=$(cap web 1 2g >/dev/null 2>&1 && cap db 0.75 1536m >/dev/null 2>&1 &&
   cap proxy 0.25 512m >/dev/null 2>&1 && echo yes || echo no)
 echo "INFO  containers capped to 2 CPUs and 4 GB between them: $capped"
@@ -356,7 +358,7 @@ printf 'FROM %s\nCOPY 9999_smoke_broken.py %s/\n' "$image" "$versions" >"$work/b
 "$engine" build -q -t localhost/labra-smoke:next "$work/next" >"$work/build.log" 2>&1
 "$engine" build -q -t localhost/labra-smoke:broken "$work/broken" >>"$work/build.log" 2>&1
 upgrade() { limit "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
-web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(dc ps -q web | tail -1)"; }
+web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(cid web)"; }
 backups="select count(*) from ops_run where kind = 'backup' and ok"
 before=$(sql "$backups")
 check "upgrade to a new image" 0 "$(upgrade localhost/labra-smoke:next; echo $?)"

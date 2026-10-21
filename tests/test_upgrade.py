@@ -31,7 +31,7 @@ case "$tool $*" in
   "engine pull "*) ! fails PULL ;;
   "compose ps -q web") cat "$STUBS/web" ;;
   "compose exec -T web labra check-disk") ! fails DISK ;;
-  "compose exec -T web python -c "*) ! fails "READY_$tag" ;;
+  "compose exec -T web python -m labra.probe /readyz") ! fails "READY_$tag" ;;
   "compose exec -T db psql "*) cat "$STUBS/snapshots" ;;
   *" backup backup --tag pre-upgrade") ! fails BACKUP ;;
   *" restore restore --replace "*) ! fails RESTORE ;;
@@ -235,3 +235,14 @@ def test_nothing_happens_when_the_stack_isnt_running(upgrade: Upgrade) -> None:
     assert result.returncode == 1
     assert "isn't running" in result.stderr
     assert upgrade.calls == ["compose LABRA_IMAGE= ps -q web"]
+
+
+@pytest.mark.item("W30")
+def test_the_running_image_is_read_from_one_web_container(upgrade: Upgrade) -> None:
+    # nerdctl compose can list two containers for the service.
+    (upgrade.stubs / "web").write_text("c0ffee\nbada55\n")
+    result = upgrade("0.2.0")
+    assert result.returncode == 0, result.stderr
+    inspected = upgrade.called("engine LABRA_IMAGE= inspect --format ")
+    assert inspected
+    assert all(c.endswith(" bada55") for c in inspected), inspected

@@ -311,6 +311,20 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
 
 
 @pytest.mark.item("W30")
+def test_no_health_check_argument_holds_a_space() -> None:
+    # Podman 5 splits a Compose health check's arguments at spaces.
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    checks = [json.loads(m) for m in re.findall(r"^ +test: (\[.*\])$", compose, re.MULTILINE)]
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    checks += [json.loads(m) for m in re.findall(r"^ +CMD (\[.*\])$", dockerfile, re.MULTILINE)]
+    assert len(checks) >= 3
+    assert all(" " not in arg for check in checks for arg in check), checks
+    assert ["CMD", "python", "-m", "labra.probe", "/readyz"] in checks
+    assert ["python", "-m", "labra.probe", "/healthz"] in checks
+    assert "test:\n" not in compose
+
+
+@pytest.mark.item("W30")
 def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() -> None:
     nerdctl = _job("portability.yml", "runtime").split("- name: nerdctl\n", 1)[1]
     nerdctl = nerdctl.split("- name: ", 1)[0]
@@ -319,7 +333,9 @@ def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() ->
     steps = [
         "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
         "systemctl restart apparmor.service",
-        "containerd-rootless-setuptool.sh install",
+        "containerd-rootless-setuptool.sh install\n",
+        "containerd-rootless-setuptool.sh install-buildkit",
+        "scripts/compare_runtimes.sh",
     ]
     assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
 

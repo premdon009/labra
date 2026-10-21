@@ -81,6 +81,10 @@ will be sent over the network to a collector (X35), so they won't depend on the 
 ## Known issues
 - **Podman needs systemd for health checks.** In a container or a WSL distribution without
   systemd, `db` stays `starting` and `compose up` never finishes.
+- **Podman 5 splits a Compose health check's arguments at spaces** (`podman compose` with the
+  docker-compose provider, Podman 5.4 and 5.7; Podman 6 doesn't). `python -c "import …"` then
+  fails with a `SyntaxError` and `web` is never healthy. The health checks run
+  `python -m labra.probe /readyz` instead: no argument holds a space.
 - **Podman 4.9.3 with netavark 1.4.0** (Ubuntu 24.04) gives containers no DNS on an
   `internal: true` network, so `migrate` can't find `db`. Podman 5.8.7 works.
 - **podman-compose 1.0.6** (Ubuntu 24.04) ignores `profiles`, so it starts every tunnel too.
@@ -90,7 +94,11 @@ will be sent over the network to a collector (X35), so they won't depend on the 
 - **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
   `apparmor_restrict_unprivileged_userns is set to 1`: AppArmor refuses user namespaces to a
   program without a profile. Give RootlessKit one, as `.github/workflows/portability.yml` does
-  (the `nerdctl` job), then run `containerd-rootless-setuptool.sh install`.
+  (the `nerdctl` job), then run `containerd-rootless-setuptool.sh install`, and
+  `containerd-rootless-setuptool.sh install-buildkit` to build images.
+- **nerdctl compose** pulls a missing image where Docker and Podman build it, so load the
+  backup image before `compose run backup` (`scripts/compare_runtimes.sh` puts both images in
+  its archive). Its `ps -q web` can list two containers; scripts take the last.
 - **A failed smoke test says why.** When the stack doesn't start, `scripts/stack_smoke.sh`
   prints each container's state and what its last health checks printed; a drill, restore or
   upgrade that hangs is stopped after `SMOKE_STEP_LIMIT` seconds (default 600) with the

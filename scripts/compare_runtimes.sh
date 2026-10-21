@@ -39,6 +39,7 @@ results=$out/results.jsonl
 bench() { python3 "$ROOT/scripts/runtime_bench.py" "$@"; }
 record() { bench record "$results" "$@"; }
 image=localhost/labra:dev
+backup_image=localhost/labra-backup:dev
 archive=$out/labra-image.tar
 tested=0
 failed=0
@@ -68,7 +69,8 @@ pull() {
   done
 }
 
-# One image for every runtime, so they all run identical bytes.
+# The same images for every runtime, so they all run identical bytes. The backup image is in
+# the archive too: nerdctl compose pulls a missing image instead of building it.
 ensure_archive() {
   [[ -s $archive ]] && return 0
   local b
@@ -78,7 +80,16 @@ ensure_archive() {
         "$ROOT/scripts/build_image.sh" --builder "$b" --tag "$image" >"$out/build-$b.log" 2>&1 ||
           return 1
       fi
-      "$b" save -o "$archive" "$image" && return 0
+      if ! "$b" image inspect "$backup_image" >/dev/null 2>&1; then
+        "$ROOT/scripts/build_image.sh" --builder "$b" --backup --tag "$backup_image" \
+          >>"$out/build-$b.log" 2>&1 || return 1
+      fi
+      # Podman writes more than one image to an archive only when asked.
+      if [[ $b == podman ]]; then
+        podman save -m -o "$archive" "$image" "$backup_image" && return 0
+      else
+        docker save -o "$archive" "$image" "$backup_image" && return 0
+      fi
     fi
   done
   return 1
