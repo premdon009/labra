@@ -24,17 +24,19 @@ from tests.frontdesk import sign_in
 
 OPENSSL = shutil.which("openssl")
 needs_openssl = pytest.mark.skipif(OPENSSL is None, reason="needs openssl")
-# serve(days) -> "host:port", a TLS server with a certificate valid for that many days
-Serve = Callable[[int], str]
+# serve(days, issuer) -> "host:port", a TLS server with a self-signed certificate valid for that
+# many days, whose subject (and so issuer) common name is `issuer`
+Serve = Callable[..., str]
+CADDY = "Caddy Local Authority - ECC Intermediate"
 
 
-def _cert(tmp_path: Path, days: int) -> tuple[Path, Path]:
-    cert, key = tmp_path / f"{days}.crt", tmp_path / f"{days}.key"
+def _cert(tmp_path: Path, days: int, issuer: str = "labra.lan") -> tuple[Path, Path]:
+    cert, key = tmp_path / f"{days}-{len(issuer)}.crt", tmp_path / f"{days}-{len(issuer)}.key"
     subprocess.run(  # noqa: S603
         [
             OPENSSL or "openssl", "req", "-x509",
             "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1",
-            "-nodes", "-days", str(days), "-subj", "/CN=labra.lan",
+            "-nodes", "-days", str(days), "-subj", f"/O=Labra test/CN={issuer}",
             "-keyout", str(key), "-out", str(cert),
         ],
         check=True,
@@ -47,8 +49,8 @@ def _cert(tmp_path: Path, days: int) -> tuple[Path, Path]:
 def tls_server(tmp_path: Path) -> Iterator[Serve]:
     sockets: list[socket.socket] = []
 
-    def serve(days: int) -> str:
-        cert, key = _cert(tmp_path, days)
+    def serve(days: int, issuer: str = "labra.lan") -> str:
+        cert, key = _cert(tmp_path, days, issuer)
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(cert, key)
         listener = socket.create_server(("127.0.0.1", 0))
@@ -113,14 +115,28 @@ def test_a_backup_is_overdue_just_past_its_limit(db: Session) -> None:
 # Certificate
 
 
-def _der(not_before: bytes, not_after: bytes, *, version: bool) -> bytes:
-    def tlv(tag: int, body: bytes) -> bytes:
-        return bytes([tag, len(body)]) + body
+def _tlv(tag: int, body: bytes) -> bytes:
+    return bytes([tag, len(body)]) + body
 
-    fields = [tlv(0xA0, tlv(0x02, b"\x02"))] if version else []
-    validity = tlv(0x30, not_before + not_after)
-    fields += [tlv(0x02, b"\x01"), tlv(0x30, b""), tlv(0x30, b""), validity]
-    return tlv(0x30, tlv(0x30, b"".join(fields)))
+
+def _name(*attributes: tuple[str, int, bytes]) -> bytes:
+    """A DER Name from (OID hex, string tag, value) attributes, one per SET."""
+    return _tlv(
+        0x30,
+        b"".join(
+            _tlv(0x31, _tlv(0x30, _tlv(0x06, bytes.fromhex(oid)) + _tlv(tag, value)))
+            for oid, tag, value in attributes
+        ),
+    )
+
+
+def _der(
+    not_before: bytes, not_after: bytes, *, version: bool, issuer: bytes = b"\x30\x00"
+) -> bytes:
+    fields = [_tlv(0xA0, _tlv(0x02, b"\x02"))] if version else []
+    validity = _tlv(0x30, not_before + not_after)
+    fields += [_tlv(0x02, b"\x01"), _tlv(0x30, b""), issuer, validity]
+    return _tlv(0x30, _tlv(0x30, b"".join(fields)))
 
 
 @pytest.mark.item("EC-E04")
@@ -136,6 +152,26 @@ def test_validity_reads_both_time_formats(version: bool) -> None:
     )
 
 
+@pytest.mark.item("W28")
+@pytest.mark.parametrize(
+    ("issuer", "common_name"),
+    [
+        # countryName, then commonName as a PrintableString
+        (
+            _name(("550406", 0x13, b"IN"), ("550403", 0x13, b"Caddy Local Authority")),
+            "Caddy Local Authority",
+        ),
+        # organizationName, then commonName as a UTF8String
+        (_name(("55040a", 0x0C, b"Lab"), ("550403", 0x0C, "Labra é".encode())), "Labra é"),
+        (_name(("55040a", 0x0C, b"No common name")), ""),
+        (b"\x30\x00", ""),
+    ],
+)
+def test_validity_reads_the_issuer_common_name(issuer: bytes, common_name: str) -> None:
+    der = _der(b"\x17\x0d491231000000Z", b"\x18\x0f20600101083000Z", version=True, issuer=issuer)
+    assert validity(der).issuer_cn == common_name
+
+
 @pytest.mark.item("EC-E04")
 @pytest.mark.parametrize("der", [b"", b"\x30\x05\x30", b"\x30\x02\x30\x00", b"not a cert"])
 def test_validity_refuses_what_is_not_a_certificate(der: bytes) -> None:
@@ -146,9 +182,10 @@ def test_validity_refuses_what_is_not_a_certificate(der: bytes) -> None:
 @needs_openssl
 @pytest.mark.item("EC-E04")
 def test_validity_of_a_real_certificate(tmp_path: Path) -> None:
-    cert, _ = _cert(tmp_path, 400)
+    cert, _ = _cert(tmp_path, 400, CADDY)
     dates = validity(ssl.PEM_cert_to_DER_cert(cert.read_text()))
     assert dates.not_after - dates.not_before == timedelta(days=400)
+    assert dates.issuer_cn == CADDY
     assert abs(dates.not_before - utcnow()) < timedelta(minutes=5)
 
 
@@ -171,12 +208,26 @@ def test_a_long_certificate_warns_30_days_before_it_runs_out(tls_server: Serve) 
 
 @needs_openssl
 @pytest.mark.item("EC-E04")
-def test_a_short_lived_certificate_is_a_problem_only_once_expired(tls_server: Serve) -> None:
-    address = tls_server(1)
+@pytest.mark.item("W28")
+def test_a_caddy_certificate_is_a_problem_only_once_expired(tls_server: Serve) -> None:
+    address = tls_server(1, CADDY)
     now = utcnow()
     assert cert_status(address, "labra.lan", now).auto_renewed
     assert cert_status(address, "labra.lan", now).problem is False
     assert cert_status(address, "labra.lan", now + timedelta(days=2)).problem is True
+    # Caddy's own authority renews long certificates too.
+    long = cert_status(tls_server(400, "Caddy Local Authority - 2026 ECC Root"), None, now)
+    assert long.auto_renewed
+
+
+@needs_openssl
+@pytest.mark.item("W28")
+def test_a_short_certificate_made_by_hand_is_a_problem(tls_server: Serve) -> None:
+    # Nobody renews a 7-day certificate that Caddy didn't issue, however short it is.
+    address = tls_server(7)
+    status = cert_status(address, "labra.lan", utcnow())
+    assert status.auto_renewed is False
+    assert status.problem is True
 
 
 @pytest.mark.item("EC-E04")

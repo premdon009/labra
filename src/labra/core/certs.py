@@ -1,7 +1,8 @@
 """When the proxy's HTTPS certificate runs out, read from a TLS handshake.
 
-Only the validity dates are read, straight from the certificate's DER bytes, so no X.509
-library is needed. The certificate isn't trusted or checked for anything else.
+Only the validity dates and the issuer's common name are read, straight from the
+certificate's DER bytes, so no X.509 library is needed. The certificate isn't trusted or
+checked for anything else.
 """
 
 import socket
@@ -14,6 +15,7 @@ from datetime import UTC, datetime
 class Validity:
     not_before: datetime
     not_after: datetime
+    issuer_cn: str = ""
 
 
 def _element(der: bytes, at: int) -> tuple[int, int, int]:
@@ -29,6 +31,27 @@ def _element(der: bytes, at: int) -> tuple[int, int, int]:
     return tag, start, start + length
 
 
+_COMMON_NAME = bytes.fromhex("550403")  # OID 2.5.4.3
+_STRINGS = {0x0C: "utf-8", 0x13: "ascii"}  # UTF8String, PrintableString
+
+
+def _common_name(der: bytes, at: int) -> str:
+    """The commonName in the Name at `at` (SEQUENCE of SET of SEQUENCE {OID, value}), or ""."""
+    _, at, end = _element(der, at)
+    while at < end:
+        _, attr, set_end = _element(der, at)  # SET
+        while attr < set_end:
+            _, inner, attr_end = _element(der, attr)  # SEQUENCE {OID, value}
+            tag, start, oid_end = _element(der, inner)
+            if tag == 0x06 and der[start:oid_end] == _COMMON_NAME:
+                tag, start, value_end = _element(der, oid_end)
+                if tag in _STRINGS:
+                    return der[start:value_end].decode(_STRINGS[tag])
+            attr = attr_end
+        at = set_end
+    return ""
+
+
 def _time(der: bytes, at: int) -> tuple[datetime, int]:
     tag, start, end = _element(der, at)
     raw = der[start:end].decode("ascii")
@@ -41,7 +64,7 @@ def _time(der: bytes, at: int) -> tuple[datetime, int]:
 
 
 def validity(der: bytes) -> Validity:
-    """notBefore and notAfter from a DER certificate."""
+    """notBefore, notAfter and the issuer's common name from a DER certificate."""
     try:
         _, at, _ = _element(der, 0)  # Certificate
         _, at, end = _element(der, at)  # TBSCertificate
@@ -54,12 +77,13 @@ def validity(der: bytes) -> Validity:
             fields.append(at)
             at = next_at
         # serialNumber, signature, issuer, validity
+        issuer = _common_name(der, fields[2])
         _, at, _ = _element(der, fields[3])
         not_before, at = _time(der, at)
         not_after, _ = _time(der, at)
     except (IndexError, UnicodeDecodeError) as e:
         raise ValueError("not a certificate") from e
-    return Validity(not_before, not_after)
+    return Validity(not_before, not_after, issuer)
 
 
 def fetch_validity(address: str, server_name: str | None, timeout: float = 3.0) -> Validity:

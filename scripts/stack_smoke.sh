@@ -271,6 +271,10 @@ check "watchdog fails when nothing answers" 1 \
   "$(LABRA_WATCHDOG_URL=http://web:9/healthz "$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
 system=$(https -b "$jar" "$(url /admin/system)")
 check "System page reads the proxy's certificate" yes "$(grep -q 'Valid until' <<<"$system" && echo yes)"
+# Only Caddy's own certificate renews by itself; a hand-made nginx one is renewed by hand.
+renews=no
+grep -q 'renews it by itself' <<<"$system" && renews=yes
+check "System page knows who renews the certificate" "$([[ $proxy == caddy ]] && echo yes || echo no)" "$renews"
 check "System page shows the failed drill" yes "$(grep -q 'usb: restore failed' <<<"$system" && echo yes)"
 logs=$(dc logs --no-color web 2>&1)
 check "logs hold no password" 0 "$(grep -c "$password" <<<"$logs")"

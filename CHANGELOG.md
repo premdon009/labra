@@ -80,3 +80,4 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - A form that carries a row version that isn't a number is refused as out of date instead of failing.
 - Previous and Next work on the departments and specimens screen after a refused save.
 - The demo signatory's degree is printed once, as a qualification, not in the name as well.
+- The System page counts the HTTPS certificate as renewing itself only when Caddy issued it, so a short certificate made by hand now warns before it runs out.

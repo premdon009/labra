@@ -45,7 +45,9 @@ To install the root certificate on a main-lab PC:
 ### With nginx
 
 A certificate made by hand for nginx (as in [Running the stack](../dev/running-the-stack.md#nginx-instead-of-caddy))
-lasts 825 days. The System page turns red 30 days before it runs out. To renew it:
+lasts 825 days. The System page counts only certificates from Caddy's own authority as
+renewing by themselves, so it turns red 30 days before this one runs out, whatever its
+lifetime. To renew it:
 
 1. Make a new one, in the folder where Labra is installed:
 

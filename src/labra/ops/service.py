@@ -86,8 +86,11 @@ OVERDUE = {
     "verify": timedelta(hours=26),
     "disk": timedelta(hours=2),
 }
-# Certificates that live longer than this are renewed by hand, so warn this long before.
+# Other certificates are renewed by hand, so warn this long before they run out.
 CERT_WARN = timedelta(days=30)
+# Caddy names its local authority "Caddy Local Authority - <year> ECC Root" and its intermediate
+# "Caddy Local Authority - ECC Intermediate".
+CADDY_ISSUER = "Caddy Local Authority"
 
 
 @dataclass(frozen=True)
@@ -195,6 +198,6 @@ def cert_status(address: str | None, server_name: str | None, now: datetime) -> 
     except (OSError, ValueError) as e:
         return CertStatus(checked=True, error=str(e) or type(e).__name__)
     left = dates.not_after - now
-    # A short-lived certificate (Caddy's own lasts hours) is renewed by the proxy itself.
-    auto = dates.not_after - dates.not_before <= CERT_WARN
+    # A certificate from Caddy's own authority is renewed by the proxy itself.
+    auto = dates.issuer_cn.startswith(CADDY_ISSUER)
     return CertStatus(True, dates.not_after, left.days, auto)

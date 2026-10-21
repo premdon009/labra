@@ -57,7 +57,7 @@ snapshot the message names.
 | **Version** | never | Quote it when reporting a problem. It is also at the foot of every page. |
 | **Database** | a migration isn't applied | The app was started without its migrations. Run `docker compose up -d` again; it applies them first. |
 | **Disk space** | the disk is 80% full or more, or can't be read | See [Alerts and nightly checks](alerts-and-checks.md). |
-| **HTTPS certificate** | it has run out, or a long-lived one has fewer than 30 days left | Caddy's own certificate lasts hours and is renewed by itself, so it is red only if renewal has stopped: restart the proxy (`docker compose restart proxy`). A certificate you made yourself (nginx) must be made again and installed on the main-lab PCs. |
+| **HTTPS certificate** | it has run out, or one not issued by Caddy has fewer than 30 days left | A certificate from Caddy's own authority (*Caddy Local Authority*) is renewed by Caddy itself, so it is red only if renewal has stopped: restart the proxy (`docker compose restart proxy`). Any other certificate, such as one you made yourself for nginx, must be made again and installed on the main-lab PCs, however long it lasts. |
 | **Backup** | the last run failed, or the last good one started more than 12 hours ago | The *Detail* column says why. See [Backups and restore](backups-and-restore.md). |
 | **Restore drill** | it failed, or hasn't run for 35 days | See [Restore from backup](../../runbooks/restore-from-backup.md#when-the-drill-fails). |
 | **Audit log check** | it failed, or hasn't run for 26 hours | A failure is serious; see [Alerts and nightly checks](alerts-and-checks.md). |
