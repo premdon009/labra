@@ -161,19 +161,13 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 sudo usermod -aG docker "$USER"
 ```
 
-Cap the size of the containers' logs, which otherwise grow until the disk is full:
-
-```bash
-printf '{\n  "log-driver": "local",\n  "log-opts": {"max-size": "10m", "max-file": "5"}\n}\n' \
-  | sudo tee /etc/docker/daemon.json
-sudo systemctl restart docker
-```
-
 Sign out and in again, so that your user can use Docker without `sudo`.
 
-**Check:** `docker run --rm hello-world` prints *Hello from Docker!*, and
-`docker info --format '{{.LoggingDriver}}'` prints `local`. Docker starts by itself when the
-server starts.
+There is nothing to set for the containers' logs: each of Labra's containers keeps at most
+five files of 10 MB, so the logs can't fill the disk.
+
+**Check:** `docker run --rm hello-world` prints *Hello from Docker!*. Docker starts by itself
+when the server starts.
 
 ## 5. Labra
 
@@ -383,4 +377,4 @@ written is fixed in this guide in the same change.
 
 | Date | Where | Result | Notes |
 |---|---|---|---|
-| 2026-10-21 | Debian 13.7 VM (2 CPU, 4 GB, a second 20 GB disk as the USB disk) | Steps 3–5 and 7 as written; a backup on its timer, the drill, both restores in the backup runbook, the System page, and a hard reset all worked | `parted` was missing from step 3, now added. Not rehearsed: steps 1–2 (BIOS, encryption, TPM), 6 (no second PC), 8–9 (need the lab's accounts), 10–11. Images were loaded rather than built, and the VM's containers had no internet throughout, so the main lab working offline was shown too. |
+| 2026-10-21 | Debian 13.7 VM (2 CPU, 4 GB, a second 20 GB disk as the USB disk) | Steps 3–5 and 7 as written; a backup on its timer, the drill, both restores in the backup runbook, the System page, and a hard reset all worked | `parted` was missing from step 3, now added. Not rehearsed: steps 1–2 (BIOS, encryption, TPM), 6 (no second PC), 8–9 (need the lab's accounts), 10–11. Images were loaded rather than built, and the VM's containers had no internet throughout, so the main lab working offline was shown too. Since then step 4's `daemon.json` log cap has gone: `compose.yaml` caps each container's logs itself. |

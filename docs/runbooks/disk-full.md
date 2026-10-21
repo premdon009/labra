@@ -48,9 +48,11 @@ grow slowly. Something that grew fast is usually one of the items below.
    docker compose exec web rm -r /data/export/<old folder>
    ```
 
-3. **Container logs.** The install guide caps them; if that step was skipped, they can grow
-   without end. Check `sudo du -sh /var/lib/docker/containers`, then set the cap
-   ([install guide](../install/laptop.md#4-docker)) and `docker compose up -d --force-recreate`.
+3. **Container logs.** Each of Labra's containers keeps at most five files of 10 MB, so they
+   stay under about 50 MB each. Check `sudo du -sh /var/lib/docker/containers`; if it is
+   much more, a container was started by an older `compose.yaml` without the cap: run
+   `docker compose up -d --force-recreate`. Other containers on the server (not Labra's)
+   follow Docker's own setting.
 4. **The system journal and package cache:**
 
    ```bash

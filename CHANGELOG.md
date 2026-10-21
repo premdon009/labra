@@ -55,6 +55,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - `labra set-password` gives someone a new password at the server.
 
 ### Changed
+- Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.
 - Admin price headings use the currency symbol from settings.

@@ -595,6 +595,28 @@ def test_a_binary_row_with_nothing_downloading_it_is_dropped(
     ]
 
 
+@pytest.mark.item("W27")
+def test_every_service_rotates_its_logs() -> None:
+    # The engine's default keeps logs forever; each service caps its own (five 10 MB files).
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    m = re.search(r"^x-logging: &logging\n(.*?)(?=^\S)", compose, re.M | re.S)
+    assert m is not None
+    assert [line.strip() for line in m.group(1).splitlines() if line.strip()] == [
+        "driver: json-file",
+        "options:",
+        'max-size: "10m"',
+        'max-file: "5"',
+    ]
+    m = re.search(r"^x-labra: &labra\n(.*?)(?=^\S)", compose, re.M | re.S)
+    assert m is not None
+    assert re.search(r"^  logging: \*logging$", m.group(1), re.M)
+    services = compose[compose.index("\nservices:\n") : compose.index("\nnetworks:\n")]
+    blocks = re.findall(r"^  (\w+):[^\n]*\n(.*?)(?=^  \w|\Z)", services, re.M | re.S)
+    assert len(blocks) >= 9
+    for name, body in blocks:
+        assert re.search(r"^    (logging: \*logging|<<: \*labra|<<: \*backup)$", body, re.M), name
+
+
 @pytest.mark.item("M16")
 def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     # Backups run only when a host timer asks (ADR-0013); `up -d` must not start the job.

@@ -184,6 +184,17 @@ check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/
 # to 2 CPUs and 4 GB between them. Only a run on the real laptop counts; this one catches a
 # regression. The patients stay for the backups below, so those are a realistic size too.
 engine=${compose[0]%-compose}
+# compose.yaml caps every container's logs. Docker reports it as set; Podman and nerdctl
+# translate it to their own log drivers, so they are shown rather than checked.
+logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(dc ps -q web)" 2>&1)
+if [[ $engine == docker ]]; then
+  check "web's logs rotate" 'json-file 10m 5' "$(python3 -c '
+import json, sys
+c = json.loads(sys.argv[1])
+print(c["Type"], c["Config"].get("max-size"), c["Config"].get("max-file"))' "$logs_config" 2>&1)"
+else
+  echo "INFO  web's log settings on $engine: $logs_config"
+fi
 cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(dc ps -q "$1")"; }
 capped=$(cap web 1 2g >/dev/null 2>&1 && cap db 0.75 1536m >/dev/null 2>&1 &&
   cap proxy 0.25 512m >/dev/null 2>&1 && echo yes || echo no)

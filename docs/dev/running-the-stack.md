@@ -168,6 +168,11 @@ check pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY`, `_DISK` or `_WATCHDOG` when
 `LABRA_HEARTBEAT=http`. An empty URL means "not set". The administrator's guide is
 [Alerts and nightly checks](../manual/admin/alerts-and-checks.md).
 
+## Logs
+Every long-running service keeps at most five 10 MB log files (`x-logging` in `compose.yaml`,
+the `json-file` driver), so the engine's own default doesn't matter and no `daemon.json` is
+needed. `docker compose logs <service>` reads them.
+
 ## Health and metrics
 - `/healthz`: the process is up. The image's own health check uses it.
 - `/readyz`: database reachable, migrations at head, enough free disk for the files folder.

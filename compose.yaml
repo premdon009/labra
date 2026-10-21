@@ -17,6 +17,14 @@
 
 name: labra
 
+# Every long-running container keeps at most five 10 MB log files, whatever the engine's
+# default, so logs can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-labra: &labra
   image: ${LABRA_IMAGE:-ghcr.io/premdon009/labra:0.1.0}
   build: .
@@ -37,6 +45,7 @@ x-labra: &labra
     - files:/data/files
     - exports:/data/export
   networks: [db]
+  logging: *logging
 
 services:
   db:
@@ -60,6 +69,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging
 
   migrate:
     <<: *labra
@@ -110,6 +120,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks: [edge]
+    logging: *logging
     depends_on:
       web:
         condition: service_healthy
@@ -123,6 +134,7 @@ services:
     environment:
       TUNNEL_TOKEN: ${LABRA_TUNNEL_TOKEN:-}
     networks: [edge]
+    logging: *logging
     depends_on: [proxy]
 
   # Branches reach the proxy's HTTPS port over the tailnet, under the same name and certificate
@@ -143,6 +155,7 @@ services:
       - ./deploy/tailscale/serve.json:/config/serve.json:ro
       - tailscale_state:/var/lib/tailscale
     networks: [edge]
+    logging: *logging
     depends_on: [proxy]
 
   # NetBird: the same idea with a control plane that can be fully self-hosted. It shares the
@@ -161,6 +174,7 @@ services:
       NB_HOSTNAME: ${LABRA_NETBIRD_HOSTNAME:-labra}
     volumes:
       - netbird_state:/var/lib/netbird
+    logging: *logging
     depends_on: [proxy]
 
   # One-shot jobs: backups, the restore drill, the watchdog (ADR-0013). Under a profile, so
@@ -186,6 +200,7 @@ services:
       # empty, so the USB copy fails and alerts while the Drive copy still runs.
       - ${LABRA_BACKUP_USB_DIR:-/mnt/labra-backup}:/backup/usb
     networks: [db, egress]
+    logging: *logging
 
   # The same job image for scripts/restore.sh. Only a restore writes the files back, so only
   # it mounts them writable.
