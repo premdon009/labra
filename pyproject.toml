@@ -85,6 +85,8 @@ build-backend = "hatchling.build"
 # The user manual the app shows, and the site config that gives its order.
 "docs/manual" = "labra/manual"
 "zensical.toml" = "labra/manual/_site.toml"
+# The runbooks, shown in the manual too.
+"docs/runbooks" = "labra/runbooks"
 
 [tool.uv]
 # Minimum release age: lock only releases at least 7 days old. A critical fix goes in

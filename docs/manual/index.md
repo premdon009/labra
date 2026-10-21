@@ -136,6 +136,7 @@ Every feature Labra has, and the manual page that explains it.
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | [Screen layout](getting-started/screen-layout.md) |
 | M25.3 | In-app `?` help and printable manual PDF | [Help and the manual](getting-started/help.md) |
 | M25.3 | In-app `?` help and printable manual PDF | [Keyboard shortcuts](getting-started/keyboard-shortcuts.md) |
+| M25.4 | The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks` | [Help and the manual](getting-started/help.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Data export](admin/data-export.md) |
 | M26 | Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17) | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |

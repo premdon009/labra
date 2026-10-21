@@ -1,7 +1,9 @@
 """The user manual inside the app: each screen's help page, the contents and the PDF."""
 
 import re
+import tomllib
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -12,6 +14,8 @@ from pypdf import PdfReader
 
 from labra import __version__
 from labra.help import service
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def _screens(app: FastAPI) -> set[str]:
@@ -47,14 +51,56 @@ def test_every_link_between_manual_pages_opens(client: TestClient) -> None:
 
 
 @pytest.mark.item("M25.3")
-def test_links_outside_the_manual_go_to_the_documentation_site() -> None:
-    assert service._link("admin/system", "../../runbooks/restore-from-backup.md", "#x") == (
-        "https://premdon009.github.io/labra/runbooks/restore-from-backup/#x"
+@pytest.mark.item("M25.4")
+def test_links_resolve_to_the_app_or_the_documentation_site() -> None:
+    link = service._link
+    # Between the manual and the runbooks: inside the app.
+    assert link("manual/admin/system.md", "../../runbooks/restore-from-backup.md", "#x") == (
+        "/manual/runbooks/restore-from-backup/#x"
     )
-    assert service._link("admin/system", "../lab/worklist.md", "") == "/manual/lab/worklist/"
-    assert service._link("admin/system", "alerts-and-checks.md", "") == (
+    assert link("manual/admin/system.md", "../lab/worklist.md", "") == "/manual/lab/worklist/"
+    assert link("manual/admin/system.md", "alerts-and-checks.md", "") == (
         "/manual/admin/alerts-and-checks/"
     )
+    assert link("runbooks/disk-full.md", "../manual/admin/system.md", "") == "/manual/admin/system/"
+    assert (
+        link("runbooks/disk-full.md", "laptop-dead.md", "#a") == "/manual/runbooks/laptop-dead/#a"
+    )
+    # Anything else the app doesn't carry: the documentation site.
+    assert link("runbooks/disk-full.md", "../install/laptop.md", "#4-docker") == (
+        "https://premdon009.github.io/labra/install/laptop/#4-docker"
+    )
+    assert link("manual/admin/system.md", "../../ENTERPRISE_CHECKLIST.md", "") == (
+        "https://premdon009.github.io/labra/ENTERPRISE_CHECKLIST/"
+    )
+
+
+def _runbooks() -> list[str]:
+    nav = tomllib.loads((ROOT / "zensical.toml").read_text())["project"]["nav"]
+    paths = next(entry["Runbooks"] for entry in nav if "Runbooks" in entry)
+    return [p.removesuffix(".md") for p in paths]
+
+
+@pytest.mark.item("M25.4")
+def test_every_runbook_opens_inside_the_app(client: TestClient) -> None:
+    runbooks = _runbooks()
+    assert len(runbooks) >= 6
+    assert {p.name for p in service.pages().values() if p.section == "Runbooks"} == set(runbooks)
+    for name in runbooks:
+        response = client.get(f"/manual/{name}/")
+        assert response.status_code == 200, name
+        assert "<h1" in response.text, name
+    restore = service.pages()["runbooks/restore-from-backup"]
+    assert restore.title == "Restore from backup"
+    assert 'href="/manual/admin/backups-and-restore/"' in restore.html
+
+
+@pytest.mark.item("M25.4")
+def test_the_contents_lists_the_runbooks(client: TestClient) -> None:
+    html = client.get("/manual/").text
+    assert "<h2>Runbooks</h2>" in html
+    for name in _runbooks():
+        assert f'href="/manual/{name}/"' in html, name
 
 
 @pytest.mark.item("M25.3")
@@ -93,3 +139,4 @@ def test_the_manual_pdf_holds_every_page_and_fetches_nothing(client: TestClient)
     assert __version__ in text
     for page in service.pages().values():
         assert page.title in text, page.title
+    assert "Restore from backup" in text

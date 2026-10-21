@@ -1,6 +1,6 @@
 ---
 title: Help and the manual
-features: [M25.3]
+features: [M25.3, M25.4]
 ---
 
 # Help and the manual
@@ -29,7 +29,7 @@ opens its own page, and the whole manual can be printed as one PDF for training.
 1. Open any manual page and select **User manual** at the top.
 2. Select **Download the whole manual (PDF)**.
 3. Print it, or keep it on a training PC. It starts with a contents list and has one
-   section per screen.
+   section per screen, then the runbooks.
 
 ## Screenshot
 
@@ -39,7 +39,10 @@ opens its own page, and the whole manual can be printed as one PDF for training.
 
 - The manual matches the Labra version on the server. After an upgrade, download the PDF
   again.
-- Links to the runbooks and the developer pages open the Labra website, which needs the
+- The runbooks (what to do when the server dies, the disk is full or a branch loses its
+  internet) are in the contents under **Runbooks** and in the PDF, so they open even when
+  the internet is down.
+- Links to the install guide and the developer pages open the Labra website, which needs the
   internet.
 
 ## Related pages

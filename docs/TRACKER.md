@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 18/28 · Minimal 42/43 · After pilot (P2) 2/10 · Checklist gate P 44/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 18/28 · Minimal 42/43 · After pilot (P2) 2/11 · Checklist gate P 44/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -120,6 +120,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
 | ~~M25.3~~ | ~~In-app `?` help and printable manual PDF~~ | P2 | done | 2026-10-21 · ea7847a (help key is Alt+H) |
+| M25.4 | The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks` | P2 | doing | Run 6 group 16 |
 | ~~M26~~ | ~~Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17)~~ | P | done | 2026-10-14 · 0585060 (outsourcing events 2026-10-13) |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
 

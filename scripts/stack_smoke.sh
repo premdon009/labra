@@ -138,6 +138,8 @@ check "/readyz: database, migrations, disk" '*"database":"ok","migrations":"ok",
 check "/metrics kept off the network" 404 "$(code "$(url /metrics)")"
 check "the manual is inside the image" yes \
   "$(https "$(url /manual/getting-started/login/)" | grep '<h1[^>]*>Signing in' >/dev/null && echo yes || echo no)"
+check "the runbooks are inside the image" yes \
+  "$(https "$(url /manual/runbooks/disk-full/)" | grep '<h1[^>]*>Disk full' >/dev/null && echo yes || echo no)"
 headers=$(https -D - -o /dev/null "$(url /login)" | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 for h in strict-transport-security content-security-policy x-frame-options \
   x-content-type-options referrer-policy; do
