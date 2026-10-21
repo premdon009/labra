@@ -19,7 +19,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **P** `EC-A08` Jinja autoescape on; report/bill templates rendered in the **sandboxed** Jinja environment
 - [x] **P** `EC-A09` All SQL through SQLAlchemy parameters; no string-built SQL *(CI: ruff `S608`)*
 - [x] **P** `EC-A10` Secrets only from env / `.env` (mode 600) / Docker secrets; never in the database, logs, CLI args or Git *(CI: gitleaks)*
-- [ ] **P** `EC-A11` Remote access only through Cloudflare Tunnel + Cloudflare Access (email OTP); no open router ports; Postgres not exposed outside Docker
+- [x] **P** `EC-A11` Remote access only through Cloudflare Tunnel + Cloudflare Access (email OTP); no open router ports; Postgres not exposed outside Docker
 - [ ] **P** `EC-A12` Disk encryption (LUKS) on the laptop, so a stolen laptop doesn't leak patient data; unlock key recorded with the restic password
 - [ ] **1** `EC-A13` 2FA (TOTP) required for admin and signatory roles
 - [ ] **1** `EC-A14` OWASP ASVS level 1 self-assessment written up; `SECURITY.md` with a reporting contact and response times
@@ -32,7 +32,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [x] **P** `EC-B03` Optimistic locking (`row_version`) on edits; a stale edit shows "changed by X, reload"
 - [x] **P** `EC-B04` Database constraints, not just app checks: foreign keys, `CHECK` (amount ≥ 0, paid ≤ net), unique keys, `NOT NULL`
 - [x] **P** `EC-B05` Released reports and issued bills are immutable; corrections only as amendment / credit note / cancellation with reason *(CI test)*
-- [ ] **P** `EC-B06` Append-only audit log with a hash chain; a nightly job verifies the chain and alerts on a break
+- [x] **P** `EC-B06` Append-only audit log with a hash chain; a nightly job verifies the chain and alerts on a break
 - [x] **P** `EC-B07` Idempotent form submits (a double click doesn't create 2 bills: `client_ref` unique)
 - [ ] **1** `EC-B08` Daily reconciliation report: payments vs bills vs day close; mismatches flagged
 
@@ -48,11 +48,11 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **L** `EC-C09` NABL audit pack export (audit trail, signatory list, critical-value log, QC records)
 
 ## D. Reliability, backup and disaster recovery
-- [ ] **P** `EC-D01` Backups every 15 min in lab hours + nightly (configurable 15m–24h, §17.3) to Google Drive (encrypted) + USB; healthcheck alert on a missed run
-- [ ] **P** `EC-D02` **Monthly restore drill**, automated, result logged; a failed drill alerts the owner
+- [x] **P** `EC-D01` Backups every 15 min in lab hours + nightly (configurable 15m–24h, §17.3) to Google Drive (encrypted) + USB; healthcheck alert on a missed run
+- [x] **P** `EC-D02` **Monthly restore drill**, automated, result logged; a failed drill alerts the owner
 - [ ] **P** `EC-D03` Written targets: **RPO ≤ 15 min** (data loss at worst, §17.3), **RTO ≤ 2 h** (time back in business on a spare laptop); restore runbook tested once before the pilot
 - [x] **P** `EC-D04` Containers `restart: unless-stopped`; app health endpoint (`/healthz` checks the database); Docker health checks
-- [ ] **P** `EC-D05` Postgres: `fsync` on, checksums on, disk-space alert at 80%
+- [x] **P** `EC-D05` Postgres: `fsync` on, checksums on, disk-space alert at 80%
 - [ ] **P** `EC-D06` UPS for laptop power path, router and switch; laptop auto-starts after power returns
 - [ ] **P** `EC-D07` Main lab works with the WAN unplugged (LAN-only test before the pilot)
 - [ ] **1** `EC-D08` Point-in-time recovery (WAL archiving with pgBackRest or WAL-G) if the owner wants RPO in minutes
@@ -60,9 +60,9 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 
 ## E. Observability and support
 - [ ] **P** `EC-E01` Structured JSON logs (structlog) with a request ID; IDs only, never names/phones; log rotation
-- [ ] **P** `EC-E02` Uptime monitor (Uptime Kuma or Healthchecks.io) for the web app, backup job and Tunnel; alerts to the owner by email/Telegram
+- [x] **P** `EC-E02` Uptime monitor (Uptime Kuma or Healthchecks.io) for the web app, backup job and Tunnel; alerts to the owner by email/Telegram
 - [x] **P** `EC-E03` Friendly error page with an error reference number, matching a log entry, so staff can report it
-- [ ] **P** `EC-E04` `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry
+- [x] **P** `EC-E04` `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry
 - [ ] **1** `EC-E05` Error tracking (GlitchTip, self-hosted, PII scrubbing on)
 - [ ] **1** `EC-E06` Support bundle: one button exports logs (scrubbed) + versions + settings (no patient data) for troubleshooting
 
@@ -73,9 +73,9 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **1** `EC-F04` Load test (Locust) with 10 concurrent users and 5 years of synthetic data (about 160k visits)
 
 ## G. Upgrades, migrations, versioning
-- [ ] **P** `EC-G01` SemVer 0.x, `CHANGELOG.md` with dated entries; version shown in the footer and System page
+- [x] **P** `EC-G01` SemVer 0.x, `CHANGELOG.md` with dated entries; version shown in the footer and System page
 - [ ] **P** `EC-G02` Alembic migrations: forward-only in production, each tested on a copy of the previous release's schema *(CI: upgrade from last tag)*
-- [ ] **P** `EC-G03` Upgrade script: takes a backup → pulls the pinned image → runs migrations → health check → **automatic rollback** to the previous image + restore if the health check fails
+- [x] **P** `EC-G03` Upgrade script: takes a backup → pulls the pinned image → runs migrations → health check → **automatic rollback** to the previous image + restore if the health check fails
 - [x] **P** `EC-G04` Docker images pinned by version (no `latest`)
 - [ ] **1** `EC-G05` Documented upgrade path across 2+ versions; deprecation policy (§18.3): a removed setting, screen or export column keeps working for at least one minor release, shows a notice on `Admin ▸ System` naming the release it goes away in, and is listed under "Deprecated" in the changelog
 - [ ] **1** `EC-G06` Zero-touch security updates for the OS (unattended-upgrades) with reboot window outside lab hours
@@ -115,7 +115,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## L. Documentation and training
 - [ ] **P** `EC-L01` Install guide for the old laptop (OS → Docker → Labra → backup setup), tested by someone other than the author
 - [ ] **P** `EC-L02` User manual (§13a) covering every minimal-version screen, screenshots generated from synthetic data; screen-registry and staleness gates green *(CI)*
-- [ ] **P** `EC-L03` Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full
+- [x] **P** `EC-L03` Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full
 - [ ] **1** `EC-L04` Docs site (Zensical, §19.3), architecture + ADRs, API reference, contributor guide
 - [ ] **1** `EC-L05` Training checklist for new staff; one-page quick-reference cards per role
 

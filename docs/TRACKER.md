@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 16/26 · Minimal 41/43 · After pilot (P2) 1/10 · Checklist gate P 34/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 18/26 · Minimal 42/43 · After pilot (P2) 2/10 · Checklist gate P 44/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -45,8 +45,8 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W03~~ | ~~Docker Compose stack: web, postgres, caddy, cloudflared (§1a)~~ | P | done | 2026-10-09 · f5ec4d0 |
 | ~~W04~~ | ~~Foundation: settings, number series, file store~~ | P | done | 2026-10-09 · 662312a |
 | ~~W05~~ | ~~Synthetic seed data and dummy datasets~~ | P | done | 2026-10-09 · 144d19c |
-| W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | doing | Run 6 |
-| W07 | Restore-drill script and runbooks | P | doing | Run 6 |
+| W06 | Laptop install guide and hardening: SSD, OS, LUKS, UPS (§1a) | P | doing | Guide written and rehearsed in a Debian 13 VM (2026-10-21 · b86cc8c); stays doing until someone follows it on the real laptop (BIOS, LUKS/TPM, UPS can't be rehearsed in a VM) |
+| ~~W07~~ | ~~Restore-drill script and runbooks~~ | P | done | 2026-10-21 · 11e180f, b86cc8c |
 | ~~W08~~ | ~~Local gate script matching CI (`scripts/ci_local.sh`)~~ | P | done | 2026-10-09 · c0b6258 |
 | ~~W08.1~~ | ~~Tracker tooling (§0 items 1–3): status column + strike-through, `scripts/check_tracker.py` rules and progress rewrite, pilot/release tag gate~~ | P | done | 2026-10-09 · c0b6258 |
 | W09 | Pilot: one week running in parallel with the current system (§1a build order 5) | P | todo | |
@@ -57,7 +57,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W13~~ | ~~Dependency register `docs/DEPENDENCIES.md` + `scripts/audit_deps.py` + weekly scheduled check + "no dependency without a row" gate (§19)~~ | P | done | 2026-10-09 · d954bd5 |
 | ~~W14~~ | ~~Supply-chain pinning: GitHub Actions by commit SHA, images by digest, vendored JS/CSS with recorded SHA-256 (§19.1)~~ | P | done | 2026-10-09 · d954bd5 |
 | ~~W15~~ | ~~Platform ports: `labra.core.ports`, built-in adapters chosen from settings with fail-fast startup, one contract test suite per port, import-linter "core imports ports only", ADR-0008 (§17.6)~~ | P | done | 2026-10-09 · 662312a |
-| W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | P | doing | readyz verified under Compose; backup heartbeat comes with W07 |
+| ~~W16~~ | ~~Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6)~~ | P | done | 2026-10-16 · 05ed7dc (backup heartbeat; readyz verified under Compose earlier) |
 | W17 | Container runtimes: same image and Compose file on Docker, Podman and Podman Desktop, containerd (nerdctl) and Incus; `scripts/stack_smoke.sh`, `scripts/compare_runtimes.sh`, tests on any Postgres, ADR-0009 (§19.2) | P | doing | verified in nested labs; CI matrix unrun; Incus full stack and Podman Desktop need a real host |
 | W18 | Image builders: Docker BuildKit, Podman, Buildah and Kaniko (fork) build the same image; `scripts/build_image.sh`, `scripts/check_image.sh` (§19.2) | P | doing | all four checked locally; CI matrix unrun |
 | W19 | Edge alternatives: nginx for Caddy, Tailscale/Headscale and NetBird profiles for Cloudflare Tunnel, WireGuard documented (§19.2) | P | doing | nginx 16/16 checks; tunnel logins need real keys; CI matrix unrun |
@@ -100,7 +100,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~M14.1~~ | ~~Admin lists: a page number that isn't a number shows the first page, a row saved on a later page stays on that page, and package and preset forms take tests by code instead of listing every test~~ | P | done | 2026-10-13 · 9123107 |
 | ~~M14.2~~ | ~~A row version that isn't a number counts as out of date; pager links on the setup screen work after a refused save~~ | P | done | 2026-10-13 · ba826bb |
 | ~~M15~~ | ~~Compliance floor: hash-chained audit log, consent, no fetal-sex fields~~ | P | done | 2026-10-09 · 662312a |
-| M16 | Backups: Google Drive + USB via restic | P | doing | Run 6 |
+| ~~M16~~ | ~~Backups: Google Drive + USB via restic~~ | P | done | 2026-10-16 · db3dc83, ea03637, 05ed7dc |
 | ~~M17~~ | ~~Letterhead and margin calibration (§7.2)~~ | P | done | 2026-10-14 · cd556ef |
 | M17.1 | Convert-to-SVG suggestion (§7.2) | P2 | todo | |
 | ~~M18~~ | ~~Fast front desk: one-screen visit~~ | P | done | 2026-10-13 · 21d84e9 |
@@ -117,7 +117,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M25 | User manual, in-app help, screenshot generator (§13a); done when M25.1–M25.3 are done | P / P2 | todo | |
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
-| M25.3 | In-app `?` help and printable manual PDF | P2 | doing | Run 6 (owner, 2026-10-16) |
+| ~~M25.3~~ | ~~In-app `?` help and printable manual PDF~~ | P2 | done | 2026-10-21 · ea7847a (help key is Alt+H) |
 | ~~M26~~ | ~~Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17)~~ | P | done | 2026-10-14 · 0585060 (outsourcing events 2026-10-13) |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
 
@@ -205,18 +205,18 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 ## Enterprise checklist (counts only; tick the items in §14a)
 | Section | IDs | Gate P | Gate 1 | Gate L |
 |---|---|---|---|---|
-| A Security | EC-A01–A16 | 9/12 | 0/3 | 0/1 |
-| B Data integrity and money | EC-B01–B08 | 6/7 | 0/1 | — |
+| A Security | EC-A01–A16 | 10/12 | 0/3 | 0/1 |
+| B Data integrity and money | EC-B01–B08 | 7/7 | 0/1 | — |
 | C Privacy and compliance | EC-C01–C09 | 3/5 | 0/3 | 0/1 |
-| D Reliability, backup, DR | EC-D01–D09 | 1/7 | 0/1 | 0/1 |
-| E Observability and support | EC-E01–E06 | 1/4 | 0/2 | — |
+| D Reliability, backup, DR | EC-D01–D09 | 4/7 | 0/1 | 0/1 |
+| E Observability and support | EC-E01–E06 | 3/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 1/3 | 0/1 | — |
-| G Upgrades and migrations | EC-G01–G06 | 1/4 | 0/2 | — |
+| G Upgrades and migrations | EC-G01–G06 | 3/4 | 0/2 | — |
 | H Code quality and testing | EC-H01–H07 | 3/5 | 0/2 | — |
 | I Supply chain | EC-I01–I07 | 3/5 | 0/2 | — |
 | J Usability | EC-J01–J05 | 3/3 | 0/2 | — |
 | K Configuration safety | EC-K01–K05 | 3/3 | 0/2 | — |
-| L Documentation | EC-L01–L05 | 0/3 | 0/2 | — |
+| L Documentation | EC-L01–L05 | 1/3 | 0/2 | — |
 | O Open-source health | EC-O01–O08 | — | 0/8 | — |
 
 The release checklist (§14a M) repeats every release, so it has no IDs; each release PR carries its own ticked copy.

@@ -157,6 +157,9 @@ def get(p):
     except e.HTTPError as x: return x.code
 print(get('/healthz'), get('/metrics'))" 2>/dev/null | tail -1)
 check "tunnel listener: app 200, /metrics 404" "200 404" "$tunnel"
+check "Postgres: fsync and data checksums on" "on on" \
+  "$(dc exec -T db psql -U labra -d labra -Atc \
+    "select current_setting('fsync') || ' ' || current_setting('data_checksums')" 2>&1)"
 
 # First start, then sign in through the proxy.
 password=smoke-test-pass-$$
