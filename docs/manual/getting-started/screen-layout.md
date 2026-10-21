@@ -40,8 +40,8 @@ area you can use.
   server, its backups and its disk are healthy ([System](../admin/system.md)).
 - If something goes wrong, Labra shows a reference such as `E-7F3K9Q2M`. Give it to whoever
   supports your Labra; it lets them find exactly what happened.
-- The **Help** link goes to the manual on the internet by default. A lab without internet
-  can host the manual itself and point Labra at it.
+- The **Help** link opens this manual inside Labra, so it works without the internet too
+  ([Help and the manual](help.md)).
 
 ## Related pages
 

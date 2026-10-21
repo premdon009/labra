@@ -76,6 +76,6 @@ database that has patients of its own.
 
 The same smoke run backs up the 50,000 patients twice: the first backup added 20.45 MB across
 both repositories (local disk and the USB copy), the second, with nothing changed but the run
-log, 3.37 MB, because restic stores only the chunks of about 1 MB that changed. The plan's
-estimate of under 1 GB of database a year therefore holds, and the PDFs (about 6 to 7 GB a
-year) stay the larger part of the backup.
+log, 3.37 MB, because restic stores only the chunks of about 1 MB that changed. That is
+within the 2 to 5 MB a run that [design §17.3](../design/v1-plan.md) estimated, and the
+stored report PDFs (about 6 to 7 GB a year) stay the larger part of the backup.

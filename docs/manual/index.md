@@ -8,6 +8,7 @@ Every feature Labra has, and the manual page that explains it.
 |---|---|---|
 | EC-A01 | Passwords hashed with argon2 | [Signing in](getting-started/login.md) |
 | EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Signing in](getting-started/login.md) |
+| EC-A02 | Login lockout / rate limit after 5 failed tries per user + IP | [Sign-in problems](troubleshooting/sign-in-problems.md) |
 | EC-A03 | Session cookies `HttpOnly`, `Secure`, `SameSite=Lax` | [Signing in](getting-started/login.md) |
 | EC-A05 | Role check on every route by default | [Screen layout](getting-started/screen-layout.md) |
 | EC-A07 | Upload safety: type sniffed | [Letterhead and margins](admin/letterhead-and-margins.md) |
@@ -20,9 +21,12 @@ Every feature Labra has, and the manual page that explains it.
 | EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D02 | Monthly restore drill, automated, result logged | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D03 | Written targets: RPO ≤ 15 min | [Backups and restore](admin/backups-and-restore.md) |
+| EC-D03 | Written targets: RPO ≤ 15 min | [Working on paper](troubleshooting/working-on-paper.md) |
 | EC-D05 | Postgres: `fsync` on, checksums on, disk-space alert at 80% | [Alerts and nightly checks](admin/alerts-and-checks.md) |
+| EC-D07 | Main lab works with the WAN unplugged | [Labra won't open](troubleshooting/labra-wont-open.md) |
 | EC-E02 | Uptime monitor | [Alerts and nightly checks](admin/alerts-and-checks.md) |
 | EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Screen layout](getting-started/screen-layout.md) |
+| EC-E03 | Friendly error page with an error reference number, matching a log entry, so staff can report it | [Labra won't open](troubleshooting/labra-wont-open.md) |
 | EC-E04 | `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry | [System](admin/system.md) |
 | EC-F03 | Pagination everywhere | [Branches](admin/branches.md) |
 | EC-F03 | Pagination everywhere | [Test catalog](admin/catalog.md) |
@@ -41,8 +45,13 @@ Every feature Labra has, and the manual page that explains it.
 | EC-J02 | Works in Chrome/Edge on a 1366×768 screen | [New visit](frontdesk/new-visit.md) |
 | EC-J03 | Clear empty, loading and error states | [Bills and receipts](frontdesk/bills-and-receipts.md) |
 | EC-K03 | Draft → preview → publish for templates and letterheads | [Letterhead and margins](admin/letterhead-and-margins.md) |
+| EC-L02 | User manual | [A day at the lab](getting-started/a-day-at-the-lab.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Labra won't open](troubleshooting/labra-wont-open.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Sign-in problems](troubleshooting/sign-in-problems.md) |
+| EC-L03 | Runbooks: restore from backup, laptop dead, internet down at a branch, forgotten admin password, certificate/Tunnel renewal, disk full | [Working on paper](troubleshooting/working-on-paper.md) |
 | M01 | Login and roles | [Staff and roles](admin/users-and-roles.md) |
 | M01 | Login and roles | [Signing in](getting-started/login.md) |
+| M01 | Login and roles | [Sign-in problems](troubleshooting/sign-in-problems.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Staff and roles](admin/users-and-roles.md) |
 | M01.1 | Permission switches per role (`role_permission`) | [Screen layout](getting-started/screen-layout.md) |
 | M01.2 | Staff without login (collected/delivered by) | [Staff and roles](admin/users-and-roles.md) |

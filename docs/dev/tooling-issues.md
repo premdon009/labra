@@ -35,3 +35,8 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 **Symptom:** a script that captures `podman compose exec …` output gets an extra line or escape codes.
 **Cause:** `podman compose` prints a banner on stderr each time it hands over to its provider.
 **Fix:** capture stdout only (`2>/dev/null`), not `2>&1`.
+
+## The install rehearsal VM loses its network
+**Symptom:** in a qemu VM with user-mode networking (slirp), started from inside a Docker container, SSH to the guest drops as soon as Docker starts in the guest; later, downloads in the guest fail with TLS decode errors.
+**Cause:** slirp keeps a forwarded connection's real source address, which clashes with the guest's own `docker0` when the outer container also sits on 172.17.0.0/16. Once Docker turns on IP forwarding in the guest, slirp corrupts outgoing TCP.
+**Fix:** run the qemu container on its own network (`docker network create --subnet 10.99.0.0/24 …`). In the guest, set `"ip-forward": false` in `/etc/docker/daemon.json` and `net.ipv4.ip_forward=0`, load the Labra images built on the host (`docker save` / `docker load`), and accept that the guest's containers have no internet. HTTPS from the host through the forwarded port still stalls; test from inside the guest.

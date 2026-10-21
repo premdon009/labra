@@ -7,6 +7,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.routing import APIRoute, iter_route_contexts
 from fastapi.testclient import TestClient
+from markupsafe import escape
 from pypdf import PdfReader
 
 from labra import __version__
@@ -60,7 +61,7 @@ def test_links_outside_the_manual_go_to_the_documentation_site() -> None:
 def test_the_contents_lists_every_page_in_the_site_order(client: TestClient) -> None:
     html = client.get("/manual/").text
     titles = [p.title for p in service.pages().values()]
-    positions = [html.index(f">{t}</a>") for t in titles]
+    positions = [html.index(f">{escape(t)}</a>") for t in titles]
     assert positions == sorted(positions)
     assert 'href="/manual/labra-manual.pdf"' in html
 

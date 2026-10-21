@@ -149,4 +149,5 @@ The restore must work before the pilot, not only on paper.
 | When | Where | What | Time taken |
 |---|---|---|---|
 | Every release | `scripts/stack_smoke.sh` | drill of both repositories, a refused restore, a `--replace` restore, sign-in afterwards, a damaged repository | a few minutes |
+| 2026-10-21 | a Debian 13 VM, following the install guide | *The same server* (`--replace` to an older snapshot) and *A new server* after `docker compose down -v`, both from the USB disk; sign-in and the System page afterwards | under a minute each, with a small database |
 | Before the pilot | the lab's laptop | *A new server*, from the USB disk and then from Drive, timed against the 2-hour target | to be filled in |

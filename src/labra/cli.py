@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
     from sqlalchemy.orm import Session
 
+    from labra.core.ports import IdentityProvider
+
 from labra.core.errors import ConfigError, LabraError
 
 
@@ -151,6 +153,19 @@ def cmd_check_disk(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def _new_password(identity: "IdentityProvider") -> str | None:
+    """A new password typed twice at the prompt, or None when it is refused."""
+    password = getpass.getpass("New password: ")
+    problems = identity.password_problems(password)
+    if problems:
+        _out(" ".join(problems))
+        return None
+    if getpass.getpass("Again: ") != password:
+        _out("The passwords don't match.")
+        return None
+    return password
+
+
 def cmd_create_admin(args: argparse.Namespace) -> int:
     """The first administrator, with a role at every branch. Run once after `migrate`."""
     from sqlalchemy import select
@@ -163,13 +178,8 @@ def cmd_create_admin(args: argparse.Namespace) -> int:
     from labra.org.service import sync_system_roles
 
     identity = get_platform().identity
-    password = getpass.getpass("New password: ")
-    problems = identity.password_problems(password)
-    if problems:
-        _out(" ".join(problems))
-        return 1
-    if getpass.getpass("Again: ") != password:
-        _out("The passwords don't match.")
+    password = _new_password(identity)
+    if password is None:
         return 1
     with Session(get_engine()) as db:
         sync_system_roles(db)
@@ -190,6 +200,43 @@ def cmd_create_admin(args: argparse.Namespace) -> int:
         audit.record(db, "user.create", "app_user", user.id, {"via": "cli"})
         db.commit()
     _out(f"Administrator {args.username} created.")
+    return 0
+
+
+def cmd_set_password(args: argparse.Namespace) -> int:
+    """A new password for someone who can't sign in, such as the only administrator; they are
+    signed out everywhere, as after a reset on the Staff screen."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from labra import models
+    from labra.auth.service import end_all_sessions, normalise_username
+    from labra.core import audit
+    from labra.core.db import get_engine
+    from labra.core.ids import utcnow
+    from labra.core.registry import get_platform
+
+    username = normalise_username(args.username)
+    with Session(get_engine()) as db:
+        user = db.scalar(select(models.AppUser).where(models.AppUser.username == username))
+        if user is None:
+            _out(f"There is no user {username}.")
+            return 1
+        if not (user.can_login and user.is_active):
+            _out(
+                f"{username} can't sign in at all (switched off on the Staff screen);"
+                " a new password won't change that."
+            )
+            return 1
+        identity = get_platform().identity
+        password = _new_password(identity)
+        if password is None:
+            return 1
+        identity.set_password(db, user.id, password)
+        end_all_sessions(db, user.id, utcnow())
+        audit.record(db, "user.password_reset", "app_user", user.id, {"via": "cli"})
+        db.commit()
+    _out(f"Password changed for {username}. They are signed out everywhere.")
     return 0
 
 
@@ -341,6 +388,10 @@ def build_parser() -> argparse.ArgumentParser:
     admin.add_argument("--username", required=True)
     admin.add_argument("--full-name", required=True)
     admin.set_defaults(func=cmd_create_admin)
+
+    passwd = sub.add_parser("set-password", help="give someone a new password at the server")
+    passwd.add_argument("--username", required=True)
+    passwd.set_defaults(func=cmd_set_password)
 
     starter_cmd = sub.add_parser("import-starter", help="add the starter test catalog")
     starter_cmd.add_argument(

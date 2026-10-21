@@ -21,6 +21,7 @@ nav = [
       "manual/getting-started/screen-layout.md",
       "manual/getting-started/keyboard-shortcuts.md",
       "manual/getting-started/help.md",
+      "manual/getting-started/a-day-at-the-lab.md",
     ] },
     { "Admin" = [
       "manual/admin/branches.md",
@@ -67,6 +68,14 @@ nav = [
       "manual/owner/daily-collection.md",
       "manual/owner/dues-pending-outsourcing.md",
     ] },
+    { "Troubleshooting" = [
+      "manual/troubleshooting/labra-wont-open.md",
+      "manual/troubleshooting/sign-in-problems.md",
+      "manual/troubleshooting/working-on-paper.md",
+    ] },
+  ] },
+  { "Install" = [
+    "install/laptop.md",
   ] },
   { "Developers" = [
     "dev/setup.md",
@@ -81,6 +90,11 @@ nav = [
   ] },
   { "Runbooks" = [
     "runbooks/restore-from-backup.md",
+    "runbooks/laptop-dead.md",
+    "runbooks/branch-internet-down.md",
+    "runbooks/forgotten-admin-password.md",
+    "runbooks/certificate-and-tunnel.md",
+    "runbooks/disk-full.md",
   ] },
   { "Decisions" = [
     "adr/index.md",
