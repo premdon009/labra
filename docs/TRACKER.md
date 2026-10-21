@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 18/28 · Minimal 42/44 · After pilot (P2) 2/11 · Checklist gate P 44/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 20/28 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 44/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -68,8 +68,8 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W24~~ | ~~Uploaded SVG is parsed with the standard library's expat, refusing any DTD, entity declaration or external reference, and `defusedxml` leaves the runtime dependencies; an import contract keeps `xml` imports in the SVG sanitiser; the register defines Watch (ADR-0011)~~ | P | done | 2026-10-15 · a9bd74a |
 | ~~W25~~ | ~~Shell scripts are linted: `scripts/check_shell.sh` runs shellcheck in the gate's hygiene stage and in pre-commit (unchecked when shellcheck is missing), the scripts are clean, and setup puts git-cliff on `PATH`~~ | P | done | 2026-10-16 · fa12193 |
 | ~~W26~~ | ~~No person's name is written in the shipped code: the demo seed draws every name from Faker (the signatory gets "Dr"), the letterhead preview samples show role labels, tests look seeded names up, and a test fails when a seeded name appears in `src/`~~ | P | done | 2026-10-16 · 06bdcb6 |
-| W27 | Every long-running container rotates its own logs: an `x-logging` anchor in `compose.yaml` (json-file, five 10 MB files) on every service, so the install guide needs no `daemon.json`; a test checks each service has it and the stack smoke reads web's log settings | P | doing | Run 6 group 15 |
-| W28 | The System page counts the HTTPS certificate as renewed by the proxy only when Caddy's own authority issued it (the issuer's common name, read from the DER bytes); any other certificate warns 30 days before it runs out, however short its life | P | doing | Run 6 group 14 |
+| ~~W27~~ | ~~Every long-running container rotates its own logs: an `x-logging` anchor in `compose.yaml` (json-file, five 10 MB files) on every service, so the install guide needs no `daemon.json`; a test checks each service has it and the stack smoke reads web's log settings~~ | P | done | 2026-10-21 · 40584c2 |
+| ~~W28~~ | ~~The System page counts the HTTPS certificate as renewed by the proxy only when Caddy's own authority issued it (the issuer's common name, read from the DER bytes); any other certificate warns 30 days before it runs out, however short its life~~ | P | done | 2026-10-21 · 7aabe64 |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
@@ -120,10 +120,10 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | M25.1 | Manual site (Zensical, reads `mkdocs.yml`; §19.3), page template, `manual_page=` registry gate, staleness gate (§16.1) | P | doing | screenshots pending, to be taken by hand |
 | M25.2 | Playwright screenshot generator; until then manual pages carry hand-taken screenshots of seed data | P2 | todo | |
 | ~~M25.3~~ | ~~In-app `?` help and printable manual PDF~~ | P2 | done | 2026-10-21 · ea7847a (help key is Alt+H) |
-| M25.4 | The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks` | P2 | doing | Run 6 group 16 |
+| ~~M25.4~~ | ~~The runbooks inside the app's manual and its PDF: a Runbooks section in the contents at `/manual/runbooks/<page>/`, links between the manual and the runbooks stay in the app, the image carries `docs/runbooks`~~ | P2 | done | 2026-10-21 · c6c0255 |
 | ~~M26~~ | ~~Integration seam: event outbox + daily accounting export + full data export (CSV + Parquet) (§17)~~ | P | done | 2026-10-14 · 0585060 (outsourcing events 2026-10-13) |
 | M26.1 | Monthly Parquet archive of closed months into the restic repository (§17.3) | P2 | todo | |
-| M27 | Change my own password: the current one, then a new one twice; a wrong current password counts towards the sign-in lockout; other sessions end; audited | P | doing | Run 6 group 17 |
+| ~~M27~~ | ~~Change my own password: the current one, then a new one twice; a wrong current password counts towards the sign-in lockout; other sessions end; audited~~ | P | done | 2026-10-21 · 4667930 |
 
 ## Next expansion (0.x, after the pilot)
 | ID | Item | Note | Status | Done (date · PR) |
@@ -174,6 +174,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | X44 | Prove a second PostgreSQL driver (pg8000): dev dependency with its register row, one migrate-and-round-trip test | if psycopg's licence or wheels become a problem | todo | |
 | X45 | Carry the gate's flaky and failed test history between CI runs (an Actions cache or a results branch), so `scripts/flaky_report.py` covers CI as well as local runs | if CI shows flaky tests the local history misses | todo | |
 | X46 | Fetch the release dates of pinned Actions, images and vendored files in `scripts/audit_deps.py --refresh` (GitHub, the image registry, npm) instead of entering them by hand | if a hand-entered date turns out wrong | todo | |
+| X47 | Outbox reader and retention: `event_outbox` is written and never read, and `claim`/`mark_done` have no caller, while §17.2 says readers track their own cursor; before the first consumer, choose a per-reader cursor or `processed_at`, and how long delivered events are kept | before the first outbox consumer | todo | |
 
 ## Later (1.x / 2.x)
 | ID | Item | Release | Status | Done (date · PR) |

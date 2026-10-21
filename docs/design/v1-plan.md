@@ -135,7 +135,7 @@ There's **no separate worker process** in the minimal version: PDFs are rendered
 | M22 | **Lab status board** (§1c) | One full-screen page for a lab TV: visits colour-coded pending / partly done / completed / delivered, outsourced flag, upcoming promised deliveries, auto-refresh (HTMX polling every 30 s), click → enter results | — |
 | M23 | **Currency display** (§8) | Symbol, position, Indian grouping, decimals, amount in words, round-off unit as settings; one `format_money()` helper | — |
 | M24 | **Starter catalog** (§1c) | Optional import of about 300 common tests with units, adult ranges (each cited), specimen and container; reviewed by the lab's pathologist before use | more departments, paediatric ranges |
-| M25 | **User manual** (§13a) | Manual pages for every minimal screen, auto-generated screenshots, in-app `?` help, screen-registry and staleness gates | translations |
+| M25 | **User manual** (§13a) | Manual pages for every minimal screen, auto-generated screenshots, in-app Help button (Alt+H), screen-registry and staleness gates | translations |
 
 ### Minimal data model (subset of §5, about 28 tables)
 `lab_profile`, `branch`, `app_user`, `user_branch_role` (role as enum), `setting`, `number_series`, `patient`, `patient_consent`, `referrer`, `department`, `specimen_type`, `test`, `test_parameter`, `reference_range`, `package`, `package_item`, `price` (item, branch nullable, price, valid_from/to), `external_lab`, `external_lab_rate`, `visit`, `order_item`, `order_test`, `sample`, `result`, `external_document`, `report`, `bill`, `bill_line`, `payment`, `stored_file`, `audit_log`, `critical_notification`, `comment_preset`, `letterhead_layout`, `test_method` (test_id, name, is_default), `report_delivery` (report_id, delivered_to, mode, by, at), `order_test_event` (order_test_id, event, at, by, note: the outsourcing timeline), `role_permission` (seeded; admin can toggle per role), `ops_run` (kind, started_at, finished_at, ok, snapshot, bytes_added, detail: the append-only run log of backups, drills and nightly checks, ADR-0013).
@@ -1145,7 +1145,7 @@ Each page uses one template: *What it's for* → *Where to find it* (`Menu ▸ p
 - **Automatic screenshots:** `scripts/gen_manual_screenshots.py` runs Playwright against the synthetic seed data at a fixed screen size and saves one PNG per registered screen (and named states such as "dialog open"). They're regenerated whenever the UI changes, so screenshots never go stale; synthetic data only, never real patients.
 - **Staleness gate (CI + pre-commit):** if a change touches `templates/` or a route, then the matching manual page **or** its regenerated screenshot must change in the same PR, unless the PR carries a `manual: no change` line with a reason. Screenshot drift is detected by perceptual diff, so tiny anti-aliasing changes don't fail it.
 - **Feature IDs:** each manual page's front matter lists the tracker IDs it documents (`features: [M07, M23]`); the features overview page is generated from those, and `check_tracker.py` flags a `done` feature with no manual page.
-- **In-app help:** every screen has a `?` button opening its manual page (served locally, so it works offline).
+- **In-app help:** every screen has a Help button (Alt+H) opening its manual page (served locally, so it works offline).
 - **Release checklist** (§14a M) includes "manual updated, What's new written, PDF rebuilt".
 - The manual is versioned with the app; the System page links to the manual for the installed version.
 
@@ -1341,7 +1341,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 **New sub-items:** Run 1 splits M25 into M25.1, M25.2 and M25.3, following the §0 dotted-ID rule. Each is added to `docs/TRACKER.md` in the same commit:
 - **M25.1:** manual site (Zensical), page template, `manual_page=` route registry gate, staleness gate.
 - **M25.2:** Playwright screenshot generator.
-- **M25.3:** in-app `?` help and the printable manual PDF.
+- **M25.3:** in-app Help button (Alt+H) and the printable manual PDF.
 
 **Rule:** an item counts as done only when its code, its tests and its manual page or update are merged together.
 
