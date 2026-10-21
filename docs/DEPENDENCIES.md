@@ -99,10 +99,10 @@ the next release.
 | `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |
 | `actions/upload-artifact` | action | P | MIT | v7.0.1 · 2026-04-10 | — | — | Active | company | keeps the gate's logs and JUnit report when CI fails (W08) | — | 2026-10-14 |
 | `astral-sh/setup-uv` | action | P | MIT | v7.6.0 · 2026-03-16 | — | — | Active | company | CI Python and uv | — | 2026-10-09 |
-| `docker/setup-qemu-action` | action | P | Apache-2.0 | v3.7.0 · 2025-11-05 | — | — | Active | company | arm64 image builds (W11) | — | 2026-10-09 |
-| `docker/setup-buildx-action` | action | P | Apache-2.0 | v3.12.0 · 2025-12-16 | — | — | Active | company | multi-arch image builds (W11) | — | 2026-10-09 |
-| `docker/login-action` | action | P | Apache-2.0 | v3.7.0 · 2026-01-27 | — | — | Active | company | push release images to GHCR (W12) | — | 2026-10-09 |
-| `docker/build-push-action` | action | P | Apache-2.0 | v6.19.2 · 2026-02-12 | — | — | Active | company | build and push release images (W12) | — | 2026-10-09 |
+| `docker/setup-qemu-action` | action | P | Apache-2.0 | v4.4.0 · 2026-09-15 | — | — | Active | company | arm64 image builds (W11) | — | 2026-10-21 |
+| `docker/setup-buildx-action` | action | P | Apache-2.0 | v4.4.1 · 2026-09-16 | — | — | Active | company | multi-arch image builds (W11) | — | 2026-10-21 |
+| `docker/login-action` | action | P | Apache-2.0 | v4.6.0 · 2026-07-29 | — | — | Active | company | push release images to GHCR (W12) | — | 2026-10-21 |
+| `docker/build-push-action` | action | P | Apache-2.0 | v7.4.0 · 2026-09-15 | — | — | Active | company | build and push release images (W12) | — | 2026-10-21 |
 | `uv` | CLI | P | MIT OR Apache-2.0 | 0.12 | 0.12.18 | many | Active | company | Python, virtualenv and lock file | pip + pip-tools · low | 2026-10-09 |
 | `gitleaks` | CLI | P | MIT | — | — | — | Active | company | secret scan (`scripts/check_secrets.sh`) | trufflehog · low | 2026-10-09 |
 | `osv-scanner` | CLI | P | Apache-2.0 | — | — | — | Active | company | vulnerability scan of `uv.lock` and images | grype · low | 2026-10-09 |

@@ -340,6 +340,18 @@ def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() ->
     assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
 
 
+@pytest.mark.item("W08")
+def test_every_job_names_its_runner() -> None:
+    # ubuntu-latest moves to a new release on GitHub's schedule, not ours.
+    runners = {
+        (path.name, m)
+        for path in (ROOT / ".github" / "workflows").glob("*.yml")
+        for m in re.findall(r"^ *runs-on: (\S+)", path.read_text(encoding="utf-8"), re.MULTILINE)
+    }
+    assert len(runners) >= 4
+    assert {runner for _, runner in runners} == {"ubuntu-26.04"}, sorted(runners)
+
+
 @pytest.mark.item("W01")
 @pytest.mark.parametrize(
     ("message", "category"),
