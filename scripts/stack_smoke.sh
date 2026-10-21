@@ -176,6 +176,26 @@ check "admin page after sign-in" 200 "$(code -b "$jar" "$(url /admin/branches)")
 check "forged CSRF token refused" 403 "$(code -b "$jar" \
   -d "username=admin&password=x&csrf_token=forged" "$(url /login)")"
 check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/null | head -1)"
+
+# The laptop budgets: three users against about two years of patients, with the containers held
+# to 2 CPUs and 4 GB between them. Only a run on the real laptop counts; this one catches a
+# regression. The patients stay for the backups below, so those are a realistic size too.
+engine=${compose[0]%-compose}
+cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(dc ps -q "$1")"; }
+capped=$(cap web 1 2g >/dev/null 2>&1 && cap db 0.75 1536m >/dev/null 2>&1 &&
+  cap proxy 0.25 512m >/dev/null 2>&1 && echo yes || echo no)
+echo "INFO  containers capped to 2 CPUs and 4 GB between them: $capped"
+python3 "$ROOT/scripts/laptop_budget.py" fill 50000 |
+  dc exec -T db psql -U labra -d labra -q -v ON_ERROR_STOP=1 >/dev/null 2>&1
+check "50,000 synthetic patients added" 50000 \
+  "$(dc exec -T db psql -U labra -d labra -Atc 'select count(*) from patient' 2>/dev/null)"
+budget=$(LABRA_BUDGET_PASSWORD=$password python3 "$ROOT/scripts/laptop_budget.py" run \
+  --port "$https_port" --site "$site" --username admin --duration 20 \
+  --compose "$(printf '%q ' "${compose[@]}" -p "$project" "${files[@]}")" 2>&1)
+grep -E '^(PASS|FAIL|WARN) ' <<<"$budget" | sed 's/^/INFO  budget: /'
+check "laptop budgets: pages, search and memory with 3 users" yes \
+  "$(grep -q '^PASS  page_p95_ms' <<<"$budget" && ! grep -q '^FAIL' <<<"$budget" &&
+    echo yes || echo no)"
 check "backup job not started by up" 0 "$(dc ps -a --format '{{.Service}}' 2>/dev/null |
   grep -c '^backup$')"
 check "backup job runs on request" '*restic 0.*' \
@@ -194,9 +214,14 @@ runs() {
 check "backup repositories created" 0 "$(bk init; echo $?)"
 check "backup into both repositories" 0 "$(bk backup; echo $?)"
 check "backup run logged with both snapshots" 't|drive:* usb:*|*' "$(runs | tail -1)"
-echo "INFO  first backup added $(runs | tail -1 | cut -d'|' -f3) bytes across both repositories"
-check "second backup adds little" yes "$(bk backup && (($(runs | tail -1 | cut -d'|' -f3) < 1000000)) &&
-  echo yes || echo no)"
+first=$(runs | tail -1 | cut -d'|' -f3)
+echo "INFO  first backup added $first bytes across both repositories"
+bk backup
+second=$(runs | tail -1 | cut -d'|' -f3)
+echo "INFO  second backup added $second bytes"
+# Restic cuts files into chunks of about 1 MB, so a small change still adds a few in each
+# repository; without deduplication the second would be as big as the first.
+check "second backup adds little" yes "$( ((second < first / 2)) && echo yes || echo no)"
 check "nightly run applies the retention" 0 "$(bk backup --prune --tag nightly; echo $?)"
 check "both repositories list three snapshots" 2 "$(bk snapshots; grep -c '^3 snapshots$' "$work/backup.log")"
 check "missing USB disk fails the run, Drive still copied" 1 "$(usb_repo=/backup/usb/unplugged bk backup; echo $?)"

@@ -73,6 +73,7 @@ nav = [
     "dev/workflow.md",
     "dev/running-the-stack.md",
     "dev/runtimes.md",
+    "dev/performance.md",
     "dev/services.md",
     "dev/releasing.md",
     "dev/tooling-issues.md",
