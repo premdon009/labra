@@ -1,6 +1,6 @@
 ---
 title: Keyboard shortcuts
-features: [M18, EC-J01]
+features: [M18, EC-J01, M25.3]
 ---
 
 # Keyboard shortcuts
@@ -22,6 +22,7 @@ its name, such as **Save and print** `Alt+S`.
 | **Alt+F** | Find a patient | Every screen |
 | **Alt+D** | Open the dues list | Every screen |
 | **Alt+W** | Open the lab worklist | Every screen |
+| **Alt+H** | Open this screen's help page | Every screen |
 | **Alt+S** | Save | Front-desk forms |
 | **Alt+R** | Print the bill and receipt | Visit summary |
 | **Alt+L** | Print the sample labels | Visit summary |
@@ -44,7 +45,7 @@ its name, such as **Save and print** `Alt+S`.
 
 - Labra never takes a key the browser already uses. **Ctrl+N**, **Ctrl+P** and **Ctrl+W**
   still open a window, print and close the tab.
-- **Alt+P** and **Alt+H** are kept free for later versions. They do nothing today.
+- **Alt+P** is kept free for a later version. It does nothing today.
 - On the **New visit** screen, **Enter** adds a test and never saves. Only **Alt+S** or
   the **Save and print** button saves.
 - A key that belongs to a button you can't see, because your role doesn't allow it, does

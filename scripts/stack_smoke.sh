@@ -136,6 +136,8 @@ check "/healthz through the proxy" 200 "$(code "$(url /healthz)")"
 check "/readyz: database, migrations, disk" '*"database":"ok","migrations":"ok","disk":"ok"*' \
   "$(https "$(url /readyz)")"
 check "/metrics kept off the network" 404 "$(code "$(url /metrics)")"
+check "the manual is inside the image" yes \
+  "$(https "$(url /manual/getting-started/login/)" | grep '<h1[^>]*>Signing in' >/dev/null && echo yes || echo no)"
 headers=$(https -D - -o /dev/null "$(url /login)" | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 for h in strict-transport-security content-security-policy x-frame-options \
   x-content-type-options referrer-policy; do

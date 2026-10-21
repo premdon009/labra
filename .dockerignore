@@ -1,4 +1,5 @@
-# Only pyproject.toml, uv.lock, README.md, LICENSE, CHANGELOG.md and src/ go into the image.
+# Only pyproject.toml, uv.lock, README.md, LICENSE, CHANGELOG.md, src/ and the user manual
+# (docs/manual/ and zensical.toml, for the help pages inside the app) go into the image.
 *
 !pyproject.toml
 !uv.lock
@@ -6,5 +7,7 @@
 !LICENSE
 !CHANGELOG.md
 !src/
+!zensical.toml
+!docs/manual/
 **/__pycache__
 **/*.pyc

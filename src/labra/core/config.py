@@ -63,8 +63,8 @@ class Settings(BaseSettings):
         "::1/128",
     ]
 
-    # Where the help button points; a lab without internet can host the manual itself.
-    manual_url: str = "https://premdon009.github.io/labra/manual"
+    # Where the help button points: the manual inside the app, so help works offline.
+    manual_url: str = "/manual"
 
     # The System page reads the HTTPS certificate's expiry from this proxy (host[:port]),
     # asking for the site's name; unset, the certificate isn't checked.

@@ -41,11 +41,11 @@ the next release.
 
 | Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status | Backing | Why we use it | Alternative · exit cost | Reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `fastapi` | runtime | P | MIT | 0.142.2 | 0.143.0 · 2026-10-08 | 90 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
+| `fastapi` | runtime | P | MIT | 0.142.2 | 0.143.2 · 2026-10-15 | 92 | Active | company | typed routes and dependency injection; 0.x, so the minor is pinned | Litestar · high | 2026-10-09 |
 | `starlette` | runtime | P | BSD-3-Clause | 1.7.0 | 1.8.0 · 2026-10-13 | 23 | Active | team | under FastAPI | — | 2026-10-09 |
 | `uvicorn` | runtime | P | BSD-3-Clause | 0.54.0 | 0.54.0 · 2026-09-25 | 23 | Active | team | ASGI server | Granian · low | 2026-10-09 |
-| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.1 · 2026-10-11 | 20 | Active | company | validation, under FastAPI | — | 2026-10-09 |
-| `pydantic-settings` | runtime | P | MIT | 2.15.0 | 2.15.0 · 2026-08-07 | 7 | Active | company | typed settings from the environment and secret files | own env parsing · low | 2026-10-09 |
+| `pydantic` | runtime | P | MIT | 2.13.5 | 2.14.1 · 2026-10-11 | 19 | Active | company | validation, under FastAPI | — | 2026-10-09 |
+| `pydantic-settings` | runtime | P | MIT | 2.15.0 | 2.16.0 · 2026-10-14 | 8 | Active | company | typed settings from the environment and secret files | own env parsing · low | 2026-10-09 |
 | `sqlalchemy` | runtime | P | MIT | 2.1.3 | 2.1.4 · 2026-10-07 | 20 | Active | team | ORM and Core | — | 2026-10-09 |
 | `alembic` | runtime | P | MIT | 1.20.0 | 1.20.0 · 2026-09-11 | 12 | Active | team | database migrations | — | 2026-10-09 |
 | `psycopg` | runtime | P | LGPL-3.0-only | 3.3.6 | 3.3.6 · 2026-09-18 | 10 | Active | team | the reference Postgres driver; licence exception (ADR-0002) | pg8000 (BSD) · low | 2026-10-09 |
@@ -61,22 +61,23 @@ the next release.
 | `pyphen` | runtime | P | MPL-1.1 | 0.18.1 | 0.18.1 · 2026-08-14 | 2 | Active | single maintainer (long-standing) | hyphenation, required by WeasyPrint; tri-licensed GPL-2.0+ OR LGPL-2.1+ OR MPL-1.1, used under MPL-1.1, imported unmodified (licence exception); its 50 bundled dictionaries carry mixed licences, some GPL-only, and Labra never hyphenates | none while WeasyPrint needs it; leaves only with WeasyPrint (ADR-0012) · medium | 2026-10-14 |
 | `pypdf` | runtime | P | BSD-3-Clause | 6.19.0 | 6.20.1 · 2026-10-12 | 45 | Active | team | stamps a vector PDF letterhead under each page, appends outside lab PDFs with their JavaScript and actions removed, de-duplicates objects | pikepdf (MPL-2.0) · low | 2026-10-14 |
 | `pypdfium2` | runtime | P | Apache-2.0 OR BSD-3-Clause | 5.14.0 | 5.14.0 · 2026-10-04 | 18 | Active | single maintainer | PNG preview of a PDF page in the letterhead editor | the `pdftoppm` command · low | 2026-10-14 |
-| `pillow` | runtime | P | MIT-CMU | 12.3.0 | 12.3.0 · 2026-07-01 | 5 | Active | team | re-encodes letterhead and signature images: resize, strip metadata, JPEG or palette PNG | the `vips` command · low | 2026-10-14 |
+| `markdown` | runtime | P | BSD-3-Clause | 3.11 | 3.11.1 · 2026-10-13 | 6 | Active | team | the manual inside the app and its PDF, made from the same Markdown files as the website, with the built-in extensions only | mistune (BSD-3-Clause), or HTML built into the image from the site · medium | 2026-10-16 |
+| `pillow` | runtime | P | MIT-CMU | 12.3.0 | 12.3.0 · 2026-07-01 | 4 | Active | team | re-encodes letterhead and signature images: resize, strip metadata, JPEG or palette PNG | the `vips` command · low | 2026-10-14 |
 | `segno` | runtime | P | BSD-3-Clause | 1.6.6 | 1.6.6 · 2025-03-12 | 0 | Stable | single maintainer (long-standing) | QR code on reports, drawn as inline SVG | own QR encoder · medium | 2026-10-14 |
-| `duckdb` | runtime | P | MIT | 1.5.6 | 1.5.6 · 2026-09-28 | 90 | Active | foundation | writes the Parquet files of the full data export; no extensions are loaded, so it never downloads anything | pyarrow · low | 2026-10-14 |
+| `duckdb` | runtime | P | MIT | 1.5.6 | 1.5.6 · 2026-09-28 | 91 | Active | foundation | writes the Parquet files of the full data export; no extensions are loaded, so it never downloads anything | pyarrow · low | 2026-10-14 |
 | `faker` | seed | P | MIT | 40.41.0 | 40.43.0 · 2026-10-09 | 64 | Active | team | synthetic demo data (`labra seed`) | hand-written lists · low | 2026-10-09 |
 | `httpx2` | dev | P | BSD-3-Clause | 2.13.1 | 2.13.1 · 2026-09-23 | 18 | Active | team | HTTP client under Starlette's TestClient | — | 2026-10-09 |
 | `pytest` | dev | P | MIT | 9.1.1 | 9.1.1 · 2026-06-19 | 6 | Active | team | tests | — | 2026-10-09 |
 | `pytest-cov` | dev | P | MIT | 7.1.0 | 7.1.0 · 2026-03-21 | 1 | Stable | team | coverage (EC-H01) | coverage run · low | 2026-10-09 |
 | `pytest-rerunfailures` | dev | P | MPL-2.0 | 16.7 | 16.7 · 2026-09-17 | 7 | Active | team | re-runs a failed test once in the gate, to tell flaky from broken (W08) | gate re-run logic · low | 2026-10-14 |
 | `testcontainers` | dev | P | Apache-2.0 | 4.15.0 | 4.15.0 · 2026-07-24 | 9 | Active | company | real Postgres in tests | a Compose test service · low | 2026-10-09 |
-| `ruff` | dev | P | MIT | 0.16.10 | 0.17.0 · 2026-10-09 | 49 | Active | company | lint and format | — | 2026-10-09 |
+| `ruff` | dev | P | MIT | 0.16.10 | 0.17.1 · 2026-10-15 | 50 | Active | company | lint and format | — | 2026-10-09 |
 | `pyright` | dev | P | MIT | 1.1.414 | 1.1.414 · 2026-09-10 | 8 | Active | company | type checks; ty is pre-1.0, re-check at gate 1 | ty · low | 2026-10-09 |
 | `import-linter` | dev | P | BSD-2-Clause | 2.15 | 2.15 · 2026-09-04 | 10 | Active | single maintainer | keeps domain code off adapters (ADR-0008) | a small AST check · low | 2026-10-09 |
 | `pip-audit` | dev | P | Apache-2.0 | 2.10.1 | 2.10.1 · 2026-06-10 | 2 | Active | foundation | known-vulnerability scan of Python packages | osv-scanner alone · low | 2026-10-09 |
 | `pre-commit` | dev | P | MIT | 4.6.2 | 4.7.0 · 2026-10-12 | 7 | Active | team | runs the gates before each commit | git hooks by hand · low | 2026-10-09 |
 | `zensical` | dev | P | MIT | 0.0.68 | 0.0.70 · 2026-10-12 | 67 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
-| `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.169.1 · 2026-10-14 | 135 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
+| `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.170.0 · 2026-10-15 | 135 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
 | `playwright` | dev | P | Apache-2.0 | 1.63.0 | 1.64.0 · 2026-10-13 | 9 | Active | company | the front-desk browser test (keys, 1366×768); browsers installed separately | Selenium · medium | 2026-10-12 |
 | `pdfplumber` | dev | P | MIT | 0.11.10 | 0.11.10 · 2026-06-15 | 3 | Active | single maintainer | tests read words and their positions from rendered PDFs (§7.2 content box, PDF snapshots) | pdfminer.six directly · low | 2026-10-14 |
 | `hatchling` | build | P | MIT | — | — | — | Active | team | builds the wheel | setuptools · low | 2026-10-09 |

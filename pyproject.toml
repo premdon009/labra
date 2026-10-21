@@ -12,6 +12,7 @@ dependencies = [
     "duckdb>=1.5",
     "fastapi>=0.142",
     "jinja2>=3.1.6",
+    "markdown>=3.11",
     "pillow>=12.3",
     "prometheus-client>=0.23",
     "psycopg[binary]>=3.3",
@@ -81,6 +82,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel.force-include]
 "CHANGELOG.md" = "labra/CHANGELOG.md"
+# The user manual the app shows, and the site config that gives its order.
+"docs/manual" = "labra/manual"
+"zensical.toml" = "labra/manual/_site.toml"
 
 [tool.uv]
 # Minimum release age: lock only releases at least 7 days old. A critical fix goes in
@@ -158,6 +162,7 @@ source_modules = [
     "labra.owner",
     "labra.ops",
     "labra.exports",
+    "labra.help",
 ]
 forbidden_modules = ["labra.adapters", "structlog", "prometheus_client", "argon2", "smtplib"]
 ignore_imports = [
@@ -208,9 +213,9 @@ containers = [
 layers = ["routes", "service", "models"]
 
 [[tool.importlinter.contracts]]
-name = "Owner figure layers (no tables of its own)"
+name = "Owner figures and the manual: layers (no tables of their own)"
 type = "layers"
-containers = ["labra.owner"]
+containers = ["labra.owner", "labra.help"]
 layers = ["routes", "service"]
 
 [[tool.importlinter.contracts]]

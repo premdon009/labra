@@ -94,7 +94,7 @@
         <button type="submit" class="btn-sm-outline">Switch</button>
       </form>
       <div class="app-user">
-        {% if manual_url %}<a class="btn-sm-ghost" href="{{ manual_url }}" target="_blank" rel="noopener">Help</a>{% endif %}
+        {% if manual_url %}<a class="btn-sm-ghost" href="{{ manual_url }}" target="_blank" rel="noopener" {{ keys('alt+h') }}>Help</a>{% endif %}
         <span>{{ principal.full_name }}</span>
         <form method="post" action="/logout">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -110,7 +110,8 @@
   </div>
 </div>
 {% else %}
-<main class="app-alone">
+<main class="app-alone{% block alone_class %}{% endblock %}">
+  {% if manual_url %}<p class="app-alone-help"><a class="btn-sm-ghost" href="{{ manual_url }}" target="_blank" rel="noopener" {{ keys('alt+h') }}>Help</a></p>{% endif %}
   {{ self.content() }}
 </main>
 {% endif %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}User manual{% endblock %}
+{% block alone_class %} app-alone-wide{% endblock %}
+{% block content %}
+<div class="page-head"><h1>User manual</h1></div>
+<p>How to use each screen. The <b>Help</b> button at the top of every screen, or <kbd>Alt+H</kbd>, opens that screen's page.</p>
+<p><a class="btn-outline" href="/manual/labra-manual.pdf">Download the whole manual (PDF)</a></p>
+{% for section, pages in sections %}
+<h2>{{ section }}</h2>
+<ul>
+  {% for p in pages %}<li><a href="/manual/{{ p.name }}/">{{ p.title }}</a></li>{% endfor %}
+</ul>
+{% endfor %}
+{% endblock %}

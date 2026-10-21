@@ -22,7 +22,8 @@ area you can use.
 2. **Working at (top).** The branch you are working at now. New records are made for this
    branch. If you have roles at more than one branch, choose another one from the list and
    select **Switch**.
-3. **Help (top).** Opens the manual page for the screen you're on.
+3. **Help (top).** Opens the manual page for the screen you're on, inside Labra
+   ([Help and the manual](help.md)).
 4. **Your name and Sign out (top right).**
 
 ## Screenshot

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Labra user manual</title></head>
+<body class="manual-pdf">
+<section class="cover">
+  <h1>Labra user manual</h1>
+  <p>Version {{ version }}</p>
+</section>
+<section class="contents">
+  <h2>Contents</h2>
+  {% for section, pages in sections %}
+  <h3>{{ section }}</h3>
+  <ul>{% for p in pages %}<li><a href="#{{ p.name|replace('/', '--') }}">{{ p.title }}</a></li>{% endfor %}</ul>
+  {% endfor %}
+</section>
+{% for section, pages in sections %}{% for p in pages %}
+<section class="page" id="{{ p.name|replace('/', '--') }}">
+  <p class="section">{{ section }}</p>
+  {{ p.html|safe }}
+</section>
+{% endfor %}{% endfor %}
+</body>
+</html>

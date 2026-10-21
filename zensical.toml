@@ -20,6 +20,7 @@ nav = [
       "manual/getting-started/login.md",
       "manual/getting-started/screen-layout.md",
       "manual/getting-started/keyboard-shortcuts.md",
+      "manual/getting-started/help.md",
     ] },
     { "Admin" = [
       "manual/admin/branches.md",
