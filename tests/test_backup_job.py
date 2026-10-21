@@ -6,11 +6,14 @@ small scripts that log how they were called, so each failure path can be forced.
 """
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from sqlalchemy import Engine
+from sqlalchemy.exc import DBAPIError
 
 ROOT = Path(__file__).resolve().parent.parent
 JOB = ROOT / "deploy" / "backup" / "labra-backup.sh"
@@ -18,6 +21,8 @@ TIMERS = ROOT / "scripts" / "install_timers.sh"
 
 # Each stand-in appends "<tool> <args>" to calls.log; a FAIL_<TOOL> file makes it fail.
 # `psql -c` answers from the "pattern<TAB>answer" lines in answers; `restic dump` prints dump.sql.
+# A LOAD_ERROR file is what psql prints when the piped restore fails; FAIL_FILES fails
+# `restic restore` only.
 STUB = """#!/usr/bin/env bash
 tool=$(basename "$0")
 printf '%s %s\\n' "$tool" "$*" >>"$STUBS/calls.log"
@@ -31,6 +36,9 @@ case $tool in
             echo "pack damaged" >&2; exit 1
           fi
           if [[ " $* " == *" dump "* ]]; then cat "$STUBS/dump.sql"; fi
+          if [[ " $* " == *" restore "* && -f $STUBS/FAIL_FILES ]]; then
+            echo "open /data/files/2026: permission denied" >&2; exit 1
+          fi
           if [[ " $* " == *" backup "* ]]; then
             n=$(wc -l <"$STUBS/calls.log")
             echo '{"message_type":"status","percent_done":1}'
@@ -44,6 +52,7 @@ case $tool in
           done <"$STUBS/answers"
         else
           cat >>"$STUBS/sql.log"; printf '%s\\n' "$@" >>"$STUBS/sql.log"
+          if [[ -f $STUBS/LOAD_ERROR ]]; then cat "$STUBS/LOAD_ERROR" >&2; exit 3; fi
         fi ;;
   curl) if [[ " $* " == *" --data-binary "* ]]; then
           cat >"$STUBS/ping.body"; printf '%s\\n' "${@: -1}" >>"$STUBS/pings.log"
@@ -243,6 +252,7 @@ def test_a_restore_never_overwrites_a_database_that_holds_data(job) -> None:
 
 
 @pytest.mark.item("W07")
+@pytest.mark.item("W29")
 def test_a_restore_loads_the_dump_in_one_transaction_and_checks_every_table(job) -> None:
     result = job("restore")
     assert result.returncode == 0, result.stderr
@@ -254,6 +264,12 @@ def test_a_restore_loads_the_dump_in_one_transaction_and_checks_every_table(job)
     assert len(load) == 1 and "ON_ERROR_STOP=1" in load[0]
     sql = _log(job.stubs, "sql.log")
     assert "COPY public.patient" in sql and "drop schema" not in sql
+    # The row counts are checked inside the same transaction, after the data.
+    check = sql.index("select count(*) into got from public.patient;")
+    assert sql.index("COPY public.empty_table") < check < sql.index("end $check$;")
+    assert "if got <> 2 then" in sql[check:]
+    assert 'select count(*) into got from public."order";' in sql
+    assert "select count(*) from public.patient" not in sql  # no check after the commit
     assert f"restore --host labra latest:{job.files} --target {job.files}" in calls
     assert " check" not in calls
 
@@ -268,12 +284,101 @@ def test_replace_swaps_the_whole_schema_inside_the_same_transaction(job) -> None
 
 
 @pytest.mark.item("EC-D02")
+@pytest.mark.item("W29")
 def test_a_table_short_of_rows_fails_the_restore(job) -> None:
-    _answer(job, "public.patient", "1")
+    (job.stubs / "LOAD_ERROR").write_text(
+        "psql:<stdin>:24: ERROR:  the restored tables don't match the dump: "
+        "public.patient: 1 rows, the dump has 2. \n"
+        "CONTEXT:  PL/pgSQL function inline_code_block line 5 at RAISE\n"
+    )
     result = job("restore")
     assert result.returncode == 1
-    assert "public.patient: 1 rows, the dump has 2" in result.stderr
+    assert "the restored tables don't match the dump: public.patient: 1 rows" in result.stderr
+    assert "the dump did not load" not in result.stderr
     assert "restore --host" not in _log(job.stubs, "calls.log")
+
+
+@pytest.mark.item("W29")
+def test_files_that_fail_after_the_database_loaded_are_a_partial_restore(job) -> None:
+    (job.stubs / "FAIL_FILES").touch()
+    result = job("restore", "4f3e2d1c")
+    assert result.returncode == 4
+    assert (
+        "the database is restored from 4f3e2d1c, but the stored files are not: "
+        "open /data/files/2026: permission denied"
+    ) in result.stderr
+
+
+@pytest.mark.item("W29")
+def test_the_row_count_check_rolls_back_in_postgres(job, pg_engine: Engine) -> None:
+    (job.stubs / "dump.sql").write_text(
+        "COPY public.restore_probe (id) FROM stdin;\n1\n2\n\\.\n"
+        'COPY public."restore_probe\'s" (id) FROM stdin;\n\\.\n'
+    )
+    assert job("restore").returncode == 0
+    sql = _log(job.stubs, "sql.log")
+    check = sql[sql.index("do $check$") : sql.index("end $check$;") + len("end $check$;")]
+    with pg_engine.connect() as conn:
+        outer = conn.begin()
+        conn.exec_driver_sql("create table public.restore_probe (id int)")
+        conn.exec_driver_sql('create table public."restore_probe\'s" (id int)')
+        conn.exec_driver_sql("insert into public.restore_probe values (1), (2)")
+        conn.exec_driver_sql(check)  # as many rows as the dump: passes
+        conn.exec_driver_sql("delete from public.restore_probe where id = 2")
+        short = re.escape("public.restore_probe: 1 rows, the dump has 2")
+        with pytest.raises(DBAPIError, match=short), conn.begin_nested():
+            conn.exec_driver_sql(check)
+        outer.rollback()
+
+
+# restore.sh around the job: a stand-in Compose logs its arguments and the restore job exits
+# with the status in restore_status.
+COMPOSE = """#!/usr/bin/env bash
+printf '%s\\n' "$*" >>"$STUBS/compose.log"
+case "$*" in *" restore restore"*) exit "$(cat "$STUBS/restore_status")" ;; esac
+"""
+
+
+def _restore_sh(job, status: int) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    (job.stubs / "compose").write_text(COMPOSE)
+    (job.stubs / "compose").chmod(0o755)
+    (job.stubs / "restore_status").write_text(str(status))
+    result = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "restore.sh"), "--replace", "4f3e2d1c"],
+        env={
+            "PATH": os.environ["PATH"],
+            "STUBS": str(job.stubs),
+            "LABRA_COMPOSE": str(job.stubs / "compose"),
+            "LABRA_JOB_WAIT": "5",
+        },
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    return result, _log(job.stubs, "compose.log").splitlines()
+
+
+@pytest.mark.item("W29")
+def test_a_partial_restore_leaves_labra_stopped_and_says_what_to_do(job) -> None:
+    result, calls = _restore_sh(job, 4)
+    assert result.returncode == 4
+    assert "the database is restored, but the stored files are not" in result.stderr
+    assert "run scripts/restore.sh --replace again with the same snapshot" in result.stderr
+    assert "the database is as it was" not in result.stderr
+    assert "up -d --no-build" not in calls  # only the database was started
+    assert "up -d --no-build db" in calls
+
+
+@pytest.mark.item("W07")
+def test_a_full_restore_starts_labra_and_checks_the_audit_log(job) -> None:
+    result, calls = _restore_sh(job, 0)
+    assert result.returncode == 0, result.stderr
+    assert "Restore finished." in result.stdout
+    assert calls.index("up -d --no-build") < calls.index(
+        "run --rm --no-deps -T web labra audit verify"
+    )
 
 
 @pytest.mark.item("EC-D02")

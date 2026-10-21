@@ -8,7 +8,8 @@
 #                                               load a snapshot's dump into the database (it
 #                                               must be empty unless --replace) and put the
 #                                               files back; the newest snapshot by default,
-#                                               from the USB disk when there is one
+#                                               from the USB disk when there is one; exits 4
+#                                               when the database loaded but the files didn't
 #   labra-backup restore --scratch NAME_drill [--from usb|drive] [SNAPSHOT]
 #                                               the drill: check the repository, load the dump
 #                                               into a new scratch database, files left alone
@@ -35,6 +36,7 @@ HOST=labra
 DUMP=$WORK/dump/labra.sql
 KEEP=(--keep-within 2d --keep-within-hourly 7d --keep-within-daily 30d --keep-within-monthly 24m)
 HEARTBEAT_MAX=10000
+MISMATCH="'the restored tables don''t match the dump: '"
 
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" >&2; }
 
@@ -193,13 +195,17 @@ dump_counts() {
        table != "" { n++ }' "$1"
 }
 
-# Every table in the restored database against the dump; prints what doesn't match.
-check_counts() {
-  local db=$1 table want got
+# Every table in the restored database against the dump, as the last statement of the restore's
+# transaction: a table that doesn't match raises, so the whole load rolls back.
+check_counts_sql() {
+  local table want
+  echo "do \$check\$ declare got bigint; bad text := ''; begin"
   while read -r table want; do
-    got=$(psql -X -At -d "$db" -c "select count(*) from $table" 2>/dev/null) || got=none
-    [[ $got == "$want" ]] || echo "$table: $got rows, the dump has $want"
+    echo "  select count(*) into got from $table;"
+    echo "  if got <> $want then bad := bad || '${table//\'/\'\'}: ' || got || ' rows, the dump has $want. '; end if;"
   done <"$WORK/counts"
+  echo "  if bad <> '' then raise exception using message = $MISMATCH || bad; end if;"
+  echo "end \$check\$;"
 }
 
 # A scratch database can be dropped and made again, so its name can never be the lab's own.
@@ -220,7 +226,7 @@ cmd_restore() {
       *) snapshot=$1; shift ;;
     esac
   done
-  local location target tables rows bad sql=$WORK/restore.sql
+  local location target tables rows bad error sql=$WORK/restore.sql
   if [[ -n $scratch ]]; then
     scratch_name "$scratch" || return 2
   fi
@@ -261,24 +267,29 @@ cmd_restore() {
     log "could not create the scratch database $scratch"
     return 1
   fi
-  # One transaction: a restore that stops half way leaves the database as it was.
+  # One transaction, the row counts checked last: a restore that stops half way, or loads
+  # fewer rows than the dump holds, leaves the database as it was.
   if ! {
     if [[ $replace == true ]]; then echo 'drop schema public cascade; create schema public;'; fi
     cat "$sql"
+    check_counts_sql
   } | psql -X -q -1 -v ON_ERROR_STOP=1 -d "$target" >/dev/null 2>"$WORK/psql.err"; then
-    log "the dump did not load: $(tail -3 "$WORK/psql.err" | tr '\n' ' ')"
+    rm -f "$sql"
+    bad=$(sed -n "s/.*the restored tables don't match the dump: //p" "$WORK/psql.err" | head -1)
+    if [[ -n $bad ]]; then
+      log "the restored tables don't match the dump: $bad"
+    else
+      log "the dump did not load: $(tail -3 "$WORK/psql.err" | tr '\n' ' ')"
+    fi
     return 1
   fi
-  bad=$(check_counts "$target")
   rm -f "$sql"
-  if [[ -n $bad ]]; then
-    log "the restored tables don't match the dump: $bad"
-    return 1
-  fi
+  # The database is committed by now, so a failure here is a partial restore and says so.
   if [[ $files == true ]] && ! restic -r "$location" restore --host "$HOST" "$snapshot:$FILES" \
     --target "$FILES" >/dev/null 2>"$WORK/restic.err"; then
-    log "the files did not restore: $(tail -3 "$WORK/restic.err" | tr '\n' ' ')"
-    return 1
+    error=$(tail -3 "$WORK/restic.err" | tr '\n' ' ')
+    log "the database is restored from $snapshot, but the stored files are not: $error"
+    return 4
   fi
   tables=$(wc -l <"$WORK/counts")
   rows=$(awk '{ n += $2 } END { print n + 0 }' "$WORK/counts")

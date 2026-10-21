@@ -57,6 +57,10 @@ container would carry the backup secrets.
 - **Restore drill:** restores the newest snapshot into a scratch database that lives only for
   the drill. It checks that every table holds as many rows as the dump's `COPY` blocks, and
   runs `labra audit verify` against that database.
+- **Restore:** the dump loads in one transaction whose last statement is that row-count
+  check, so a mismatch rolls the whole load back. The stored files come after the commit; if
+  they fail, the job exits 4 and `restore.sh` leaves Labra stopped until the restore is run
+  again.
 
 ## Consequences
 - **Host requirement:** the server needs systemd and the unit files from

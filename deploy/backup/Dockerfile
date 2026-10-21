@@ -41,9 +41,11 @@ RUN apt-get update \
 COPY --from=fetch /usr/local/bin/restic /usr/local/bin/rclone /usr/local/bin/
 COPY labra-backup.sh /usr/local/bin/labra-backup
 # The same uid as the app, so the backup reads /data/files and owns what it writes to the USB disk.
+# /data/files is made here too: on a new server the restore is the first to mount the files
+# volume, which then takes this folder's owner.
 RUN useradd --system --uid 10001 --home-dir /backup labra \
-    && mkdir -p /backup/cache /backup/work \
-    && chown -R labra /backup \
+    && mkdir -p /backup/cache /backup/work /data/files \
+    && chown -R labra /backup /data/files \
     && chmod 0755 /usr/local/bin/labra-backup
 ENV RESTIC_CACHE_DIR=/backup/cache \
     RCLONE_CONFIG=/run/secrets/rclone_conf \

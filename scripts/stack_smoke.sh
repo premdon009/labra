@@ -243,6 +243,13 @@ check "both repositories list three snapshots" 2 "$(bk snapshots; grep -c '^3 sn
 check "missing USB disk fails the run, Drive still copied" 1 "$(usb_repo=/backup/usb/unplugged bk backup; echo $?)"
 check "failed run logged with the Drive snapshot" 'f|drive:*|*' "$(runs | tail -1)"
 
+# On a new server the restore is the first to mount the files volume, so the backup image's
+# own folder decides who owns it.
+probe=labra-smoke-files-$$
+check "the backup image can write to a new files volume" ok "$("$engine" run --rm \
+  --entrypoint sh -v "$probe:/data/files" "$backup_image" -c 'touch /data/files/x && echo ok' 2>&1)"
+"$engine" volume rm -f "$probe" >/dev/null 2>&1 || true
+
 # The monthly drill and a restore, through the host scripts the runbook uses.
 export LABRA_COMPOSE="${compose[*]} -p $project ${files[*]}"
 export LABRA_BACKUP_REPO_USB=/backup/usb/labra LABRA_BACKUP_REPO_DRIVE=rclone:drive:/backup/usb/drive

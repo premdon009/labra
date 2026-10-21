@@ -595,6 +595,18 @@ def test_a_binary_row_with_nothing_downloading_it_is_dropped(
     ]
 
 
+@pytest.mark.item("W29")
+def test_the_backup_image_owns_the_files_folder_it_restores_into() -> None:
+    # On a new server the restore is the first to mount the files volume, which takes the
+    # owner of the image's folder; without one it is root's, and the restore can't write.
+    dockerfile = (ROOT / "deploy" / "backup" / "Dockerfile").read_text()
+    run = dockerfile[dockerfile.index("RUN useradd ") :]
+    run = run[: run.index("\nENV ")]
+    assert re.search(r"mkdir -p [^&]*/data/files", run), run
+    assert re.search(r"chown -R labra [^&]*/data/files", run), run
+    assert "--uid 10001" in run
+
+
 @pytest.mark.item("W27")
 def test_every_service_rotates_its_logs() -> None:
     # The engine's default keeps logs forever; each service caps its own (five 10 MB files).

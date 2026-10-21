@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 20/28 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 44/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 20/29 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 44/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -70,6 +70,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W26~~ | ~~No person's name is written in the shipped code: the demo seed draws every name from Faker (the signatory gets "Dr"), the letterhead preview samples show role labels, tests look seeded names up, and a test fails when a seeded name appears in `src/`~~ | P | done | 2026-10-16 · 06bdcb6 |
 | ~~W27~~ | ~~Every long-running container rotates its own logs: an `x-logging` anchor in `compose.yaml` (json-file, five 10 MB files) on every service, so the install guide needs no `daemon.json`; a test checks each service has it and the stack smoke reads web's log settings~~ | P | done | 2026-10-21 · 40584c2 |
 | ~~W28~~ | ~~The System page counts the HTTPS certificate as renewed by the proxy only when Caddy's own authority issued it (the issuer's common name, read from the DER bytes); any other certificate warns 30 days before it runs out, however short its life~~ | P | done | 2026-10-21 · 7aabe64 |
+| W29 | Restore on a new server: the backup image owns `/data/files`, so a new files volume is writable; the row counts are checked inside the restore's transaction; stored files that fail after the database loaded exit 4, leave Labra stopped and say how to finish | P | doing | Run 6 PR #1 review |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

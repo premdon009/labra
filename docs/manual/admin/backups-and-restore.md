@@ -105,7 +105,9 @@ new server and undoing a mistake on the same one. In short:
    `Restore finished.` at the end.
 
 Without `--replace`, a restore only runs into an empty database, as on a new server, so data
-is never overwritten by mistake. A restore that fails part way leaves the data as it was.
+is never overwritten by mistake. A restore that fails while loading the database leaves it as
+it was. If only the stored files fail, Labra stays stopped and the message says what to do
+([Restore from backup](../../runbooks/restore-from-backup.md#restore-incomplete)).
 
 ## Screenshot
 

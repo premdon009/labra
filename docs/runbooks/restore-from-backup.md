@@ -70,9 +70,9 @@ About 1–2 hours, most of it installing the operating system and Docker.
    scripts/restore.sh               # the newest snapshot, from the USB disk if there is one
    ```
 
-   `restore.sh` starts the database on its own, loads the snapshot in one transaction,
-   checks every table holds as many rows as the backup, puts the stored files back, starts
-   Labra and checks the audit log. It ends with `Restore finished.`
+   `restore.sh` starts the database on its own, loads the snapshot in one transaction that
+   also checks every table holds as many rows as the backup, puts the stored files back,
+   starts Labra and checks the audit log. It ends with `Restore finished.`
    - Add `--from drive` to read from Google Drive instead of the USB disk.
    - If Labra was already started on this server, its database has empty tables and the
      restore stops with "the database already has tables". Run it again with `--replace`.
@@ -110,13 +110,29 @@ About 1–2 hours, most of it installing the operating system and Docker.
    scripts/restore.sh --replace 4f3e2d1c
    ```
 
-   If anything fails, the database is left as it was and the message says why.
+   If loading the database fails, it is left as it was and the message says why. If only the
+   stored files fail, see *Restore incomplete* below.
 4. Steps 7 and 10 of *A new server*.
 
 After a failed upgrade whose rollback failed too, `scripts/upgrade.sh` names the snapshot it
 took just before (for example `usb:4f3e2d1c`) and has already put the old version back in
 `.env`. Skip steps 1 and 2, and restore that snapshot from that copy:
 `scripts/restore.sh --replace --from usb 4f3e2d1c`.
+
+## Restore incomplete
+
+`restore.sh` ends with `Restore incomplete: the database is restored, but the stored files
+are not.` The database now holds the backup, but the stored files (signatures, letterheads,
+uploaded documents) did not all come back, so Labra is left stopped. The line before it says
+why, often a full disk or an unplugged USB disk. Fix that, then run the same restore again:
+
+```bash
+scripts/restore.sh --replace 4f3e2d1c     # the snapshot ID you restored
+```
+
+Always name the snapshot this time, even if you restored the newest one: a backup that ran
+since then is newer and holds the incomplete files. `scripts/backup.sh snapshots` lists them
+with their times (UTC); take the newest one from before you started the restore.
 
 ## When the drill fails
 
