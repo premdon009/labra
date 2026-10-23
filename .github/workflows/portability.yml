@@ -77,8 +77,6 @@ jobs:
               EOT
               sudo systemctl restart apparmor.service
               containerd-rootless-setuptool.sh install
-              # The smoke test builds images (the upgrade checks); rootless nerdctl builds through BuildKit.
-              containerd-rootless-setuptool.sh install-buildkit
               scripts/compare_runtimes.sh --runtimes nerdctl --builders "" --out results
           - name: incus
             install: incus

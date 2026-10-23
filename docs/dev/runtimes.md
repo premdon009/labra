@@ -93,6 +93,8 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   container started by a script inherits the script's open files. The job scripts close
   their lock before calling Compose (`9<&-`); without that, a container started by
   `restore.sh` held the lock and the next backup, drill or restore waited for it.
+- **podman-compose `ps`** takes no service name, so scripts find a service's container by its
+  Compose labels (`com.docker.compose.project` and `com.docker.compose.service`).
 - **`podman compose`** prints a banner on stderr each time it hands over to a provider. Scripts
   that capture output should read stdout only.
 - **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
@@ -102,7 +104,22 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   `containerd-rootless-setuptool.sh install-buildkit` to build images.
 - **nerdctl compose** pulls a missing image where Docker and Podman build it, so load the
   backup image before `compose run backup` (`scripts/compare_runtimes.sh` puts both images in
-  its archive). Its `ps -q web` can list two containers; scripts take the last.
+  its archive). Its `ps` can list two containers for one service; scripts take the newest.
+- **nerdctl compose `stop web`** also stops the services web depends on, the database among
+  them, and its `compose run` doesn't start them again. `stop_web` in
+  `scripts/compose_run.sh` stops web, then starts the database and waits until it is ready.
+- **nerdctl compose `run`** has no `-T`, and without a terminal it runs the container detached
+  and exits 0 whatever the container did. The scripts run every job through
+  `scripts/compose_run.sh`: on Docker and Podman that is `run --rm -T`; on nerdctl it starts
+  the job detached, waits for it, then prints its output and returns its exit status. A job's
+  output therefore appears when it ends; following the logs lost the last lines.
+- **`nerdctl build`** uses BuildKit, which looks a `FROM` image up in a registry, never among
+  the local images. The smoke test makes its upgrade images there by committing a container
+  of the local image instead.
+- **nginx looked the web app up once**, when it started. Under Podman a restore or an
+  upgrade recreates web at a new address, and nginx answered 502. `deploy/nginx/labra.conf`
+  is now a template: the nginx image's entrypoint fills in the DNS server from the
+  container's `resolv.conf`, and nginx looks web up again every 10 seconds.
 - **A failed smoke test says why.** When the stack doesn't start, `scripts/stack_smoke.sh`
   prints each container's state and what its last health checks printed; a drill, restore or
   upgrade that hangs is stopped after `SMOKE_STEP_LIMIT` seconds (default 600) with the

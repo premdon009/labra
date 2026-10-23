@@ -55,9 +55,17 @@ site=labra.lan
 files=(-f "$ROOT/compose.yaml")
 [[ $proxy == nginx ]] && files+=(-f "$ROOT/deploy/nginx/compose.nginx.yaml")
 dc() { "${compose[@]}" -p "$project" "${files[@]}" "$@"; }
-# One container of a service: nerdctl compose can list two.
-cid() { dc ps -q "$1" | tail -1; }
+# A one-off container, run the way the host scripts run them.
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
+job() { local compose=("${compose[@]}" -p "$project" "${files[@]}"); compose_run "$@"; }
 engine=${compose[0]%-compose}
+# One container of a service, by its labels: podman-compose's `ps` takes no service name, and
+# nerdctl compose can list two.
+cid() {
+  "$engine" ps -q --filter "label=com.docker.compose.project=$project" \
+    --filter "label=com.docker.compose.service=$1" | head -1
+}
 # Checks print to the job's output (fd 3) even from a step whose output goes to its own log.
 exec 3>&1
 
@@ -86,8 +94,7 @@ limit() {
 cleanup() {
   if [[ $keep == false ]]; then
     # The backup job wrote the repositories as its own uid; it removes them too.
-    dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra \
-      /backup/usb/drive >/dev/null 2>&1
+    job --no-deps --entrypoint rm backup -rf /backup/usb/labra /backup/usb/drive >/dev/null 2>&1
     dc --profile jobs down -v >/dev/null 2>&1
     [[ -z ${engine:-} ]] || "$engine" rmi -f localhost/labra-smoke:next \
       localhost/labra-smoke:broken >/dev/null 2>&1
@@ -242,12 +249,13 @@ check "laptop budgets: pages, search and memory with 3 users" yes \
     echo yes || echo no)"
 check "backup job not started by up" 0 "$(dc ps -a --format '{{.Service}}' 2>/dev/null |
   grep -c '^backup$')"
-check "backup job runs on request" '*restic 0.*' \
-  "$(dc --profile jobs run --rm --no-deps backup version 2>/dev/null | tr '\n' ' ')"
+version=$(job --no-deps backup version 2>"$work/version.log" | tr '\n' ' ')
+check "backup job runs on request" '*restic 0.*' "$version"
+[[ $version == *"restic 0."* ]] || tail -5 "$work/version.log" | sed 's/^/INFO    /'
 
 # A real backup into both repositories: rclone's local backend stands in for Google Drive.
 bk() {
-  dc --profile jobs run --rm --no-deps -T -e LABRA_BACKUP_REPO_USB="${usb_repo:-/backup/usb/labra}" \
+  job --no-deps -e LABRA_BACKUP_REPO_USB="${usb_repo:-/backup/usb/labra}" \
     -e LABRA_BACKUP_REPO_DRIVE=rclone:drive:/backup/usb/drive backup "$@" >>"$work/backup.log" 2>&1
 }
 runs() {
@@ -302,7 +310,7 @@ for _ in $(seq 60); do
   sleep 1
 done
 check "sign in after the restore" 303 "$(sign_in)"
-dc --profile jobs run --rm --no-deps -T --entrypoint sh backup -c 'chmod -R u+w /backup/usb/labra/data &&
+job --no-deps --entrypoint sh backup -c 'chmod -R u+w /backup/usb/labra/data &&
   find /backup/usb/labra/data -type f -exec truncate -s 64 {} +' >/dev/null 2>&1
 check "drill fails on a damaged repository" 1 "$(drill; echo $?)"
 check "failed drill logged" f "$(last_drill)"
@@ -331,7 +339,7 @@ check "logs hold no database URL" 0 "$(grep -c 'postgresql+psycopg' <<<"$logs")"
 # An upgrade, then one to an image whose migration fails, which must roll back by itself.
 export LABRA_ENGINE=$engine LABRA_ENV_FILE=$work/env LABRA_UPGRADE_WAIT=90
 # The drill above damaged the USB copy; a fresh one, so the pre-upgrade backups succeed.
-dc --profile jobs run --rm --no-deps -T --entrypoint rm backup -rf /backup/usb/labra >/dev/null 2>&1
+job --no-deps --entrypoint rm backup -rf /backup/usb/labra >/dev/null 2>&1
 bk init
 mkdir "$work/next" "$work/broken"
 printf 'FROM %s\nLABEL org.labra.smoke=next\n' "$image" >"$work/next/Dockerfile"
@@ -355,8 +363,24 @@ def downgrade() -> None:
     pass
 PY
 printf 'FROM %s\nCOPY 9999_smoke_broken.py %s/\n' "$image" "$versions" >"$work/broken/Dockerfile"
-"$engine" build -q -t localhost/labra-smoke:next "$work/next" >"$work/build.log" 2>&1
-"$engine" build -q -t localhost/labra-smoke:broken "$work/broken" >>"$work/build.log" 2>&1
+if [[ $engine == nerdctl ]]; then
+  # nerdctl builds with BuildKit, which looks a FROM image up in a registry, never among the
+  # local images. So a container of the image is committed instead, with its command put back.
+  derive() { # TAG [FILE FOLDER]
+    local c
+    c=$("$engine" run -d "$image" sleep infinity) || return
+    [[ -z ${2:-} ]] || "$engine" cp "$2" "$c:$3/"
+    "$engine" commit -c "CMD $("$engine" image inspect --format '{{json .Config.Cmd}}' "$image")" \
+      "$c" "$1"
+    "$engine" rm -f "$c"
+  }
+  derive localhost/labra-smoke:next >"$work/build.log" 2>&1
+  derive localhost/labra-smoke:broken "$work/broken/9999_smoke_broken.py" "$versions" \
+    >>"$work/build.log" 2>&1
+else
+  "$engine" build -q -t localhost/labra-smoke:next "$work/next" >"$work/build.log" 2>&1
+  "$engine" build -q -t localhost/labra-smoke:broken "$work/broken" >>"$work/build.log" 2>&1
+fi
 upgrade() { limit "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
 web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(cid web)"; }
 backups="select count(*) from ops_run where kind = 'backup' and ok"

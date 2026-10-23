@@ -27,16 +27,13 @@ cd "$ROOT"
 # 9<&-: what Compose starts must not hold the job lock, as podman-compose's container
 # monitors outlive this script.
 dc() { "${compose[@]}" "$@" 9<&-; }
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
 
 echo "Stopping the web app"
-dc stop web >/dev/null 2>&1 || true
-dc up -d --no-build db >/dev/null
-for _ in $(seq 60); do
-  dc exec -T db pg_isready -q >/dev/null 2>&1 && break
-  sleep 1
-done
+stop_web
 status=0
-dc --profile jobs run --rm -T restore restore "$@" || status=$?
+compose_run restore restore "$@" || status=$?
 if ((status == 4)); then
   echo "Restore incomplete: the database is restored, but the stored files are not." \
     "Labra stays stopped. Fix the cause above, then run scripts/restore.sh --replace" \
@@ -46,7 +43,7 @@ fi
 echo "Starting the stack again"
 dc up -d --no-build >/dev/null
 if ((status == 0)); then
-  dc run --rm --no-deps -T web labra audit verify || status=1
+  compose_run --no-deps web labra audit verify || status=1
 fi
 case $status in
   0) echo "Restore finished." ;;

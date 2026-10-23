@@ -311,6 +311,20 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
 
 
 @pytest.mark.item("W30")
+def test_nginx_looks_web_up_again_after_it_is_recreated() -> None:
+    # A fixed address breaks when a restore or an upgrade recreates web: nginx answers 502.
+    nginx = ROOT / "deploy" / "nginx"
+    compose = (nginx / "compose.nginx.yaml").read_text(encoding="utf-8")
+    assert "/deploy/nginx/labra.conf:/etc/nginx/templates/default.conf.template:ro" in compose
+    assert 'NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"' in compose
+    conf = (nginx / "labra.conf").read_text(encoding="utf-8")
+    assert "resolver ${NGINX_LOCAL_RESOLVERS} valid=10s" in conf
+    assert "server web:8000 resolve;" in conf
+    proxy = (nginx / "labra-proxy.conf").read_text(encoding="utf-8")
+    assert re.findall(r"proxy_pass (\S+);", proxy) == ["http://labra_web"]
+
+
+@pytest.mark.item("W30")
 def test_no_health_check_argument_holds_a_space() -> None:
     # Podman 5 splits a Compose health check's arguments at spaces.
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
@@ -334,7 +348,6 @@ def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() ->
         "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
         "systemctl restart apparmor.service",
         "containerd-rootless-setuptool.sh install\n",
-        "containerd-rootless-setuptool.sh install-buildkit",
         "scripts/compare_runtimes.sh",
     ]
     assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)

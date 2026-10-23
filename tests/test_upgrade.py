@@ -31,7 +31,9 @@ case "$tool $*" in
   "engine inspect --format {{.Image}} "*) echo sha256:0ld ;;
   "engine image inspect "*) grep -qxF "$3" "$STUBS/local" ;;
   "engine pull "*) ! fails PULL ;;
-  "compose ps -q web") cat "$STUBS/web" ;;
+  "engine inspect --format {{index "*) grep "^${!#} " "$STUBS/containers" | cut -d' ' -f2 ;;
+  "compose ps -q") cut -d' ' -f1 "$STUBS/containers" ;;
+  "compose ps "*) exit 2 ;;
   "compose exec -T web labra check-disk") ! fails DISK ;;
   "compose exec -T web python -m labra.probe /readyz") ! fails "READY_$tag" ;;
   "compose exec -T db psql "*) cat "$STUBS/snapshots" ;;
@@ -50,7 +52,7 @@ class Upgrade:
             (self.stubs / tool).write_text(STUB)
             (self.stubs / tool).chmod(0o755)
         (self.stubs / "running").write_text(OLD + "\n")
-        (self.stubs / "web").write_text("c0ffee\n")
+        (self.stubs / "containers").write_text("d00d db\nc0ffee web\n")
         (self.stubs / "local").write_text("")
         (self.stubs / "snapshots").write_text("drive:aaaa1111 usb:bbbb2222\n")
         self.env_file = tmp_path / "env"
@@ -87,6 +89,11 @@ class Upgrade:
         return [c for c in self.calls if part in c]
 
     @property
+    def started(self) -> list[str]:
+        """The calls that start the whole stack."""
+        return [c for c in self.calls if c.endswith(" up -d --no-build")]
+
+    @property
     def logged(self) -> str:
         """The run log row: "<ok> <detail>"."""
         rows = self.called(" log-run upgrade ")
@@ -120,7 +127,7 @@ def test_an_upgrade_backs_up_with_the_app_stopped_then_starts_the_new_image(
     assert [next(i for i, s in enumerate(steps) if s == o) for o in order] == sorted(
         next(i for i, s in enumerate(steps) if s == o) for o in order
     )
-    assert upgrade.called(" up -d --no-build")[0].startswith(f"compose LABRA_IMAGE={NEW} ")
+    assert upgrade.started[0].startswith(f"compose LABRA_IMAGE={NEW} ")
     assert upgrade.logged == f"true upgraded from {OLD} to {NEW}"
     assert not upgrade.called(" restore ")
     # The new image is kept for the next `docker compose up -d`; the other settings stay.
@@ -134,9 +141,30 @@ def test_an_upgrade_backs_up_with_the_app_stopped_then_starts_the_new_image(
 def test_no_compose_command_inherits_the_job_lock(upgrade: Upgrade) -> None:
     upgrade.env_file.write_text("LABRA_IMAGE=old\n")
     assert upgrade("0.2.0").returncode == 0
-    assert upgrade.called(" up -d --no-build")
+    assert upgrade.started
     leaks = upgrade.stubs / "leaks.log"
     assert not leaks.exists(), leaks.read_text()
+
+
+@pytest.mark.item("W30")
+def test_the_database_is_started_again_for_the_backup_and_the_rollback(upgrade: Upgrade) -> None:
+    # nerdctl's compose stop also stops the services web depends on, and its compose run
+    # doesn't start them again.
+    upgrade.env_file.write_text("LABRA_IMAGE=old\n")
+    upgrade.fail("UP_0.2.0")
+    assert upgrade("0.2.0").returncode == 4
+    wait = ("stop web", "up -d --no-build db", "exec -T db pg_isready -q")
+    steps = [c.split(" ", 2)[2] for c in upgrade.calls if c.startswith("compose ")]
+    # The jobs that need the database, apart from the run log and the audit check.
+    jobs = [
+        s for s in steps if s in wait or (s.startswith("--profile jobs") and "--no-deps" not in s)
+    ]
+    assert jobs == [
+        *wait,
+        "--profile jobs run --rm -T backup backup --tag pre-upgrade",
+        *wait,
+        "--profile jobs run --rm -T restore restore --replace --from usb bbbb2222",
+    ]
 
 
 @pytest.mark.item("EC-G03")
@@ -169,7 +197,7 @@ def test_a_failed_migration_or_an_app_that_never_gets_ready_is_rolled_back(
         f"compose LABRA_IMAGE={OLD} --profile jobs run --rm -T restore restore --replace "
         "--from usb bbbb2222"
     ]
-    assert upgrade.called(" up -d --no-build")[-1].startswith(f"compose LABRA_IMAGE={OLD} ")
+    assert upgrade.started[-1].startswith(f"compose LABRA_IMAGE={OLD} ")
     assert upgrade.called("labra audit verify")
     assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
     assert upgrade.env_file.read_text() == f"LABRA_SITE=labra.lan\nLABRA_IMAGE={OLD}\n"
@@ -215,7 +243,7 @@ def test_a_failed_backup_restarts_the_old_app_and_upgrades_nothing(upgrade: Upgr
     upgrade.fail("BACKUP")
     result = upgrade("0.2.0")
     assert result.returncode == 1
-    assert upgrade.called(" up -d --no-build") == ["compose LABRA_IMAGE= up -d --no-build"]
+    assert upgrade.started == ["compose LABRA_IMAGE= up -d --no-build"]
     assert upgrade.logged == f"false not upgraded to {NEW}: the pre-upgrade backup failed"
     assert not upgrade.env_file.exists()
 
@@ -241,19 +269,19 @@ def test_anything_but_one_version_or_image_is_refused(
 
 @pytest.mark.item("EC-G03")
 def test_nothing_happens_when_the_stack_isnt_running(upgrade: Upgrade) -> None:
-    (upgrade.stubs / "web").write_text("")
+    (upgrade.stubs / "containers").write_text("")
     result = upgrade("0.2.0")
     assert result.returncode == 1
     assert "isn't running" in result.stderr
-    assert upgrade.calls == ["compose LABRA_IMAGE= ps -q web"]
+    assert upgrade.calls == ["compose LABRA_IMAGE= ps -q"]
 
 
 @pytest.mark.item("W30")
 def test_the_running_image_is_read_from_one_web_container(upgrade: Upgrade) -> None:
-    # nerdctl compose can list two containers for the service.
-    (upgrade.stubs / "web").write_text("c0ffee\nbada55\n")
+    # By its label: podman-compose's ps takes no service name; nerdctl's can list two.
+    (upgrade.stubs / "containers").write_text("c0ffee web\nd00d db\nbada55 web\n")
     result = upgrade("0.2.0")
     assert result.returncode == 0, result.stderr
-    inspected = upgrade.called("engine LABRA_IMAGE= inspect --format ")
-    assert inspected
+    inspected = [c for c in upgrade.calls if "Image}} " in c and c.startswith("engine ")]
+    assert len(inspected) == 2
     assert all(c.endswith(" bada55") for c in inspected), inspected

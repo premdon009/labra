@@ -18,6 +18,7 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-# Not exec, so this script holds the lock until the job ends. 9<&-: the job's container
-# must not hold it, as podman-compose's container monitors outlive the job.
-"${compose[@]}" --profile jobs run --rm -T backup "$@" 9<&-
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
+# Not exec, so this script holds the lock until the job ends.
+compose_run backup "$@"
