@@ -14,7 +14,9 @@ items: [W01, W08.1]
 7. Set rows to `done` with the date and PR number; open the PR; merge when CI is green.
 
 ## `master` is protected
-Changes reach `master` only through a pull request whose `gate` and `image` checks are green and up to date with `master`. Nobody pushes to it directly, administrators included, and it is never force-pushed or deleted. GitHub's branch protection enforces this once `EC-H05` is ticked in the checklist; until then, follow it by hand.
+Changes reach `master` only through a pull request whose `gate` and `image` checks are green. Nobody pushes to it directly, administrators included, and it is never force-pushed or deleted. A GitHub ruleset on `master` enforces all of this, with nobody on its bypass list.
+
+Merge with a merge commit, not a squash or a rebase: tracker rows record the hashes of the branch's commits, and only a merge commit keeps them. Bring `master` into a branch that has fallen behind before merging it.
 
 A SQLAlchemy or pypdf deprecation warning fails the test that hits it (`filterwarnings` in `pyproject.toml`). Move to the replacement the warning names; don't silence it. A `ResourceWarning` fails too: close the cursor, file or response with `with` (a streamed query that may return early, such as `yield_per`, needs `with db.execute(...) as rows`).
 

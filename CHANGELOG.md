@@ -73,6 +73,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 - Pillow 13.0.0 and certifi 2026.10.19, for published advisories.
 - The stack smoke test checks that Postgres runs with fsync and data checksums on.
+- CI and release image builds use the Node 24 releases of Docker's GitHub Actions (setup-qemu, setup-buildx, login, build-push), and every job names its runner, `ubuntu-26.04`, instead of `ubuntu-latest`.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.
@@ -85,3 +86,10 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The demo signatory's degree is printed once, as a qualification, not in the name as well.
 - The System page counts the HTTPS certificate as renewing itself only when Caddy issued it, so a short certificate made by hand now warns before it runs out.
 - A restore on a new server puts the stored files back: the backup image owns the folder they go into. The row counts are checked inside the restore's transaction, so a short backup leaves the database as it was, and stored files that fail after the database loaded are reported as an incomplete restore with Labra left stopped.
+- On Podman 5 (`podman compose`), the web app is healthy again: its health check is now `python -m labra.probe /readyz`, as Podman 5 split the old one at its spaces. `upgrade.sh` reads the running image from one web container when nerdctl lists two.
+- With podman-compose, a backup, drill or restore no longer waits forever after a restore or upgrade: the containers those started kept the job lock open.
+- With nerdctl compose, the backup, restore, drill, upgrade and watchdog scripts run their jobs: nerdctl's `compose run` takes no `-T`, and without a terminal it reported every job as a success. The scripts now run jobs through `scripts/compose_run.sh`, which on nerdctl reads the job's own exit status. An upgrade's backup and rollback start the database again after stopping the web app, as nerdctl's `compose stop web` stops the database too. The upgrade's migrations run with `--no-deps`, as nerdctl's `compose run` would start a second database.
+- With podman-compose, `upgrade.sh` finds the web container by its Compose label, as podman-compose's `ps` takes no service name. An upgrade whose migration fails is rolled back there too: the migrations run as a job first, and a stack that never gets healthy is given up after `LABRA_UPGRADE_WAIT` seconds instead of waited for.
+- With nginx, a restore or an upgrade that recreates the web app no longer leaves the proxy answering 502: nginx looks the app up again every 10 seconds.
+- The drill reads each result from the job's output, not from a warning Podman or Compose prints after it.
+- Rootless nerdctl starts on Ubuntu runners again (an AppArmor profile for RootlessKit). A stack smoke test that fails now prints each container's health checks, and a drill, restore or upgrade that hangs is stopped after 10 minutes with what was still running.

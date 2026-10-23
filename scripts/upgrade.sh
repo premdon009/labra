@@ -49,20 +49,26 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-dc() { "${compose[@]}" "$@"; }
+# 9<&-: what Compose starts must not hold the job lock, as podman-compose's container
+# monitors outlive this script.
+dc() { "${compose[@]}" "$@" 9<&-; }
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
 started=$(date -u +%FT%TZ)
 
 log_run() {
-  dc --profile jobs run --rm --no-deps -T backup log-run upgrade "$started" "$1" "$2" >/dev/null ||
+  compose_run --no-deps backup log-run upgrade "$started" "$1" "$2" >/dev/null ||
     echo "The run log wasn't written." >&2
 }
+
+# Starts the stack, giving up after wait_for seconds: podman-compose waits for ever for an app
+# that never gets healthy.
+up() { timeout "$wait_for" "${compose[@]}" up -d --no-build 9<&-; }
 
 ready() {
   local tries=$((wait_for / 2 + 1))
   while ((tries--)); do
-    dc exec -T web python -c \
-      "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=4)" \
-      >/dev/null 2>&1 && return 0
+    dc exec -T web python -m labra.probe /readyz >/dev/null 2>&1 && return 0
     ((tries)) && sleep 2
   done
   return 1
@@ -77,7 +83,13 @@ keep_image() {
   mv "$tmp" "$env_file"
 }
 
-web=$(dc ps -q web)
+# The web container, found by its Compose label: podman-compose's `ps` takes no service name,
+# and nerdctl's can list two containers for one; the last is the newest.
+web=
+for id in $(dc ps -q); do
+  label=$("${engine[@]}" inspect --format '{{index .Config.Labels "com.docker.compose.service"}}' "$id")
+  [[ $label != web ]] || web=$id
+done
 if [[ -z $web ]]; then
   echo "The web app isn't running; start the stack first (docker compose up -d)." >&2
   exit 1
@@ -100,8 +112,8 @@ if ! dc exec -T web labra check-disk; then
 fi
 
 echo "Stopping the web app and taking a backup"
-dc stop web >/dev/null
-if ! dc --profile jobs run --rm -T backup backup --tag pre-upgrade; then
+stop_web
+if ! compose_run backup backup --tag pre-upgrade; then
   dc up -d --no-build >/dev/null
   log_run false "not upgraded to $new: the pre-upgrade backup failed"
   echo "The backup failed, so nothing was upgraded. See the messages above." >&2
@@ -119,7 +131,10 @@ fi
 
 echo "Starting $new"
 keep_image "$new"
-if LABRA_IMAGE=$new dc up -d --no-build && LABRA_IMAGE=$new ready; then
+# The migrations run first, as a job, so a failed one is its exit status on every Compose:
+# podman-compose starts web after a failed migrate. They may take as long as they need. They
+# use the database already running: nerdctl's compose run would start a second one.
+if LABRA_IMAGE=$new compose_run --no-deps migrate && LABRA_IMAGE=$new up && LABRA_IMAGE=$new ready; then
   log_run true "upgraded from $old to $new"
   echo "Upgraded to $new."
   exit 0
@@ -128,11 +143,11 @@ fi
 echo "The upgrade failed; rolling back to $old from snapshot $repo:$snapshot" >&2
 keep_image "$old"
 export LABRA_IMAGE=$old
-dc stop web >/dev/null 2>&1 || true
+stop_web
 if [[ -n $snapshot ]] &&
-  dc --profile jobs run --rm -T restore restore --replace --from "$repo" "$snapshot" &&
-  dc up -d --no-build && ready &&
-  dc run --rm --no-deps -T web labra audit verify; then
+  compose_run restore restore --replace --from "$repo" "$snapshot" &&
+  up && ready &&
+  compose_run --no-deps web labra audit verify; then
   log_run false "not upgraded to $new; rolled back to $old"
   echo "Rolled back: the lab runs $old again, with its data as before the upgrade." >&2
   exit 4

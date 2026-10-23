@@ -20,7 +20,9 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-job() { "${compose[@]}" --profile jobs run --rm -T backup "$@"; }
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
+job() { compose_run backup "$@"; }
 
 started=$(date -u +%FT%TZ)
 ok=true
@@ -32,19 +34,19 @@ if ! names=$(job repos 2>"$err"); then
   lines+=("the backup job did not start: $(tail -2 "$err" | tr '\n' ' ')")
   names=
 fi
+# Results are read from stdout only: the engine and Compose may add warnings on stderr after them.
 for name in $names; do
-  if out=$(job restore --from "$name" --scratch "$scratch" 2>&1); then
+  if out=$(job restore --from "$name" --scratch "$scratch" 2>"$err"); then
     lines+=("$name: $(tail -1 <<<"$out")")
-    if out=$("${compose[@]}" run --rm --no-deps -T web labra audit verify --database "$scratch" \
-      2>&1); then
+    if out=$(compose_run --no-deps web labra audit verify --database "$scratch" 2>"$err"); then
       lines+=("$name: $(tail -1 <<<"$out")")
     else
       ok=false
-      lines+=("$name: $(tail -1 <<<"$out")")
+      lines+=("$name: $(tail -1 <<<"${out:-$(tail -1 "$err")}")")
     fi
   else
     ok=false
-    lines+=("$name: restore failed: $(tail -2 <<<"$out" | tr '\n' ' ')")
+    lines+=("$name: restore failed: $(tail -2 "$err" | tr '\n' ' ')")
   fi
 done
 if ((${#lines[@]} == 0)); then

@@ -14,4 +14,6 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 read -ra compose <<<"${LABRA_COMPOSE:-docker compose}"
 case ${1:-} in -h | --help) sed -n '2,10p' "$0"; exit 0 ;; esac
 cd "$ROOT"
-exec "${compose[@]}" --profile jobs run --rm --no-deps -T backup watchdog
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
+compose_run --no-deps backup watchdog

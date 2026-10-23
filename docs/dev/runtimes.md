@@ -81,12 +81,58 @@ will be sent over the network to a collector (X35), so they won't depend on the 
 ## Known issues
 - **Podman needs systemd for health checks.** In a container or a WSL distribution without
   systemd, `db` stays `starting` and `compose up` never finishes.
+- **Podman 5 splits a Compose health check's arguments at spaces** (`podman compose` with the
+  docker-compose provider, Podman 5.4 and 5.7; Podman 6 doesn't). `python -c "import …"` then
+  fails with a `SyntaxError` and `web` is never healthy. The health checks run
+  `python -m labra.probe /readyz` instead: no argument holds a space.
 - **Podman 4.9.3 with netavark 1.4.0** (Ubuntu 24.04) gives containers no DNS on an
   `internal: true` network, so `migrate` can't find `db`. Podman 5.8.7 works.
 - **podman-compose 1.0.6** (Ubuntu 24.04) ignores `profiles`, so it starts every tunnel too.
   1.6.0 works; or use `podman compose` with the docker-compose provider.
+- **podman-compose** starts each container's monitor (`conmon`) as its own child, so a
+  container started by a script inherits the script's open files. The job scripts close
+  their lock before calling Compose (`9<&-`); without that, a container started by
+  `restore.sh` held the lock and the next backup, drill or restore waited for it.
+- **podman-compose `ps`** takes no service name, so scripts find a service's container by its
+  Compose labels (`com.docker.compose.project` and `com.docker.compose.service`).
+- **podman-compose `depends_on`** treats `service_completed_successfully` as "stopped", so it
+  starts web after a failed migration, and it waits for ever for a `service_healthy`
+  dependency that never gets healthy. `scripts/upgrade.sh` therefore runs the migrations as a
+  job first, and gives the stack start `LABRA_UPGRADE_WAIT` seconds.
 - **`podman compose`** prints a banner on stderr each time it hands over to a provider. Scripts
   that capture output should read stdout only.
+- **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
+  `apparmor_restrict_unprivileged_userns is set to 1`: AppArmor refuses user namespaces to a
+  program without a profile. Give RootlessKit one, as `.github/workflows/portability.yml` does
+  (the `nerdctl` job), then run `containerd-rootless-setuptool.sh install`, and
+  `containerd-rootless-setuptool.sh install-buildkit` to build images.
+- **nerdctl compose** pulls a missing image where Docker and Podman build it, so load the
+  backup image before `compose run backup` (`scripts/compare_runtimes.sh` puts both images in
+  its archive). Its `ps` can list two containers for one service; scripts take the newest.
+- **nerdctl compose `stop web`** also stops the services web depends on, the database among
+  them, and its `compose run` doesn't start them again. `stop_web` in
+  `scripts/compose_run.sh` stops web, then starts the database and waits until it is ready.
+- **nerdctl compose `run`** of a service that depends on the database starts a second database
+  container on the same volume, and `compose exec db` may then pick that one once it has
+  stopped. `scripts/upgrade.sh` runs the migrations with `--no-deps`, against the database
+  `stop_web` left running.
+- **nerdctl compose `run`** has no `-T`, and without a terminal it runs the container detached
+  and exits 0 whatever the container did. The scripts run every job through
+  `scripts/compose_run.sh`: on Docker and Podman that is `run --rm -T`; on nerdctl it starts
+  the job detached, waits for it, then prints its output and returns its exit status. A job's
+  output therefore appears when it ends; following the logs lost the last lines.
+- **`nerdctl build`** uses BuildKit, which looks a `FROM` image up in a registry, never among
+  the local images. The smoke test makes its upgrade images there by committing a container
+  of the local image instead.
+- **nginx looked the web app up once**, when it started. Under Podman a restore or an
+  upgrade recreates web at a new address, and nginx answered 502. `deploy/nginx/labra.conf`
+  is now a template: the nginx image's entrypoint fills in the DNS server from the
+  container's `resolv.conf`, and nginx looks web up again every 10 seconds.
+- **A failed smoke test says why.** When the stack doesn't start, `scripts/stack_smoke.sh`
+  prints each container's state and what its last health checks printed; a drill, restore or
+  upgrade that hangs is stopped after `SMOKE_STEP_LIMIT` seconds (default 600) with the
+  Compose and engine commands still running. `scripts/compare_runtimes.sh` shows the whole log
+  of a failed run.
 - **Rootless ports below 1024** are refused. Use `LABRA_HTTP_PORT=8080 LABRA_HTTPS_PORT=8443`,
   or allow them once: `sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80` (and add it to
   `/etc/sysctl.d/`).

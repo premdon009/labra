@@ -18,4 +18,7 @@ if ! flock -w "${LABRA_JOB_WAIT:-7200}" 9; then
   exit 1
 fi
 cd "$ROOT"
-exec "${compose[@]}" --profile jobs run --rm -T backup "$@"
+# shellcheck source=scripts/compose_run.sh
+source "$ROOT/scripts/compose_run.sh"
+# Not exec, so this script holds the lock until the job ends.
+compose_run backup "$@"

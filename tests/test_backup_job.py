@@ -377,7 +377,7 @@ def test_a_full_restore_starts_labra_and_checks_the_audit_log(job) -> None:
     assert result.returncode == 0, result.stderr
     assert "Restore finished." in result.stdout
     assert calls.index("up -d --no-build") < calls.index(
-        "run --rm --no-deps -T web labra audit verify"
+        "--profile jobs run --rm -T --no-deps web labra audit verify"
     )
 
 

@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 21/29 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 44/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 21/30 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -71,6 +71,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W27~~ | ~~Every long-running container rotates its own logs: an `x-logging` anchor in `compose.yaml` (json-file, five 10 MB files) on every service, so the install guide needs no `daemon.json`; a test checks each service has it and the stack smoke reads web's log settings~~ | P | done | 2026-10-21 · 40584c2 |
 | ~~W28~~ | ~~The System page counts the HTTPS certificate as renewed by the proxy only when Caddy's own authority issued it (the issuer's common name, read from the DER bytes); any other certificate warns 30 days before it runs out, however short its life~~ | P | done | 2026-10-21 · 7aabe64 |
 | ~~W29~~ | ~~Restore on a new server: the backup image owns `/data/files`, so a new files volume is writable; the row counts are checked inside the restore's transaction; stored files that fail after the database loaded exit 4, leave Labra stopped and say how to finish~~ | P | done | 2026-10-21 · 17b0ced |
+| W30 | Portability workflow: rootless nerdctl gets an AppArmor profile for RootlessKit; a smoke test that fails prints each container's health checks and the whole log, and a hung drill, restore or upgrade is stopped after 10 minutes with the commands still running; Podman 5 health checks without spaces in their arguments (`python -m labra.probe`); nerdctl gets the backup image, and the smoke test commits its upgrade images there instead of building them (BuildKit looks a `FROM` image up in a registry); containers started under podman-compose no longer inherit the job lock (the restore and drill hang); jobs run through `scripts/compose_run.sh`, which reads a job's own exit status on nerdctl (no `-T`), and the database is started again after web stops (nerdctl's `compose stop` also stops what web depends on); scripts find containers by their Compose labels (podman-compose's `ps` takes no service name); upgrades run the migrations as a job first, with `--no-deps`, and time-limit the stack start (podman-compose waited for ever after a failed migration; nerdctl's `compose run` started a second database); nginx looks web up again after it is recreated; the drill reads results from stdout only | P | doing | Run 6 follow-up |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
@@ -218,7 +219,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | E Observability and support | EC-E01–E06 | 3/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 1/3 | 0/1 | — |
 | G Upgrades and migrations | EC-G01–G06 | 3/4 | 0/2 | — |
-| H Code quality and testing | EC-H01–H07 | 3/5 | 0/2 | — |
+| H Code quality and testing | EC-H01–H07 | 4/5 | 0/2 | — |
 | I Supply chain | EC-I01–I07 | 3/5 | 0/2 | — |
 | J Usability | EC-J01–J05 | 3/3 | 0/2 | — |
 | K Configuration safety | EC-K01–K05 | 3/3 | 0/2 | — |

@@ -310,6 +310,61 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
     assert "runs-on: ubuntu-26.04" in text
 
 
+@pytest.mark.item("W30")
+def test_nginx_looks_web_up_again_after_it_is_recreated() -> None:
+    # A fixed address breaks when a restore or an upgrade recreates web: nginx answers 502.
+    nginx = ROOT / "deploy" / "nginx"
+    compose = (nginx / "compose.nginx.yaml").read_text(encoding="utf-8")
+    assert "/deploy/nginx/labra.conf:/etc/nginx/templates/default.conf.template:ro" in compose
+    assert 'NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"' in compose
+    conf = (nginx / "labra.conf").read_text(encoding="utf-8")
+    assert "resolver ${NGINX_LOCAL_RESOLVERS} valid=10s" in conf
+    assert "server web:8000 resolve;" in conf
+    proxy = (nginx / "labra-proxy.conf").read_text(encoding="utf-8")
+    assert re.findall(r"proxy_pass (\S+);", proxy) == ["http://labra_web"]
+
+
+@pytest.mark.item("W30")
+def test_no_health_check_argument_holds_a_space() -> None:
+    # Podman 5 splits a Compose health check's arguments at spaces.
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    checks = [json.loads(m) for m in re.findall(r"^ +test: (\[.*\])$", compose, re.MULTILINE)]
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    checks += [json.loads(m) for m in re.findall(r"^ +CMD (\[.*\])$", dockerfile, re.MULTILINE)]
+    assert len(checks) >= 3
+    assert all(" " not in arg for check in checks for arg in check), checks
+    assert ["CMD", "python", "-m", "labra.probe", "/readyz"] in checks
+    assert ["python", "-m", "labra.probe", "/healthz"] in checks
+    assert "test:\n" not in compose
+
+
+@pytest.mark.item("W30")
+def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() -> None:
+    nerdctl = _job("portability.yml", "runtime").split("- name: nerdctl\n", 1)[1]
+    nerdctl = nerdctl.split("- name: ", 1)[0]
+    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in nerdctl
+    assert "userns," in nerdctl
+    steps = [
+        "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
+        "systemctl restart apparmor.service",
+        "containerd-rootless-setuptool.sh install\n",
+        "scripts/compare_runtimes.sh",
+    ]
+    assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
+
+
+@pytest.mark.item("W08")
+def test_every_job_names_its_runner() -> None:
+    # ubuntu-latest moves to a new release on GitHub's schedule, not ours.
+    runners = {
+        (path.name, m)
+        for path in (ROOT / ".github" / "workflows").glob("*.yml")
+        for m in re.findall(r"^ *runs-on: (\S+)", path.read_text(encoding="utf-8"), re.MULTILINE)
+    }
+    assert len(runners) >= 4
+    assert {runner for _, runner in runners} == {"ubuntu-26.04"}, sorted(runners)
+
+
 @pytest.mark.item("W01")
 @pytest.mark.parametrize(
     ("message", "category"),
