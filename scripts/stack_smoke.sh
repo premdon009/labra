@@ -271,9 +271,10 @@ echo "INFO  first backup added $first bytes across both repositories"
 bk backup
 second=$(runs | tail -1 | cut -d'|' -f3)
 echo "INFO  second backup added $second bytes"
-# Restic cuts files into chunks of about 1 MB, so a small change still adds a few in each
-# repository; without deduplication the second would be as big as the first.
-check "second backup adds little" yes "$( ((second < first / 2)) && echo yes || echo no)"
+# Restic cuts the dump into chunks of 0.5 to 8 MiB, and each row changed since the first
+# backup adds its whole chunk again, in each repository: from a sixth to over half of the first
+# so far. Without deduplication the second would be as big as the first.
+check "second backup adds little" yes "$( ((second < first * 3 / 4)) && echo yes || echo no)"
 check "nightly run applies the retention" 0 "$(bk backup --prune --tag nightly; echo $?)"
 check "both repositories list three snapshots" 2 "$(bk snapshots; grep -c '^3 snapshots$' "$work/backup.log")"
 check "missing USB disk fails the run, Drive still copied" 1 "$(usb_repo=/backup/usb/unplugged bk backup; echo $?)"
@@ -385,6 +386,7 @@ upgrade() { limit "$ROOT/scripts/upgrade.sh" "$@" >>"$work/upgrade.log" 2>&1; }
 web_image() { "$engine" inspect --format '{{.Config.Image}}' "$(cid web)"; }
 backups="select count(*) from ops_run where kind = 'backup' and ok"
 before=$(sql "$backups")
+fails_before_upgrade=$fails
 check "upgrade to a new image" 0 "$(upgrade localhost/labra-smoke:next; echo $?)"
 check "web runs the new image" localhost/labra-smoke:next "$(web_image)"
 check "upgrade logged" t "$(last_run upgrade)"
@@ -397,6 +399,7 @@ check "data from before the upgrade kept" 1 "$(sql "select count(*) from branch 
 check "the image in use is kept for the next start" "LABRA_IMAGE=localhost/labra-smoke:next" \
   "$(cat "$work/env")"
 check "sign in after the rollback" 303 "$(sign_in)"
+((fails == fails_before_upgrade)) || tail -20 "$work/upgrade.log" | sed 's/^/INFO    /'
 
 echo "$((fails == 0 ? 1 : 0)) stack ($proxy on ${compose[*]}): $fails failed" |
   sed 's/^1 /PASS  /; s/^0 /FAIL  /'

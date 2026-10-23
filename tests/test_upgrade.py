@@ -19,7 +19,8 @@ NEW = "ghcr.io/premdon009/labra:0.2.0"
 
 # Both stand-ins append "<tool> LABRA_IMAGE=<image> <args>" to calls.log; a Compose call
 # handed the job lock's descriptor goes to leaks.log too. A FAIL_<STEP> file makes a step
-# fail: PULL, DISK, BACKUP, UP_<image tag>, READY_<image tag>, RESTORE.
+# fail: PULL, DISK, BACKUP, MIGRATE_<image tag>, UP_<image tag>, READY_<image tag>, RESTORE;
+# a HANG_UP_<image tag> file makes the stack start never return, as podman-compose's can.
 STUB = """#!/usr/bin/env bash
 tool=$(basename "$0")
 printf '%s LABRA_IMAGE=%s %s\\n' "$tool" "${LABRA_IMAGE-}" "$*" >>"$STUBS/calls.log"
@@ -39,7 +40,10 @@ case "$tool $*" in
   "compose exec -T db psql "*) cat "$STUBS/snapshots" ;;
   *" backup backup --tag pre-upgrade") ! fails BACKUP ;;
   *" restore restore --replace "*) ! fails RESTORE ;;
-  "compose up -d --no-build") ! fails "UP_$tag" ;;
+  *" run --rm -T --no-deps migrate") ! fails "MIGRATE_$tag" ;;
+  "compose up -d --no-build")
+    if fails "HANG_UP_$tag"; then sleep 30; fi
+    ! fails "UP_$tag" ;;
 esac
 """
 
@@ -60,14 +64,14 @@ class Upgrade:
     def fail(self, step: str) -> None:
         (self.stubs / f"FAIL_{step}").touch()
 
-    def __call__(self, *args: str) -> subprocess.CompletedProcess[str]:
+    def __call__(self, *args: str, wait: int = 0) -> subprocess.CompletedProcess[str]:
         env = {
             "PATH": os.environ["PATH"],
             "STUBS": str(self.stubs),
             "LABRA_COMPOSE": str(self.stubs / "compose"),
             "LABRA_ENGINE": str(self.stubs / "engine"),
             "LABRA_ENV_FILE": str(self.env_file),
-            "LABRA_UPGRADE_WAIT": "0",
+            "LABRA_UPGRADE_WAIT": str(wait),
             "LABRA_JOB_WAIT": "5",
         }
         return subprocess.run(  # noqa: S603
@@ -122,6 +126,7 @@ def test_an_upgrade_backs_up_with_the_app_stopped_then_starts_the_new_image(
         "exec -T web labra check-disk",
         "stop web",
         "--profile jobs run --rm -T backup backup --tag pre-upgrade",
+        "--profile jobs run --rm -T --no-deps migrate",
         "up -d --no-build",
     ]
     assert [next(i for i, s in enumerate(steps) if s == o) for o in order] == sorted(
@@ -157,11 +162,15 @@ def test_the_database_is_started_again_for_the_backup_and_the_rollback(upgrade: 
     steps = [c.split(" ", 2)[2] for c in upgrade.calls if c.startswith("compose ")]
     # The jobs that need the database, apart from the run log and the audit check.
     jobs = [
-        s for s in steps if s in wait or (s.startswith("--profile jobs") and "--no-deps" not in s)
+        s
+        for s in steps
+        if s in wait
+        or (s.startswith("--profile jobs") and "log-run" not in s and "audit verify" not in s)
     ]
     assert jobs == [
         *wait,
         "--profile jobs run --rm -T backup backup --tag pre-upgrade",
+        "--profile jobs run --rm -T --no-deps migrate",
         *wait,
         "--profile jobs run --rm -T restore restore --replace --from usb bbbb2222",
     ]
@@ -201,6 +210,45 @@ def test_a_failed_migration_or_an_app_that_never_gets_ready_is_rolled_back(
     assert upgrade.called("labra audit verify")
     assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
     assert upgrade.env_file.read_text() == f"LABRA_SITE=labra.lan\nLABRA_IMAGE={OLD}\n"
+
+
+@pytest.mark.item("W30")
+def test_a_failed_migration_is_rolled_back_before_the_new_app_starts(upgrade: Upgrade) -> None:
+    # podman-compose starts web after a failed migrate, then waits for ever for it to be healthy.
+    upgrade.env_file.write_text("LABRA_IMAGE=old\n")
+    upgrade.fail("MIGRATE_0.2.0")
+    result = upgrade("0.2.0")
+    assert result.returncode == 4, result.stderr
+    assert upgrade.called(" migrate") == [
+        f"compose LABRA_IMAGE={NEW} --profile jobs run --rm -T --no-deps migrate"
+    ]
+    assert [c.split(" ")[1] for c in upgrade.started] == [f"LABRA_IMAGE={OLD}"]
+    assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
+
+
+@pytest.mark.item("W30")
+def test_the_migrations_use_the_database_already_running(upgrade: Upgrade) -> None:
+    # nerdctl's compose run starts a second database on the same volume for a job that depends
+    # on it, and compose exec then finds that one, stopped.
+    assert upgrade("0.2.0").returncode == 0
+    assert upgrade.called(" migrate") == [
+        f"compose LABRA_IMAGE={NEW} --profile jobs run --rm -T --no-deps migrate"
+    ]
+
+
+@pytest.mark.item("W30")
+def test_a_stack_start_that_never_returns_is_rolled_back_after_the_wait(
+    upgrade: Upgrade,
+) -> None:
+    upgrade.env_file.write_text("LABRA_IMAGE=old\n")
+    upgrade.fail("HANG_UP_0.2.0")
+    result = upgrade("0.2.0", wait=1)
+    assert result.returncode == 4, result.stderr
+    assert [c.split(" ")[1] for c in upgrade.started] == [
+        f"LABRA_IMAGE={NEW}",
+        f"LABRA_IMAGE={OLD}",
+    ]
+    assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
 
 
 @pytest.mark.item("EC-G03")

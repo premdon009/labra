@@ -61,6 +61,10 @@ log_run() {
     echo "The run log wasn't written." >&2
 }
 
+# Starts the stack, giving up after wait_for seconds: podman-compose waits for ever for an app
+# that never gets healthy.
+up() { timeout "$wait_for" "${compose[@]}" up -d --no-build 9<&-; }
+
 ready() {
   local tries=$((wait_for / 2 + 1))
   while ((tries--)); do
@@ -127,7 +131,10 @@ fi
 
 echo "Starting $new"
 keep_image "$new"
-if LABRA_IMAGE=$new dc up -d --no-build && LABRA_IMAGE=$new ready; then
+# The migrations run first, as a job, so a failed one is its exit status on every Compose:
+# podman-compose starts web after a failed migrate. They may take as long as they need. They
+# use the database already running: nerdctl's compose run would start a second one.
+if LABRA_IMAGE=$new compose_run --no-deps migrate && LABRA_IMAGE=$new up && LABRA_IMAGE=$new ready; then
   log_run true "upgraded from $old to $new"
   echo "Upgraded to $new."
   exit 0
@@ -139,7 +146,7 @@ export LABRA_IMAGE=$old
 stop_web
 if [[ -n $snapshot ]] &&
   compose_run restore restore --replace --from "$repo" "$snapshot" &&
-  dc up -d --no-build && ready &&
+  up && ready &&
   compose_run --no-deps web labra audit verify; then
   log_run false "not upgraded to $new; rolled back to $old"
   echo "Rolled back: the lab runs $old again, with its data as before the upgrade." >&2

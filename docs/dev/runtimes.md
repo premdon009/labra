@@ -95,6 +95,10 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   `restore.sh` held the lock and the next backup, drill or restore waited for it.
 - **podman-compose `ps`** takes no service name, so scripts find a service's container by its
   Compose labels (`com.docker.compose.project` and `com.docker.compose.service`).
+- **podman-compose `depends_on`** treats `service_completed_successfully` as "stopped", so it
+  starts web after a failed migration, and it waits for ever for a `service_healthy`
+  dependency that never gets healthy. `scripts/upgrade.sh` therefore runs the migrations as a
+  job first, and gives the stack start `LABRA_UPGRADE_WAIT` seconds.
 - **`podman compose`** prints a banner on stderr each time it hands over to a provider. Scripts
   that capture output should read stdout only.
 - **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
@@ -108,6 +112,10 @@ will be sent over the network to a collector (X35), so they won't depend on the 
 - **nerdctl compose `stop web`** also stops the services web depends on, the database among
   them, and its `compose run` doesn't start them again. `stop_web` in
   `scripts/compose_run.sh` stops web, then starts the database and waits until it is ready.
+- **nerdctl compose `run`** of a service that depends on the database starts a second database
+  container on the same volume, and `compose exec db` may then pick that one once it has
+  stopped. `scripts/upgrade.sh` runs the migrations with `--no-deps`, against the database
+  `stop_web` left running.
 - **nerdctl compose `run`** has no `-T`, and without a terminal it runs the container detached
   and exits 0 whatever the container did. The scripts run every job through
   `scripts/compose_run.sh`: on Docker and Podman that is `run --rm -T`; on nerdctl it starts
