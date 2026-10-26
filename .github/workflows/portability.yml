@@ -121,4 +121,4 @@ jobs:
       - run: >-
           sudo apt-get update && sudo apt-get install -y --no-install-recommends
           libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig
-      - run: uv run pytest -q -rs -m "db and not e2e"
+      - run: uv run pytest -q -rs -m "db and not e2e" -n auto

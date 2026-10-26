@@ -113,6 +113,7 @@ def test_the_bill_matches_its_snapshot(
 
 @pytest.mark.item("EC-H03")
 @pytest.mark.item("M12")
+@pytest.mark.serial
 def test_a_three_page_report_renders_within_its_budget() -> None:
     samples.render("short", SPEC, "digital")  # fonts loaded once per process
     started = time.perf_counter()

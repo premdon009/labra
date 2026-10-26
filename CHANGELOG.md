@@ -75,6 +75,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - Brotli 1.2.1 (used for the fonts in every PDF) and pypdf 6.21.2, for published advisories.
 - The stack smoke test checks that Postgres runs with fsync and data checksums on.
 - CI and release image builds use the Node 24 releases of Docker's GitHub Actions (setup-qemu, setup-buildx, login, build-push), and every job names its runner, `ubuntu-26.04`, instead of `ubuntu-latest`.
+- The gate runs the tests in parallel, one worker per CPU (at most 8), each with its own database; the time-budget tests run after them on their own.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.

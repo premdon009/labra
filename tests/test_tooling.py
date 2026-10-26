@@ -1022,6 +1022,107 @@ def test_pytest_summary_names_failed_and_flaky_tests(
     assert (flaky_txt.read_text() if flaky_txt.exists() else None) == flaky
 
 
+# Real output of `pytest -q -rfEsR --reruns 1 -n 2 --dist loadfile`: the workers' lines
+# arrive interleaved, and each failure names its worker.
+PYTEST_XDIST = """\
+bringing up nodes...
+bringing up nodes...
+
+RER.sRF..                                                                [100%]
+==================================== ERRORS ====================================
+___________________ ERROR at setup of test_setup[one - two] ____________________
+[gw1] linux -- Python 3.14.7 /usr/bin/python3
+
+    @pytest.fixture
+    def boom():
+>       raise RuntimeError("setup")
+E       RuntimeError: setup
+
+tests/test_b.py:4: RuntimeError
+=================================== FAILURES ===================================
+_________________________________ test_broken __________________________________
+[gw0] linux -- Python 3.14.7 /usr/bin/python3
+
+    def test_broken():
+>       assert 1 == 2
+E       assert 1 == 2
+
+tests/test_a.py:10: AssertionError
+=========================== rerun test summary info ============================
+RERUN tests/test_a.py::test_flaky
+PASSED tests/test_a.py::test_flaky
+RERUN tests/test_b.py::test_setup[one - two]
+ERROR tests/test_b.py::test_setup[one - two]
+RERUN tests/test_a.py::test_broken
+FAILED tests/test_a.py::test_broken
+=========================== short test summary info ============================
+FAILED tests/test_a.py::test_broken - assert 1 == 2
+ERROR tests/test_b.py::test_setup[one - two] - RuntimeError: setup
+SKIPPED [1] tests/test_b.py:8: no Postgres for tests
+1 failed, 3 passed, 1 skipped, 1 error, 3 rerun in 0.68s
+"""
+
+
+@pytest.mark.item("W32")
+def test_pytest_summary_reads_parallel_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "pytest.txt").write_text(PYTEST_XDIST)
+    assert _script("pytest_summary").main([str(tmp_path / "pytest.txt"), str(tmp_path)]) == 1
+    assert capsys.readouterr().out.splitlines() == [
+        "failed: tests/test_a.py::test_broken",
+        "failed: tests/test_b.py::test_setup[one - two]",
+        "flaky (passed on re-run): tests/test_a.py::test_flaky",
+    ]
+    # The gate greps the same output for skipped database tests.
+    assert re.search("SKIPPED.*no Postgres for tests", PYTEST_XDIST)
+
+
+@pytest.mark.item("W32")
+def test_the_gate_runs_the_tests_in_parallel_then_the_time_budgets_alone() -> None:
+    gate = (ROOT / "scripts" / "ci_local.sh").read_text(encoding="utf-8")
+    stage = gate.split("stage_tests() {", 1)[1].split("\n}\n", 1)[0]
+    common = re.search(r"local pytest=\((.*)\)", stage)
+    assert common is not None
+    assert "--reruns 1" in common[1]
+    assert "--cov " in common[1]
+    parallel, serial = (call.split("| tee", 1)[0] for call in stage.split('"${pytest[@]}" ')[1:3])
+    assert parallel.startswith('-m "not serial"')
+    assert '-n "${LABRA_TEST_WORKERS:-auto}" --maxprocesses 8 --dist loadfile' in parallel
+    assert serial.startswith("-m serial")
+    assert "--cov-append" in serial
+    assert '| tee -a "$out"' in stage
+    assert "-n " not in serial
+
+
+@pytest.mark.item("W32")
+def test_the_time_budget_tests_run_serially() -> None:
+    marked = {
+        path.name
+        for path in (ROOT / "tests").glob("test_*.py")
+        if "@pytest.mark.serial\n" in path.read_text(encoding="utf-8")
+    }
+    assert marked == {
+        "test_db_laptop_budget.py",
+        "test_db_lab_worklist.py",
+        "test_db_pdf_snapshots.py",
+    }
+
+
+@pytest.mark.item("W32")
+def test_each_worker_gets_its_own_test_database() -> None:
+    from tests.conftest import worker_database_url
+
+    server = "postgresql://postgres@localhost:5432/labra_test"
+    urls = {worker: worker_database_url(server, worker) for worker in ("", "gw0", "gw1")}
+    assert urls[""].endswith("/labra_test")
+    assert urls["gw0"].endswith("/labra_gw0_test")
+    assert urls["gw1"].endswith("/labra_gw1_test")
+    assert all(url.startswith("postgresql+psycopg://") for url in urls.values())
+    with pytest.raises(pytest.UsageError):
+        worker_database_url("postgresql://postgres@localhost:5432/labra", "gw0")
+
+
 HISTORY = """\
 run\tcommit\ttest\toutcome
 20261001T090000Z\taaa1111\t*\trun

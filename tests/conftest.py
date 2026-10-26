@@ -5,6 +5,9 @@ Tests that need Postgres use the `db`, `pg_engine` or `db_client` fixtures and a
 socket: Docker, or Podman via DOCKER_HOST), or on an existing database named in
 LABRA_TEST_DATABASE_URL. With neither they are skipped with the reason "no Postgres for tests",
 and `scripts/ci_local.sh` reports the test stage as WARN (unchecked), never PASS.
+
+Under pytest-xdist each worker has its own: its own container, or its own database on the
+server named in LABRA_TEST_DATABASE_URL (`labra_test` becomes `labra_gw0_test`, and so on).
 """
 
 import os
@@ -40,6 +43,32 @@ def checked_test_url(url: str) -> str:
             f"not {parsed.database!r}."
         )
     return parsed.set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
+
+
+def worker_database_url(url: str, worker: str) -> str:
+    """The database a pytest-xdist worker uses: `<name>_<worker>_test`, so workers never share
+    tables or advisory locks. Without a worker (a serial run) it's the database named."""
+    checked = checked_test_url(url)
+    if not worker:
+        return checked
+    parsed = make_url(checked)
+    name = (parsed.database or "").removesuffix("_test")
+    return checked_test_url(
+        parsed.set(database=f"{name}_{worker}_test").render_as_string(hide_password=False)
+    )
+
+
+def create_database_if_missing(url: str, server_url: str) -> None:
+    """Create the database in `url` through `server_url` (another database on the same server)."""
+    name = make_url(url).database
+    admin = create_engine(server_url, isolation_level="AUTOCOMMIT")
+    try:
+        with admin.connect() as conn:
+            exists = conn.scalar(text("select 1 from pg_database where datname = :n"), {"n": name})
+            if not exists:
+                conn.execute(text(f'CREATE DATABASE "{name}"'))
+    finally:
+        admin.dispose()
 
 
 @cache
@@ -112,7 +141,11 @@ def pg_engine() -> Iterator[Engine]:
     from testcontainers.community.postgres import PostgresContainer
 
     if TEST_DATABASE_URL:
-        engine = migrated(checked_test_url(TEST_DATABASE_URL))
+        server = checked_test_url(TEST_DATABASE_URL)
+        url = worker_database_url(server, os.environ.get("PYTEST_XDIST_WORKER", ""))
+        if url != server:
+            create_database_if_missing(url, server)
+        engine = migrated(url)
         yield engine
         engine.dispose()
         return

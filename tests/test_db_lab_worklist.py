@@ -274,6 +274,7 @@ def test_the_lab_screens(lab: Session, platform: Platform, db_client: TestClient
 
 
 @pytest.mark.item("EC-F01")
+@pytest.mark.serial
 def test_a_full_worklist_costs_no_more_queries_than_a_short_one_and_loads_in_time(
     lab: Session, platform: Platform, db_client: TestClient
 ) -> None:

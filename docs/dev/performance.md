@@ -1,5 +1,5 @@
 ---
-items: [EC-F01]
+items: [EC-F01, W32]
 ---
 
 # Performance budgets
@@ -26,6 +26,9 @@ long before that.
   - a three-page report PDF within its render budget (`tests/test_db_pdf_snapshots.py`);
   - a full lab worklist in no more queries than a short one, and in time
     (`tests/test_db_lab_worklist.py`).
+
+  These tests are marked `serial`. The gate runs the other tests in parallel first, then
+  these on their own, so other workers can't use up their time budget.
 - **Every `scripts/ci_local.sh --only stack` run:** `scripts/stack_smoke.sh` caps the
   containers to 2 CPUs and 4 GB between them (web 1 CPU and 2 GB, db 0.75 CPU and 1.5 GB,
   proxy 0.25 CPU and 512 MB), adds 50,000 synthetic patients, and runs
@@ -71,6 +74,19 @@ database that has patients of its own.
 | 2026-10-21 | Development PC (WSL 2, Docker Desktop), containers capped as above, 3 users, 20 s | 32–250 ms | 27–224 ms | not measured | 432–459 MiB | three runs; the spread is the shared PC, not Labra |
 | 2026-10-21 | Development PC, in process (pytest), 50,000 patients | — | 35–50 ms (median per search) | — | — | owner and branch front desk |
 | — | The laptop, before the pilot | to be filled in | | | | closes the laptop budgets item |
+
+## How long the tests take
+
+The gate's tests stage, on the development PC (WSL 2, 14 CPUs, Docker Desktop). The parallel
+run starts a Postgres container per worker, and each test takes about three times the CPU it
+takes alone, because every core is busy. So 8 workers make it about twice as fast, not eight
+times. 4 workers took 311 s. GitHub's runner has 4 CPUs.
+
+| Date | How | Tests | Time |
+|---|---|---|---|
+| 2026-10-23 | one at a time | 995 | 415 s and 519 s (two gate runs) |
+| 2026-10-26 | one at a time (`LABRA_TEST_WORKERS=0`) | 998 | 550 s |
+| 2026-10-26 | 8 workers, then the 4 `serial` tests alone | 995 + 4 | 223–260 s + 26–31 s; the stage 252–295 s over three gate runs |
 
 ## Backup size
 
