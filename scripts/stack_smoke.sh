@@ -394,6 +394,9 @@ check "upgrade logged" t "$(last_run upgrade)"
 check "pre-upgrade backup taken" $((before + 1)) "$(sql "$backups")"
 dc exec -T web labra add-branch --code B8 --name "Branch eight" --kind collection_centre >/dev/null 2>&1
 check "an upgrade whose migration fails rolls back" 4 "$(upgrade localhost/labra-smoke:broken; echo $?)"
+# Not the stack start's migration: there, podman-compose starts web after it fails.
+check "the failed migration stopped the upgrade before the app started" 1 \
+  "$(grep -c '^The upgrade failed: the migrations failed\.' "$work/upgrade.log")"
 check "web runs the previous image again" localhost/labra-smoke:next "$(web_image)"
 check "failed upgrade logged" f "$(last_run upgrade)"
 check "data from before the upgrade kept" 1 "$(sql "select count(*) from branch where code = 'B8'")"

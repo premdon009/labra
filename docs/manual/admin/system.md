@@ -41,8 +41,10 @@ Upgrade outside lab hours: Labra is closed for a few minutes while it runs.
 3. Open **System**: the version is the new one and the *Upgrade* row is green.
 
 If the new version doesn't start, the script puts everything back by itself, the data
-included, and ends with `Rolled back`. The lab carries on with the old version; report the
-message on GitHub. If it ends with `THE ROLLBACK FAILED`, Labra stays closed: follow
+included, and ends with `Rolled back`. The line `The upgrade failed: …` before it says which
+step failed: the migrations, or the new version not starting in time; the *Upgrade* row's
+*Detail* says the same. The lab carries on with the old version; report the message on
+GitHub. If it ends with `THE ROLLBACK FAILED`, Labra stays closed: follow
 [Restore from backup](../../runbooks/restore-from-backup.md#the-same-server) with the
 snapshot the message names.
 
