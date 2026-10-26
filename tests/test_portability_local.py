@@ -323,7 +323,7 @@ exit 0
 
 @pytest.fixture
 def job(tmp_path: Path) -> Path:
-    """A checkout with portability_job.sh, stub stack scripts and two pinned images."""
+    """A checkout with portability_job.sh, stub stack scripts and three pinned images."""
     repo = tmp_path / "repo"
     (repo / "scripts").mkdir(parents=True)
     (repo / ".github" / "workflows").mkdir(parents=True)
@@ -345,6 +345,8 @@ def job(tmp_path: Path) -> Path:
         + "a" * 64
         + "\n2.tar docker.io/library/postgres:labra-pinned docker.io/library/postgres:18@sha256:"
         + "b" * 64
+        + "\n3.tar docker.io/docker/dockerfile:labra-pinned docker.io/docker/dockerfile:1@sha256:"
+        + "c" * 64
         + "\n"
     )
     return repo
@@ -380,12 +382,15 @@ def test_a_row_loads_the_pinned_images_the_way_each_engine_keeps_their_digest(jo
     assert job_sh(job, "podman-compose").returncode == 0
     log = job_calls(job)
     assert "podman pull -q oci-archive:results/deps/2.tar" in log
+    assert "podman pull -q oci-archive:results/deps/3.tar" not in log  # one image a platform
     assert log[-1] == "stack_smoke.sh --compose podman-compose"
     (job.parent / "stubs" / "calls.log").unlink()
     assert job_sh(job, "builders").returncode == 0
     log = job_calls(job)
     assert "docker load -i results/deps/1.tar" in log
     assert "podman pull -q oci-archive:results/deps/1.tar" in log  # Buildah's store
+    assert "docker load -i results/deps/3.tar" in log  # BuildKit's Dockerfile frontend
+    assert "podman pull -q oci-archive:results/deps/3.tar" not in log
 
 
 def test_a_prebuilt_image_replaces_the_rows_own_build(job: Path) -> None:

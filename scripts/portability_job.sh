@@ -90,6 +90,9 @@ preload() {
   local engine=$1 file name ref
   if [[ -s results/deps/refs ]]; then
     while read -r file name ref; do
+      # Podman and Buildah read a Dockerfile's syntax line as a comment, and can't pull the
+      # frontend's archive: it holds an image for each platform.
+      if [[ $engine == podman && $name == */docker/dockerfile:* ]]; then continue; fi
       if [[ $engine == podman ]]; then
         # Pulled from an OCI archive, the image keeps the digest Compose asks for.
         podman pull -q "oci-archive:results/deps/$file" >/dev/null
