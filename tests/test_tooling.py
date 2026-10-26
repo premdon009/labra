@@ -365,6 +365,24 @@ def test_every_job_names_its_runner() -> None:
     assert {runner for _, runner in runners} == {"ubuntu-26.04"}, sorted(runners)
 
 
+CONCURRENCY = (
+    "concurrency:\n"
+    "  group: ${{ github.workflow }}-"
+    "${{ github.event_name == 'pull_request' && github.ref || github.run_id }}\n"
+    "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"
+)
+
+
+@pytest.mark.item("W08")
+@pytest.mark.parametrize("workflow", ["ci.yml", "portability.yml"])
+def test_a_new_push_cancels_only_the_pull_requests_older_run(workflow: str) -> None:
+    # A group keeps one running and one pending run, so master and scheduled runs each get a
+    # group of their own (the run ID), or a newer pending run would replace an older one.
+    text = (ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+    assert CONCURRENCY in text
+    assert text.index(CONCURRENCY) < text.index("\njobs:\n")
+
+
 @pytest.mark.item("W01")
 @pytest.mark.parametrize(
     ("message", "category"),

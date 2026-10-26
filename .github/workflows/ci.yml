@@ -8,6 +8,13 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request cancels the run it supersedes. Every other run (master, the
+# schedule, a manual start) gets a group of its own: a shared group would let a newer pending
+# run replace an older one, and master runs must all finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # Actions are pinned by commit SHA, with the tag in a comment; scripts/audit_deps.py --check
 # fails on a tag or branch reference.
 jobs:

@@ -25,6 +25,12 @@ on:
       - .github/workflows/portability.yml
 permissions:
   contents: read
+# A newer push to a pull request cancels the run it supersedes. Every other run (master, the
+# schedule, a manual start) gets a group of its own: a shared group would let a newer pending
+# run replace an older one, and master runs must all finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   NERDCTL_VERSION: 2.4.1
   NERDCTL_SHA256: ff018f11ac2f1354bf7b3aaaca6e0b52d81139c746a89134744d0b7be3a0e62f
