@@ -72,6 +72,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The demo seed draws every person's name from Faker and the letterhead preview samples show role labels, so no person's name is written in the code.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 - Pillow 13.0.0 and certifi 2026.10.19, for published advisories.
+- Brotli 1.2.1 (used for the fonts in every PDF) and pypdf 6.21.2, for published advisories.
 - The stack smoke test checks that Postgres runs with fsync and data checksums on.
 - CI and release image builds use the Node 24 releases of Docker's GitHub Actions (setup-qemu, setup-buildx, login, build-push), and every job names its runner, `ubuntu-26.04`, instead of `ubuntu-latest`.
 
