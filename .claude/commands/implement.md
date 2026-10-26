@@ -12,6 +12,6 @@ Implement tracker items: $ARGUMENTS
 5. If the plan is ambiguous or reality doesn't match it, **stop and ask**. Don't improvise scope.
 6. Run the full `scripts/ci_local.sh`. Report any `WARN` stage as unchecked.
 7. Audit: re-read the rows and the plan, review the full diff, confirm each fix has a test that fails on the old code.
-8. Set each item to `done` with the date and PR number, strike-through on ID and title.
+8. In the branch's last commit, set each item to `done` with the date and the branch's main commit, strike-through on ID and title. Never a status-only PR.
 
 Commit subjects carry the IDs (`feat(scope): M07 …`), with no AI trailer. List improvements you noticed but didn't make at the end. Ask before pushing.

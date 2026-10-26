@@ -40,3 +40,13 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 **Symptom:** in a qemu VM with user-mode networking (slirp), started from inside a Docker container, SSH to the guest drops as soon as Docker starts in the guest; later, downloads in the guest fail with TLS decode errors.
 **Cause:** slirp keeps a forwarded connection's real source address, which clashes with the guest's own `docker0` when the outer container also sits on 172.17.0.0/16. Once Docker turns on IP forwarding in the guest, slirp corrupts outgoing TCP.
 **Fix:** run the qemu container on its own network (`docker network create --subnet 10.99.0.0/24 …`). In the guest, set `"ip-forward": false` in `/etc/docker/daemon.json` and `net.ipv4.ip_forward=0`, load the Labra images built on the host (`docker save` / `docker load`), and accept that the guest's containers have no internet. HTTPS from the host through the forwarded port still stalls; test from inside the guest.
+
+## `gh pr create` or `gh pr edit` fails on Projects (classic)
+**Symptom:** `gh pr create` or `gh pr edit` stops with a GraphQL error saying "Projects (classic) is being deprecated", and no PR is opened or changed.
+**Cause:** the `gh` commands also read the pull request's classic project cards, which GitHub now refuses.
+**Fix:** use the REST API through `gh api`, which doesn't touch projects. Open a PR with `gh api repos/{owner}/{repo}/pulls -f title='…' -f head=<branch> -f base=master -F body=@pr.md`, and edit one with `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@pr.md`.
+
+## apt fails with 400 Bad Request inside containers
+**Symptom:** `apt-get update` or `apt-get install` in a container on Docker Desktop fails now and then with "400 Bad Request" from the Ubuntu mirror; the same command run again works.
+**Cause:** Docker Desktop's built-in proxy drops or mangles a connection now and then, as with pulls above, and apt's pipelined requests make it worse.
+**Fix:** turn pipelining off and retry: put `Acquire::http::Pipeline-Depth "0";` and `Acquire::Retries "5";` in a file under `/etc/apt/apt.conf.d/`, and run the install in a loop of a few tries.

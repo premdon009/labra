@@ -15,17 +15,17 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 **Rules:**
 - IDs are never renumbered or reused. A dropped item stays in the table, struck through, with status `dropped` and the reason.
 - A new idea takes the next free number in its prefix. It's added here in the same change that adds it to the docs.
-- **Status** goes `todo` → `doing` → `done`, or `blocked` / `dropped` (each with a reason). On `done`, strike through the ID and title, then fill in the date and PR. Example: `| ~~M08~~ | ~~Barcode sample labels~~ | P | done | 2026-11-02 · #14 |`.
+- **Status** goes `todo` → `doing` → `done`, or `blocked` / `dropped` (each with a reason). On `done`, strike through the ID and title, then fill in the date and the branch's main commit, in the work PR itself ([workflow step 7](dev/workflow.md) — never a status-only PR). Example: `| ~~M08~~ | ~~Barcode sample labels~~ | P | done | 2026-11-02 · 1a2b3c4 |`. Older rows cite a PR number instead (`· #14`).
 - Branches, commits and PRs carry the ID, e.g. `feat/m07-billing` and `feat(billing): M07 part payment and dues`. Then `git log --grep M07` shows an item's whole history.
 - Manual pages list the IDs they document (`features: [M07]` front matter). That keeps the manual's features overview (§13a) linked to this table.
 - **Each item is ticked in one place only.** Features are ticked here. Checklist items are ticked in `docs/ENTERPRISE_CHECKLIST.md`; this table only shows their counts per section, filled in by a script, so the two can't disagree.
 
 **Tracker tooling (adopted by the owner 2026-10-08; built as W08.1, mirror deferred as X34):**
-1. **Status column plus strike-through,** not strike-through alone. The strike makes done items stand out; the status, date and PR make each one auditable and searchable.
+1. **Status column plus strike-through,** not strike-through alone. The strike makes done items stand out; the status, date and commit make each one auditable and searchable.
 2. **`scripts/check_tracker.py` in CI and pre-commit.** It fails on:
    - a duplicate ID
    - an ID used in docs or commits but missing here
-   - a `done` row without a date and PR
+   - a `done` row without a date and a commit hash (or PR number)
    - an old ID that was removed or renumbered
    - a status row or progress line in any other doc (statuses live only in `docs/TRACKER.md`)
 
