@@ -58,6 +58,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - `scripts/ci_portability.sh` runs the portability workflow's rows on a developer's machine before a push, each in its own lab container, and prints which passed; the workflow and the local runner share the same steps.
 
 ### Changed
+- The app and backup image builds use a Dockerfile frontend pinned by version and digest, so a build no longer fetches whatever `docker/dockerfile:1` points to that day.
 - Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.

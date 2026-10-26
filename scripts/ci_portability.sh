@@ -109,7 +109,7 @@ fi
 pinned() {
   grep -ohE '(docker\.io|ghcr\.io)/[^ "]+@sha256:[0-9a-f]{64}' "$ROOT/compose.yaml" \
     "$ROOT/deploy/nginx/compose.nginx.yaml" "$ROOT/scripts/build_image.sh" "$ROOT/Dockerfile" |
-    grep -E '/(postgres|caddy|nginx|kaniko|python|uv):' | sort -u
+    grep -E '/(postgres|caddy|nginx|kaniko|python|uv|dockerfile):' | sort -u
 }
 echo "Saving the pinned images."
 n=0

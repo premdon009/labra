@@ -20,7 +20,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 ROWS=(docker-caddy docker-nginx podman podman-nginx podman-compose nerdctl incus builders
   outside-postgres)
 NERDCTL_VERSION=2.4.1
-NERDCTL_SHA256=ff018f11ac2f1354bf7b3aaaca6e0b52d81139c746a89134744d0b7be3a0e62f
+NERDCTL_SHA256_AMD64=ff018f11ac2f1354bf7b3aaaca6e0b52d81139c746a89134744d0b7be3a0e62f
 # WeasyPrint's libraries, the same list as the Dockerfile's (tests/test_tooling.py checks).
 declare -A PACKAGES=(
   [podman]="podman"
@@ -61,7 +61,7 @@ install_nerdctl() {
   local tarball=nerdctl-full-$NERDCTL_VERSION-linux-amd64.tar.gz
   [[ -f $tarball ]] ||
     curl -fsSLO "https://github.com/containerd/nerdctl/releases/download/v$NERDCTL_VERSION/$tarball"
-  echo "$NERDCTL_SHA256  $tarball" | sha256sum -c
+  echo "$NERDCTL_SHA256_AMD64  $tarball" | sha256sum -c
   sudo tar -C /usr/local -xzf "$tarball"
   # Ubuntu's AppArmor refuses unprivileged user namespaces to any program without a profile
   # that allows them; RootlessKit needs one.

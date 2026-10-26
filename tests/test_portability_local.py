@@ -194,8 +194,9 @@ def test_the_app_images_are_built_once_unless_each_row_builds_them(repo: Path) -
         log,
         re.MULTILINE,
     )
-    # The builders' base images too, so the builders row pulls nothing but Kaniko's.
-    for name in ("docker.io/library/python", "ghcr.io/astral-sh/uv"):
+    # The builders' base images and Dockerfile frontend too, so the builders row pulls nothing
+    # but Kaniko's.
+    for name in ("docker.io/library/python", "ghcr.io/astral-sh/uv", "docker.io/docker/dockerfile"):
         assert re.search(rf"^tag {name}:\S+@sha256:[0-9a-f]{{64}} {name}:labra-pinned$", log, re.M)
     (repo.parent / "stubs" / "calls.log").unlink()
     run(repo, "podman", "--build")
@@ -282,14 +283,14 @@ def test_the_nerdctl_version_and_checksum_are_set_once() -> None:
         for path in files
         if path.is_file()
         for m in re.finditer(
-            r"^\s*(NERDCTL_VERSION|NERDCTL_SHA256)[=:]\s*(\S+)",
+            r"^\s*(NERDCTL_VERSION|NERDCTL_SHA256_AMD64)[=:]\s*(\S+)",
             path.read_text(encoding="utf-8", errors="replace"),
             re.MULTILINE,
         )
     ]
-    assert sorted(name for _, name, _ in sets) == ["NERDCTL_SHA256", "NERDCTL_VERSION"]
+    assert sorted(name for _, name, _ in sets) == ["NERDCTL_SHA256_AMD64", "NERDCTL_VERSION"]
     assert {path for path, _, _ in sets} == {"portability_job.sh"}
-    assert re.fullmatch(r"[0-9a-f]{64}", {n: v for _, n, v in sets}["NERDCTL_SHA256"])
+    assert re.fullmatch(r"[0-9a-f]{64}", {n: v for _, n, v in sets}["NERDCTL_SHA256_AMD64"])
 
 
 def test_the_lab_has_every_package_a_row_installs() -> None:

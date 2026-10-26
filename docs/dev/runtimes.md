@@ -157,11 +157,11 @@ Each row gets its own lab: a privileged Ubuntu 26.04 container from
 services, as they do on the runner. The script builds the lab image once (again only when the
 Containerfile changes) and the app and backup images once on this machine. It loads those images
 into every lab along with the pinned Postgres, Caddy, nginx and Kaniko images and the app
-image's Python and uv base images, so a lab pulls nothing except Kaniko's base images. It
-copies in the working tree, uncommitted changes included, and runs `portability_job.sh
---install ROW` and then `portability_job.sh ROW` as `runner`. At the end it prints one line
-per row: PASS, FAIL with the log to read, or SKIP with the reason. It exits 1 if any row
-failed.
+image's Python and uv base images and Dockerfile frontend, so a lab pulls nothing except
+Kaniko's base images. It copies in the working tree, uncommitted changes included, and runs
+`portability_job.sh --install ROW` and then `portability_job.sh ROW` as `runner`. At the end it
+prints one line per row: PASS, FAIL with the log to read, or SKIP with the reason. It exits 1 if
+any row failed.
 
 Logs and each row's results go to `.ci/portability/<UTC time>/<row>/`. `--build` makes each row
 build its own images, as the runner does. `--keep` leaves the labs running, so you can look

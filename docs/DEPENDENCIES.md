@@ -16,7 +16,8 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 **Licence allowlist:** MIT, MIT-CMU, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, 0BSD,
 PostgreSQL, PSF-2.0. Exceptions: LGPL-3.0 for psycopg only (imported unmodified, ADR-0002);
 MPL-2.0 for tools that are never shipped; GPL programs only as separate commands, never
-imported, or in an image that is never shipped (kind `dev-image`, the base of the local CI lab);
+imported, or in an image that is never shipped (kind `dev-image`: the local CI lab's base and the
+images that build Labra's);
 OFL-1.1 for vendored font files only (never code, kind `font`); MPL-1.1 for pyphen
 only (under WeasyPrint, imported unmodified).
 
@@ -29,8 +30,9 @@ is a fix for a published advisory, recorded under [Age exceptions](#age-exceptio
 - Actions, images, binaries and vendored files: the **Pinned** cell holds the version and its
   release date, `<version> · <YYYY-MM-DD>`. That's the commit date of an Action's SHA, the created
   date of an image's digest, the GitHub release date of a binary, and the npm publish date of a
-  vendored file. A binary's row matches the `ARG <NAME>_VERSION` in the Dockerfile that
-  downloads it, beside an `ARG <NAME>_SHA256_<ARCH>` for amd64 and arm64. Update the date whenever the
+  vendored file. A binary's row matches the `<NAME>_VERSION` in the Dockerfile `ARG` or script
+  that downloads it, beside a `<NAME>_SHA256_<ARCH>` for each arch it fetches: amd64 and arm64 in
+  the backup image, amd64 in the portability workflow. Update the date whenever the
   SHA, digest or version changes. An Action's `# vX.Y.Z` comment must match its row.
 - CLI tools and services aren't pinned by the repository. Install a release at least 7 days old.
 
@@ -78,7 +80,7 @@ the next release.
 | `import-linter` | dev | P | BSD-2-Clause | 2.15 | 2.15 · 2026-09-04 | 10 | Active | single maintainer | keeps domain code off adapters (ADR-0008) | a small AST check · low | 2026-10-09 |
 | `pip-audit` | dev | P | Apache-2.0 | 2.10.1 | 2.10.1 · 2026-06-10 | 2 | Active | foundation | known-vulnerability scan of Python packages | osv-scanner alone · low | 2026-10-09 |
 | `pre-commit` | dev | P | MIT | 4.6.2 | 4.7.0 · 2026-10-12 | 7 | Active | team | runs the gates before each commit | git hooks by hand · low | 2026-10-09 |
-| `zensical` | dev | P | MIT | 0.0.68 | 0.0.72 · 2026-10-23 | 69 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
+| `zensical` | dev | P | MIT | 0.0.68 | 0.0.73 · 2026-10-26 | 70 | Watch | company | docs and manual site (pre-1.0) | MkDocs 1.6.1 + Material 9.7 frozen · low | 2026-10-09 |
 | `hypothesis` | dev | P | MPL-2.0 | 6.168.5 | 6.170.11 · 2026-10-26 | 142 | Active | team | property tests for the money module (EC-B01); test-only, never shipped | table tests only · low | 2026-10-12 |
 | `playwright` | dev | P | Apache-2.0 | 1.63.0 | 1.64.1 · 2026-10-22 | 10 | Active | company | the front-desk browser test (keys, 1366×768); browsers installed separately | Selenium · medium | 2026-10-12 |
 | `pdfplumber` | dev | P | MIT | 0.11.10 | 0.11.10 · 2026-06-15 | 3 | Active | single maintainer | tests read words and their positions from rendered PDFs (§7.2 content box, PDF snapshots) | pdfminer.six directly · low | 2026-10-14 |
@@ -97,6 +99,8 @@ the next release.
 | `python` | image | P | PSF-2.0 | 3.14-slim · 2026-10-06 | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
 | `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build, and runs `uv run` in the local CI lab | pip · low | 2026-10-09 |
 | `ubuntu` | dev-image | P | GPL-2.0-only | 26.04 · 2026-10-06 | 26.04 | — | Active | company | base of the local CI lab (`deploy/ci-lab/`), the release GitHub's runners use; an OS of mixed licences, mostly GPL; never shipped | Debian · low | 2026-10-26 |
+| `docker/dockerfile` | dev-image | P | Apache-2.0 | 1.27.1 · 2026-09-30 | 1.28.0 · 2026-10-07 | — | Active | company | the Dockerfile frontend BuildKit runs for the `# syntax=` line of the image builds; pinned so a build fetches a known parser; never shipped | BuildKit's built-in frontend (drop the line) · low | 2026-10-26 |
+| `ghcr.io/osscontainertools/kaniko` | dev-image | P | Apache-2.0 | v1.28.5 · 2026-09-20 | v1.28.5 | — | Watch | team | image builds without a daemon, in CI on a cluster; the original project was archived 2025-06-03, this is the osscontainertools fork, run as an image pinned by digest | Buildah · low | 2026-10-09 |
 | `restic` | binary | P | BSD-2-Clause | 0.19.1 · 2026-07-05 | 0.19.1 · 2026-07-05 | 3 | Active | team | encrypted, deduplicated backup snapshots (`deploy/backup/`, ADR-0013); release binary checked by SHA-256 | Borg · medium | 2026-10-16 |
 | `rclone` | binary | P | MIT | 1.75.2 · 2026-10-09 | 1.75.2 · 2026-10-09 | many | Active | team | restic's way to Google Drive (`rclone:` backend, ADR-0013); release binary checked by SHA-256 | restic's own S3, B2 or SFTP backends · low | 2026-10-16 |
 | `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |
@@ -116,10 +120,9 @@ the next release.
 | `Podman Desktop` | CLI | P | Apache-2.0 | — | — | — | Active | company | Podman on Windows and macOS desktops | Docker Desktop · low | 2026-10-09 |
 | `podman-compose` | CLI | P | GPL-2.0-only | 1.6 | 1.6.0 | — | Active | team | Compose for Podman without the docker-compose binary; a tool only, never shipped or linked | `podman compose` with docker-compose · low | 2026-10-09 |
 | `buildah` | CLI | P | Apache-2.0 | — | 1.43.4 | — | Active | company | daemonless image builds (`scripts/build_image.sh`) | Docker BuildKit · low | 2026-10-09 |
-| `nerdctl` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | runs the stack on containerd (Tier 2); `nerdctl-full` tarball pinned by SHA-256 | Docker · low | 2026-10-09 |
+| `nerdctl` | binary | P | Apache-2.0 | 2.4.1 · 2026-10-02 | 2.4.1 · 2026-10-02 | — | Active | foundation | runs the stack on containerd (Tier 2); `nerdctl-full` tarball for the portability workflow pinned by SHA-256 in `scripts/portability_job.sh` | Docker · low | 2026-10-09 |
 | `containerd` | CLI | P | Apache-2.0 | 2.4.1 | 2.4.1 | — | Active | foundation | the container engine under Docker and nerdctl | — | 2026-10-09 |
 | `incus` | CLI | P | Apache-2.0 | 6 | 6.23 | — | Active | foundation | system containers that run the stack with Podman inside (Tier 2); LXD is AGPL-3.0 since 2023 | LXD or a VM · low | 2026-10-09 |
-| `kaniko` | CLI | P | Apache-2.0 | v1.28.5 · 2026-09-20 | v1.28.5 | — | Watch | team | image builds without a daemon, in CI on a cluster; the original project was archived 2025-06-03, this is the osscontainertools fork, run as an image pinned by digest | Buildah · low | 2026-10-09 |
 | `GitHub` | service | P | — | — | — | — | Active | company | code, CI, issues, container registry, docs hosting | Codeberg / Forgejo · medium | 2026-10-09 |
 | `Cloudflare Tunnel` | service | P | — | — | — | — | Active | company | the tunnel cloudflared connects to | Tailscale · medium | 2026-10-09 |
 | `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
@@ -136,7 +139,6 @@ an exception is no longer needed; then drop its row and the entry.
 
 | Component | Version | Advisory | Why it can't wait | Added |
 |---|---|---|---|---|
-| `pillow` | 13.0.0 | GHSA-pchr-8j38-3x4p | 12.3.0 has the advisories fixed in 13.0.0 (two critical: stale image storage, JPEG decoder overflow); Labra decodes uploaded logos and signatures with it; the breaking changes in 13.0.0 touch nothing Labra calls | 2026-10-21 |
 | `certifi` | 2026.10.19 | PYSEC-2026-4320 | 2026.7.22 has a 9.1 advisory; a development dependency only (through requests, for pip-audit and testcontainers), but the audit stage fails every gate run until it is updated | 2026-10-21 |
 | `pypdf` | 6.21.2 | GHSA-6c7f-9265-g8fw | 6.21.1 has three 7.1 advisories (GHSA-6c7f-9265-g8fw, GHSA-gmh7-3g9r-mjh5, GHSA-jr96-gvgh-j3r4), fixed in 6.21.2; Labra parses the outside lab PDFs that staff upload with it | 2026-10-26 |
 | `virtualenv` | 21.14.13 | GHSA-cx6f-vjhg-g3cc | 21.14.9 has two advisories (up to 7.1), fixed in 21.14.10 and 21.14.13; a development dependency only (through pre-commit), but the audit stage fails every gate run until it is updated | 2026-10-26 |

@@ -242,6 +242,8 @@ DEV_IMAGE_REGISTER = """\
 | `debian` | dev-image | P | GPL-2.0-only | 13 · 2026-01-01 | 13 | — | Active |
 | `ghcr.io/astral-sh/uv` | image | P | MIT | 1.0 · 2026-01-01 | 1.0 | — | Active |
 | `busybox` | image | P | GPL-2.0-only | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `docker/dockerfile` | dev-image | P | Apache-2.0 | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `ghcr.io/example/builder` | dev-image | P | Apache-2.0 | 1.0 · 2026-01-01 | 1.0 | — | Active |
 """
 
 
@@ -255,20 +257,39 @@ def test_gpl_only_for_an_image_that_is_never_shipped(
 
     digest = "@sha256:" + "0" * 64
     shipped, lab = tmp_path / "Dockerfile", tmp_path / "Containerfile"
+    script = tmp_path / "build.sh"
+    # The frontend of a shipped image's build runs in the build only.
     shipped.write_text(
+        f"# syntax=docker.io/docker/dockerfile:1.0{digest}\n"
         f"FROM docker.io/library/debian:13{digest}\nFROM docker.io/library/busybox:1{digest}\n",
         encoding="utf-8",
     )
     uv = f"FROM ghcr.io/astral-sh/uv:1.0{digest} AS uv\n"
     lab.write_text(f"{uv}FROM docker.io/library/ubuntu:26.04{digest}\n", encoding="utf-8")
+    script.write_text(f"BUILDER_IMAGE=ghcr.io/example/builder:1.0{digest}\n", encoding="utf-8")
     monkeypatch.setattr(audit, "IMAGE_FILES", (shipped,))
-    monkeypatch.setattr(audit, "DEV_IMAGE_FILES", (lab,))
+    monkeypatch.setattr(audit, "DEV_IMAGE_FILES", (lab, script))
     assert audit.check_images(rows) == [
-        "Dockerfile:1: image debian is shipped; its row's kind is image"
+        "Dockerfile:2: image debian is shipped; its row's kind is image"
     ]
+    shipped.write_text(
+        "# syntax=docker/dockerfile:1\n"
+        f"FROM docker.io/library/debian:13{digest}\nFROM docker.io/library/busybox:1{digest}\n",
+        encoding="utf-8",
+    )
+    script.write_text("BUILDER_IMAGE=ghcr.io/example/builder:1.0\n", encoding="utf-8")
+    assert audit.check_images(rows) == [
+        "Dockerfile:1: image docker/dockerfile:1 has no @sha256 digest",
+        "Dockerfile:1: image docker/dockerfile:1 needs its registry, e.g. docker.io/library/…",
+        "Dockerfile:2: image debian is shipped; its row's kind is image",
+        "build.sh:1: image ghcr.io/example/builder:1.0 has no @sha256 digest",
+    ]
+    script.write_text(f"BUILDER_IMAGE=ghcr.io/example/builder:1.0{digest}\n", encoding="utf-8")
     lab.write_text(f"{uv}FROM scratch\n", encoding="utf-8")
     assert audit.check_images(rows) == [
-        "Dockerfile:1: image debian is shipped; its row's kind is image",
+        "Dockerfile:1: image docker/dockerfile:1 has no @sha256 digest",
+        "Dockerfile:1: image docker/dockerfile:1 needs its registry, e.g. docker.io/library/…",
+        "Dockerfile:2: image debian is shipped; its row's kind is image",
         "Containerfile:2: image scratch has no @sha256 digest",
         "Containerfile:2: image scratch needs its registry, e.g. docker.io/library/…",
         "Containerfile:2: image scratch has no row in docs/DEPENDENCIES.md",
@@ -704,9 +725,52 @@ def test_a_downloaded_binary_matches_its_row_and_has_a_checksum_per_arch(
     dockerfile.parent.mkdir(parents=True)
     dockerfile.write_text(BINARY_DOCKERFILE.format(amd="a" * 64, arm=arm))
     monkeypatch.setattr(audit, "ROOT", tmp_path)
-    monkeypatch.setattr(audit, "BINARY_FILES", (dockerfile,))
+    monkeypatch.setattr(audit, "BINARY_FILES", {dockerfile: ("AMD64", "ARM64")})
     register = f"| `tool` | binary | P | MIT | {pinned} | — |\n" if pinned else ""
     assert audit.check_binaries(audit.parse_register(register)) == want
+
+
+@pytest.mark.item("W33")
+def test_a_binary_a_script_downloads_needs_a_checksum_for_each_arch_it_fetches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    script = tmp_path / "scripts" / "job.sh"
+    script.parent.mkdir()
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "BINARY_FILES", {script: ("AMD64",)})
+    rows = audit.parse_register("| `tool` | binary | P | MIT | 1.2.0 · 2026-09-01 | — |\n")
+    script.write_text(f"TOOL_VERSION=1.2.0\nTOOL_SHA256_AMD64={'a' * 64}\n")
+    assert audit.check_binaries(rows) == []
+    script.write_text(f"TOOL_VERSION=1.3.0\nTOOL_SHA256={'a' * 64}\n")
+    assert audit.check_binaries(rows) == [
+        "scripts/job.sh:1: tool needs TOOL_SHA256_AMD64=<sha256>",
+        "DEPENDENCIES.md:1: tool pinned 1.2.0, scripts/job.sh downloads 1.3.0",
+    ]
+
+
+@pytest.mark.item("W33")
+def test_the_real_register_checks_kaniko_nerdctl_and_the_dockerfile_frontend() -> None:
+    audit = _script("audit_deps")
+    rows = {r.name: r for r in audit.parse_register(audit.REGISTER.read_text(encoding="utf-8"))}
+    assert rows["ghcr.io/osscontainertools/kaniko"].kind == "dev-image"
+    assert rows["docker/dockerfile"].kind == "dev-image"
+    assert rows["nerdctl"].kind == "binary"
+    assert audit.check_images(list(rows.values())) == []
+    assert audit.check_binaries(list(rows.values())) == []
+
+
+@pytest.mark.item("W33")
+@pytest.mark.parametrize(
+    ("latest", "age_days", "hint"),
+    [("0.0.73", 1, "Watch"), ("1.4.0", 1, "Active"), ("2.0", 400, "Stable or Watch")],
+)
+def test_refresh_never_suggests_active_for_a_pre_1_0_package(
+    latest: str, age_days: int, hint: str
+) -> None:
+    # The register's own rule: a pre-1.0 API is a risk to its future, so Watch.
+    when = (NOW - timedelta(days=age_days)).date().isoformat()
+    assert _script("audit_deps").suggested_status(when, NOW, latest) == hint
 
 
 @pytest.mark.item("M16")
@@ -714,7 +778,7 @@ def test_a_binary_row_with_nothing_downloading_it_is_dropped(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     audit = _script("audit_deps")
-    monkeypatch.setattr(audit, "BINARY_FILES", (tmp_path / "missing",))
+    monkeypatch.setattr(audit, "BINARY_FILES", {tmp_path / "missing": ("AMD64",)})
     rows = audit.parse_register("| `gone` | binary | P | MIT | 1.0 · 2026-09-01 | — |\n")
     assert audit.check_binaries(rows) == [
         "DEPENDENCIES.md:1: binary gone isn't downloaded anywhere; drop the row"

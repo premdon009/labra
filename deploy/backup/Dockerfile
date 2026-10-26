@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker.io/docker/dockerfile:1.27.1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # The Labra backup image (ADR-0013): the database's own postgres:18 image, so pg_dump and psql
 # match the server, plus restic and rclone release binaries checked by SHA-256. It runs one job
 # and exits; host timers start it with `compose --profile jobs run --rm backup …`.

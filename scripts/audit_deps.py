@@ -10,10 +10,11 @@
 - a licence is outside the allowlist, or a runtime package (direct or not) is copyleft
 - a font row (OFL-1.1) vendors anything but font files and their licence text
 - a workflow `uses:` isn't pinned by a 40-character commit SHA
-- an image in compose.yaml, a Dockerfile or the CI lab's Containerfile has no digest, or a
-  `dev-image` row names an image that is shipped
-- a release binary a Dockerfile downloads (`ARG <NAME>_VERSION`) has no `binary` row with that
-  version, or lacks a SHA-256 for amd64 or arm64
+- an image in compose.yaml, a Dockerfile (its `# syntax=` frontend too), the CI lab's
+  Containerfile or a script's `<NAME>_IMAGE=` has no digest, or a `dev-image` row names an
+  image that is shipped
+- a release binary a Dockerfile or script downloads (`<NAME>_VERSION`) has no `binary` row with
+  that version, or lacks a SHA-256 for each arch it fetches
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
 - a pinned version is younger than MIN_AGE (uv.lock upload time, or the date in the Pinned
   cell of an Action, image or vendored row) and no Age exceptions row names its advisory
@@ -46,11 +47,13 @@ IMAGE_FILES = (
     ROOT / "deploy/nginx/compose.nginx.yaml",
     ROOT / "deploy/backup/Dockerfile",
 )
-# Images for developers only, never shipped: kind `dev-image`, or `image` if also shipped.
-DEV_IMAGE_FILES = (ROOT / "deploy/ci-lab/Containerfile",)
-# Dockerfiles that download release binaries, each pinned by version and per-arch SHA-256.
-BINARY_FILES = (ROOT / "deploy/backup/Dockerfile",)
-BINARY_ARCHES = ("AMD64", "ARM64")
+# Images that build or test Labra, never shipped: kind `dev-image`, or `image` if also shipped.
+DEV_IMAGE_FILES = (ROOT / "deploy/ci-lab/Containerfile", ROOT / "scripts/build_image.sh")
+# Files that download release binaries, each pinned by version and a SHA-256 per arch fetched.
+BINARY_FILES = {
+    ROOT / "deploy/backup/Dockerfile": ("AMD64", "ARM64"),
+    ROOT / "scripts/portability_job.sh": ("AMD64",),  # GitHub's runners and the CI lab
+}
 
 ALLOWED = {
     "MIT", "MIT-CMU", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "0BSD",
@@ -65,7 +68,11 @@ PYTHON_KINDS = {"runtime", "seed", "dev", "build"}
 COPYLEFT = re.compile(r"\b(A?GPL|LGPL|SSPL|EUPL|General Public)", re.IGNORECASE)
 USES_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-IMAGE_RE = re.compile(r"^\s*(?:image:|FROM)\s+(?:--platform=\S+\s+)?([^\s#]+)", re.IGNORECASE)
+IMAGE_RE = re.compile(
+    r"^\s*(?:(?:image:|FROM)\s+(?:--platform=\S+\s+)?|[A-Z_]+_IMAGE=)([^\s#]+)", re.IGNORECASE
+)
+# A Dockerfile's frontend runs in the build only, so it is never shipped.
+SYNTAX_RE = re.compile(r"^#\s*syntax=([^\s#]+)", re.IGNORECASE)
 NAME_CELL_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
 
 # Minimum release age: no pinned version younger than this, unless it fixes a published advisory.
@@ -300,7 +307,8 @@ def check_images(rows: list[Row]) -> list[str]:
             continue
         stages: set[str] = set()
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            m = IMAGE_RE.match(line)
+            frontend = SYNTAX_RE.match(line)
+            m = frontend or IMAGE_RE.match(line)
             if not m or "${" in m.group(1):
                 continue
             ref = m.group(1)
@@ -320,7 +328,7 @@ def check_images(rows: list[Row]) -> list[str]:
                 )
             if name not in kinds:
                 problems.append(f"{where}: image {name} has no row in docs/DEPENDENCIES.md")
-            elif shipped and kinds[name] == "dev-image":
+            elif shipped and not frontend and kinds[name] == "dev-image":
                 problems.append(f"{where}: image {name} is shipped; its row's kind is image")
     if any(p.is_file() for p in (*IMAGE_FILES, *DEV_IMAGE_FILES)):
         problems += [
@@ -335,22 +343,25 @@ def check_binaries(rows: list[Row]) -> list[str]:
     known = {r.name: r for r in rows if r.kind == "binary"}
     used: set[str] = set()
     problems = []
-    for path in BINARY_FILES:
+    for path, arches in BINARY_FILES.items():
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8")
-        args = dict(re.findall(r"^ARG\s+(\w+)=(\S*)", text, re.M))
+        # A Dockerfile's `ARG NAME=value`, or a script's `NAME=value`.
+        args = dict(re.findall(r"^(?:ARG\s+)?(\w+)=(\S*)", text, re.M))
         for n, line in enumerate(text.splitlines(), 1):
-            m = re.match(r"ARG\s+(\w+)_VERSION=(\S*)", line)
+            m = re.match(r"(ARG\s+)?(\w+)_VERSION=(\S*)", line)
             if not m:
                 continue
-            key, version = m.groups()
+            arg, key, version = m.groups()
             name = key.lower()
             used.add(name)
             where = f"{path.relative_to(ROOT)}:{n}"
-            for arch in BINARY_ARCHES:
+            for arch in arches:
                 if not re.fullmatch(r"[0-9a-f]{64}", args.get(f"{key}_SHA256_{arch}", "")):
-                    problems.append(f"{where}: {name} needs ARG {key}_SHA256_{arch}=<sha256>")
+                    problems.append(
+                        f"{where}: {name} needs {arg or ''}{key}_SHA256_{arch}=<sha256>"
+                    )
             row = known.get(name)
             if row is None:
                 problems.append(f"{where}: binary {name} has no row in docs/DEPENDENCIES.md")
@@ -550,9 +561,11 @@ def freshness(data: dict, now: datetime) -> tuple[str, str, int]:
     return latest, when.date().isoformat() if when else "", recent
 
 
-def suggested_status(when: str, now: datetime) -> str:
+def suggested_status(when: str, now: datetime, latest: str = "") -> str:
     if not when:
         return ""
+    if latest.startswith("0."):
+        return "Watch"  # a pre-1.0 API is a risk to its future, however often it releases
     age = now - datetime.fromisoformat(when).replace(tzinfo=UTC)
     if age <= timedelta(days=183):
         return "Active"
@@ -580,7 +593,7 @@ def refresh(text: str) -> tuple[str, list[str], bool]:
             continue
         cells[5] = f"{latest} · {when}" if when else latest
         cells[6] = str(recent)
-        hint = suggested_status(when, now)
+        hint = suggested_status(when, now, latest)
         if hint and cells[7] not in hint:
             notes.append(f"{row.name}: status {cells[7]}, rules suggest {hint} (latest {when})")
         lines[row.line - 1] = "| " + " | ".join(cells) + " |"

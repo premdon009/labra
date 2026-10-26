@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker.io/docker/dockerfile:1.27.1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # The Labra web image. Base images are pinned by digest; scripts/audit_deps.py --check fails
 # on one that isn't. Names are fully qualified, so Podman, Buildah and Kaniko resolve them
 # without a registry search list. Built for amd64 and arm64 in CI.
