@@ -144,8 +144,12 @@ backups/
 *.dump
 site/
 
-# Local gate run logs (scripts/ci_local.sh)
+# Local gate run logs (scripts/ci_local.sh, scripts/ci_portability.sh)
 .ci/
+
+# A portability row run by hand (scripts/portability_job.sh)
+/results/
+/nerdctl-full-*.tar.gz
 
 # Docker secrets for compose.yaml
 secrets/

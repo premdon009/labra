@@ -10,7 +10,8 @@
 - a licence is outside the allowlist, or a runtime package (direct or not) is copyleft
 - a font row (OFL-1.1) vendors anything but font files and their licence text
 - a workflow `uses:` isn't pinned by a 40-character commit SHA
-- an image in compose.yaml or the Dockerfile has no digest
+- an image in compose.yaml, a Dockerfile or the CI lab's Containerfile has no digest, or a
+  `dev-image` row names an image that is shipped
 - a release binary a Dockerfile downloads (`ARG <NAME>_VERSION`) has no `binary` row with that
   version, or lacks a SHA-256 for amd64 or arm64
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
@@ -45,6 +46,8 @@ IMAGE_FILES = (
     ROOT / "deploy/nginx/compose.nginx.yaml",
     ROOT / "deploy/backup/Dockerfile",
 )
+# Images for developers only, never shipped: kind `dev-image`, or `image` if also shipped.
+DEV_IMAGE_FILES = (ROOT / "deploy/ci-lab/Containerfile",)
 # Dockerfiles that download release binaries, each pinned by version and per-arch SHA-256.
 BINARY_FILES = (ROOT / "deploy/backup/Dockerfile",)
 BINARY_ARCHES = ("AMD64", "ARM64")
@@ -57,7 +60,7 @@ LGPL_EXCEPTION = {"psycopg", "psycopg-binary", "psycopg-c"}
 # Tri-licensed (GPL-2.0+ OR LGPL-2.1+ OR MPL-1.1); used under MPL-1.1, unmodified, by WeasyPrint.
 MPL11_EXCEPTION = {"pyphen"}
 FONT_FILES = (".ttf", ".otf", ".woff2")
-NOT_SHIPPED = {"dev", "CLI"}
+NOT_SHIPPED = {"dev", "CLI", "dev-image"}
 PYTHON_KINDS = {"runtime", "seed", "dev", "build"}
 COPYLEFT = re.compile(r"\b(A?GPL|LGPL|SSPL|EUPL|General Public)", re.IGNORECASE)
 USES_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)")
@@ -67,7 +70,7 @@ NAME_CELL_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
 
 # Minimum release age: no pinned version younger than this, unless it fixes a published advisory.
 MIN_AGE = timedelta(days=7)
-DATED_KINDS = {"action", "image", "vendored", "font", "binary"}
+DATED_KINDS = {"action", "image", "dev-image", "vendored", "font", "binary"}
 ADVISORY_RE = re.compile(r"^(GHSA(-[0-9a-z]{4}){3}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
 EXCEPTIONS_HEADING = "## Age exceptions"
 
@@ -146,8 +149,8 @@ def _allowed(spdx: str, row: Row) -> bool:
         return True
     if spdx.startswith("LGPL-3.0") and norm(row.name) in LGPL_EXCEPTION:
         return True
-    if spdx.startswith("GPL-") and row.kind == "CLI":
-        return True  # run as a separate command, never imported
+    if spdx.startswith("GPL-") and row.kind in {"CLI", "dev-image"}:
+        return True  # run as a separate command or a developer's lab, never imported or shipped
     if spdx == "OFL-1.1":
         return row.kind == "font"  # font files only, checked against the manifest
     if spdx == "MPL-1.1":
@@ -288,10 +291,11 @@ def fully_qualified(ref: str) -> bool:
 
 
 def check_images(rows: list[Row]) -> list[str]:
-    known = {r.name for r in rows if r.kind == "image"}
+    kinds = {r.name: r.kind for r in rows if r.kind in {"image", "dev-image"}}
     used: set[str] = set()
     problems = []
-    for path in IMAGE_FILES:
+    for path in (*IMAGE_FILES, *DEV_IMAGE_FILES):
+        shipped = path in IMAGE_FILES
         if not path.is_file():
             continue
         stages: set[str] = set()
@@ -314,13 +318,15 @@ def check_images(rows: list[Row]) -> list[str]:
                 problems.append(
                     f"{where}: image {ref} needs its registry, e.g. docker.io/library/…"
                 )
-            if name not in known:
+            if name not in kinds:
                 problems.append(f"{where}: image {name} has no row in docs/DEPENDENCIES.md")
-    if any(p.is_file() for p in IMAGE_FILES):
+            elif shipped and kinds[name] == "dev-image":
+                problems.append(f"{where}: image {name} is shipped; its row's kind is image")
+    if any(p.is_file() for p in (*IMAGE_FILES, *DEV_IMAGE_FILES)):
         problems += [
             f"DEPENDENCIES.md:{r.line}: image {r.name} isn't used; drop the row"
             for r in rows
-            if r.kind == "image" and r.name not in used
+            if r.kind in {"image", "dev-image"} and r.name not in used
         ]
     return problems
 

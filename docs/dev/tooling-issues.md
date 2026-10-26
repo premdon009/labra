@@ -49,4 +49,9 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 ## apt fails with 400 Bad Request inside containers
 **Symptom:** `apt-get update` or `apt-get install` in a container on Docker Desktop fails now and then with "400 Bad Request" from the Ubuntu mirror; the same command run again works.
 **Cause:** Docker Desktop's built-in proxy drops or mangles a connection now and then, as with pulls above, and apt's pipelined requests make it worse.
-**Fix:** turn pipelining off and retry: put `Acquire::http::Pipeline-Depth "0";` and `Acquire::Retries "5";` in a file under `/etc/apt/apt.conf.d/`, and run the install in a loop of a few tries.
+**Fix:** turn pipelining off and retry: put `Acquire::http::Pipeline-Depth "0";` and `Acquire::Retries "5";` in a file under `/etc/apt/apt.conf.d/`, and run the install in a loop of a few tries, as `deploy/ci-lab/Containerfile` does.
+
+## `docker pull` fails on `docker-credential-desktop.exe`
+**Symptom:** in WSL, `docker pull` (and the first `scripts/ci_portability.sh` run, which pulls the pinned images) fails with "error getting credentials … docker-credential-desktop.exe: exec format error".
+**Cause:** `~/.docker/config.json` names Docker Desktop's Windows credential helper (`"credsStore": "desktop.exe"`), and this WSL session can't run Windows programs.
+**Fix:** the images are public, so pull without the helper: `mkdir -p /tmp/dockercfg && echo '{}' >/tmp/dockercfg/config.json`, then `DOCKER_CONFIG=/tmp/dockercfg docker pull …` or `DOCKER_CONFIG=/tmp/dockercfg scripts/ci_portability.sh`. Turning WSL interop back on, or dropping `credsStore` from the config, fixes it for good.

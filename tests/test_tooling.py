@@ -235,6 +235,47 @@ def test_ofl_only_for_font_files_and_mpl11_only_for_pyphen(
     assert problems == ["vendor/some.js: a font row vendors font files only"]
 
 
+DEV_IMAGE_REGISTER = """\
+| Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status |
+|---|---|---|---|---|---|---|---|
+| `ubuntu` | dev-image | P | GPL-2.0-only | 26.04 · 2026-01-01 | 26.04 | — | Active |
+| `debian` | dev-image | P | GPL-2.0-only | 13 · 2026-01-01 | 13 | — | Active |
+| `ghcr.io/astral-sh/uv` | image | P | MIT | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `busybox` | image | P | GPL-2.0-only | 1.0 · 2026-01-01 | 1.0 | — | Active |
+"""
+
+
+@pytest.mark.item("W31")
+def test_gpl_only_for_an_image_that_is_never_shipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    rows = audit.parse_register(DEV_IMAGE_REGISTER)
+    assert {r.name for r in rows if audit.licence_problem(r)} == {"busybox"}
+
+    digest = "@sha256:" + "0" * 64
+    shipped, lab = tmp_path / "Dockerfile", tmp_path / "Containerfile"
+    shipped.write_text(
+        f"FROM docker.io/library/debian:13{digest}\nFROM docker.io/library/busybox:1{digest}\n",
+        encoding="utf-8",
+    )
+    uv = f"FROM ghcr.io/astral-sh/uv:1.0{digest} AS uv\n"
+    lab.write_text(f"{uv}FROM docker.io/library/ubuntu:26.04{digest}\n", encoding="utf-8")
+    monkeypatch.setattr(audit, "IMAGE_FILES", (shipped,))
+    monkeypatch.setattr(audit, "DEV_IMAGE_FILES", (lab,))
+    assert audit.check_images(rows) == [
+        "Dockerfile:1: image debian is shipped; its row's kind is image"
+    ]
+    lab.write_text(f"{uv}FROM scratch\n", encoding="utf-8")
+    assert audit.check_images(rows) == [
+        "Dockerfile:1: image debian is shipped; its row's kind is image",
+        "Containerfile:2: image scratch has no @sha256 digest",
+        "Containerfile:2: image scratch needs its registry, e.g. docker.io/library/…",
+        "Containerfile:2: image scratch has no row in docs/DEPENDENCIES.md",
+        "DEPENDENCIES.md:3: image ubuntu isn't used; drop the row",
+    ]
+
+
 @pytest.mark.item("W14")
 @pytest.mark.parametrize(
     ("ref", "name"),
@@ -296,6 +337,14 @@ def _job(workflow: str, name: str) -> str:
     return m.group(1)
 
 
+def _row_packages(row: str) -> set[str]:
+    """The packages scripts/portability_job.sh --install puts on the runner for a row."""
+    text = (ROOT / "scripts" / "portability_job.sh").read_text(encoding="utf-8")
+    m = re.search(rf'^  \[{row}\]="([^"]*)"$', text, re.MULTILINE)
+    assert m is not None, f"portability_job.sh installs nothing for {row}"
+    return set(m.group(1).split())
+
+
 @pytest.mark.item("W23")
 @pytest.mark.parametrize(
     ("workflow", "job"), [("ci.yml", "gate"), ("portability.yml", "outside-postgres")]
@@ -306,7 +355,10 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
     image = _apt_packages((ROOT / "Dockerfile").read_text(encoding="utf-8"))
     assert {"libpango-1.0-0", "libharfbuzz-subset0", "fontconfig"} <= image
     text = _job(workflow, job)
-    assert _apt_packages(text) == image
+    if f"scripts/portability_job.sh --install {job}" in text:
+        assert _row_packages(job) == image
+    else:
+        assert _apt_packages(text) == image
     assert "runs-on: ubuntu-26.04" in text
 
 
@@ -340,17 +392,23 @@ def test_no_health_check_argument_holds_a_space() -> None:
 
 @pytest.mark.item("W30")
 def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() -> None:
-    nerdctl = _job("portability.yml", "runtime").split("- name: nerdctl\n", 1)[1]
-    nerdctl = nerdctl.split("- name: ", 1)[0]
-    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in nerdctl
-    assert "userns," in nerdctl
-    steps = [
-        "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
-        "systemctl restart apparmor.service",
-        "containerd-rootless-setuptool.sh install\n",
-        "scripts/compare_runtimes.sh",
-    ]
-    assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
+    text = (ROOT / "scripts" / "portability_job.sh").read_text(encoding="utf-8")
+    install = re.search(r"^install_nerdctl\(\) \{\n(.*?)^\}\n\n", text, re.MULTILINE | re.DOTALL)
+    row = re.search(r"^  nerdctl\)\n(.*?)^    ;;", text, re.MULTILINE | re.DOTALL)
+    assert install is not None and row is not None
+    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in install.group(1)
+    assert "userns," in install.group(1)
+    profile = install.group(1).index("tee /etc/apparmor.d/usr.local.bin.rootlesskit")
+    assert install.group(1).index("systemctl restart apparmor.service") > profile
+    # The workflow runs --install, then the row.
+    steps = _job("portability.yml", "runtime")
+    install_step = "run: scripts/portability_job.sh --install ${{ matrix.row }}"
+    assert steps.index(install_step) < steps.index(
+        "run: scripts/portability_job.sh ${{ matrix.row }}"
+    )
+    assert row.group(1).index("containerd-rootless-setuptool.sh install;") < row.group(1).index(
+        "compare --runtimes nerdctl"
+    )
 
 
 @pytest.mark.item("W08")

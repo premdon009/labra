@@ -11,7 +11,7 @@ items: [W01, W08.1]
 4. Build code, tests and manual page together. Tests prove items with `@pytest.mark.item("<ID>")`.
 5. `scripts/ci_local.sh` green. `pytest` alone isn't enough: types, imports, tracker and manual gates run there too.
 6. **End-of-work audit:** re-read the tracker rows and the plan, review the whole diff against them, and confirm every fix has a test that would fail on the old code.
-7. In the branch's last commit before the push, set the rows to `done` with the date and the branch's main code commit (`2026-10-26 · 1a2b3c4`); the merge commit keeps that hash on `master`. Push once, open the PR, and a maintainer merges it when CI is green. A fix for a CI failure goes into the same PR and the rows stay `done`. There is never a PR that only changes a row's status.
+7. In the branch's last commit before the push, set the rows to `done` with the date and the branch's main code commit (`2026-10-26 · 1a2b3c4`); the merge commit keeps that hash on `master`. Run `scripts/ci_portability.sh --if-needed` when the branch touches what the portability workflow watches ([Container runtimes](runtimes.md#run-the-portability-jobs-locally)), then push once, open the PR, and a maintainer merges it when CI is green. A fix for a CI failure goes into the same PR and the rows stay `done`. There is never a PR that only changes a row's status.
 
 ## `master` is protected
 Changes reach `master` only through a pull request whose `gate` and `image` checks are green. Nobody pushes to it directly, administrators included, and it is never force-pushed or deleted. A GitHub ruleset on `master` enforces all of this, with nobody on its bypass list.

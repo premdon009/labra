@@ -55,6 +55,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - `labra set-password` gives someone a new password at the server.
 - The runbooks are in the app's manual and its PDF, so they open with the internet down.
 - Anyone signed in can change their own password from the **Password** link in the header; their other sessions end.
+- `scripts/ci_portability.sh` runs the portability workflow's rows on a developer's machine before a push, each in its own lab container, and prints which passed; the workflow and the local runner share the same steps.
 
 ### Changed
 - Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.

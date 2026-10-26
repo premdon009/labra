@@ -13,11 +13,19 @@ on:
       - compose*.yaml
       - Caddyfile
       - deploy/**
+      - scripts/portability_job.sh
       - scripts/build_image.sh
       - scripts/check_image.sh
       - scripts/stack_smoke.sh
       - scripts/compare_runtimes.sh
       - scripts/runtime_bench.py
+      - scripts/compose_run.sh
+      - scripts/upgrade.sh
+      - scripts/drill.sh
+      - scripts/restore.sh
+      - scripts/labra.sh
+      - scripts/watchdog.sh
+      - scripts/laptop_budget.py
       - src/labra/core/dialect.py
       - src/labra/migrations/**
       - tests/conftest.py
@@ -31,9 +39,6 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-env:
-  NERDCTL_VERSION: 2.4.1
-  NERDCTL_SHA256: ff018f11ac2f1354bf7b3aaaca6e0b52d81139c746a89134744d0b7be3a0e62f
 jobs:
   runtime:
     runs-on: ubuntu-26.04
@@ -41,66 +46,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: docker-caddy
-            run: scripts/compare_runtimes.sh --runtimes docker --builders "" --out results
-          - name: docker-nginx
-            run: |
-              scripts/build_image.sh --builder docker
-              scripts/stack_smoke.sh --compose "docker compose" --proxy nginx
-          - name: podman
-            install: podman
-            run: |
-              systemctl --user enable --now podman.socket
-              scripts/compare_runtimes.sh --runtimes podman --builders "" --out results
-          - name: podman-nginx
-            install: podman
-            run: |
-              systemctl --user enable --now podman.socket
-              scripts/build_image.sh --builder podman
-              scripts/stack_smoke.sh --compose "podman compose" --proxy nginx
-          - name: podman-compose
-            install: podman podman-compose
-            run: |
-              scripts/build_image.sh --builder podman
-              scripts/stack_smoke.sh --compose podman-compose
-          - name: nerdctl
-            install: uidmap
-            run: |
-              tarball=nerdctl-full-$NERDCTL_VERSION-linux-amd64.tar.gz
-              curl -fsSLO "https://github.com/containerd/nerdctl/releases/download/v$NERDCTL_VERSION/$tarball"
-              echo "$NERDCTL_SHA256  $tarball" | sha256sum -c
-              sudo tar -C /usr/local -xzf "$tarball"
-              # Ubuntu's AppArmor refuses unprivileged user namespaces to any program without a
-              # profile that allows them; RootlessKit needs one.
-              sudo tee /etc/apparmor.d/usr.local.bin.rootlesskit >/dev/null <<'EOT'
-              abi <abi/4.0>,
-              include <tunables/global>
-              /usr/local/bin/rootlesskit flags=(unconfined) {
-                userns,
-                include if exists <local/usr.local.bin.rootlesskit>
-              }
-              EOT
-              sudo systemctl restart apparmor.service
-              containerd-rootless-setuptool.sh install
-              scripts/compare_runtimes.sh --runtimes nerdctl --builders "" --out results
-          - name: incus
-            install: incus
-            run: |
-              sudo incus admin init --minimal
-              # Docker's firewall drops forwarded traffic from other bridges.
-              sudo iptables -I DOCKER-USER -j ACCEPT
-              sudo usermod -aG incus-admin "$USER"
-              sg incus-admin -c 'scripts/compare_runtimes.sh --runtimes incus --builders "" --out results'
-          - name: builders
-            install: podman buildah
-            run: scripts/compare_runtimes.sh --runtimes "" --builders "docker podman buildah kaniko" --out results
-    name: ${{ matrix.name }}
+        # Each row's commands are in scripts/portability_job.sh, which scripts/ci_portability.sh
+        # also runs locally.
+        row:
+          - docker-caddy
+          - docker-nginx
+          - podman
+          - podman-nginx
+          - podman-compose
+          - nerdctl
+          - incus
+          - builders
+    name: ${{ matrix.row }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-      - if: matrix.install
-        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.install }}
-      - run: ${{ matrix.run }}
+      - run: scripts/portability_job.sh --install ${{ matrix.row }}
+      - run: scripts/portability_job.sh ${{ matrix.row }}
       - if: always()
         run: if [ -f results/results.md ]; then cat results/results.md >>"$GITHUB_STEP_SUMMARY"; fi
 
@@ -123,8 +84,5 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
-      # WeasyPrint's libraries, the same list as the Dockerfile's (tests/test_tooling.py checks).
-      - run: >-
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends
-          libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig
-      - run: uv run pytest -q -rs -m "db and not e2e" -n auto
+      - run: scripts/portability_job.sh --install outside-postgres
+      - run: scripts/portability_job.sh outside-postgres

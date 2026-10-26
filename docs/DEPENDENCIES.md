@@ -16,7 +16,8 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 **Licence allowlist:** MIT, MIT-CMU, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, 0BSD,
 PostgreSQL, PSF-2.0. Exceptions: LGPL-3.0 for psycopg only (imported unmodified, ADR-0002);
 MPL-2.0 for tools that are never shipped; GPL programs only as separate commands, never
-imported; OFL-1.1 for vendored font files only (never code, kind `font`); MPL-1.1 for pyphen
+imported, or in an image that is never shipped (kind `dev-image`, the base of the local CI lab);
+OFL-1.1 for vendored font files only (never code, kind `font`); MPL-1.1 for pyphen
 only (under WeasyPrint, imported unmodified).
 
 **Minimum release age: 7 days.** No version is pinned until it has been public for 7 days, so a
@@ -94,7 +95,8 @@ the next release.
 | `tailscale/tailscale` | image | P | BSD-3-Clause | v1.102.5 · 2026-09-21 | v1.102.5 | — | Active | company | branch access over a tailnet, or self-hosted Headscale (`tailscale` profile) | NetBird or WireGuard · low | 2026-10-09 |
 | `netbirdio/netbird` | image | P | BSD-3-Clause | 0.80.0 · 2026-10-01 | 0.80.0 | — | Active | company | branch access over NetBird (`netbird` profile); its control plane is AGPL-3.0 and self-hostable | Tailscale or WireGuard · low | 2026-10-09 |
 | `python` | image | P | PSF-2.0 | 3.14-slim · 2026-10-06 | 3.14 | — | Active | foundation | base of the Labra image | — | 2026-10-09 |
-| `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build | pip · low | 2026-10-09 |
+| `ghcr.io/astral-sh/uv` | image | P | MIT OR Apache-2.0 | 0.12.18 · 2026-09-22 | 0.12.18 | — | Active | company | installs locked dependencies in the image build, and runs `uv run` in the local CI lab | pip · low | 2026-10-09 |
+| `ubuntu` | dev-image | P | GPL-2.0-only | 26.04 · 2026-10-06 | 26.04 | — | Active | company | base of the local CI lab (`deploy/ci-lab/`), the release GitHub's runners use; an OS of mixed licences, mostly GPL; never shipped | Debian · low | 2026-10-26 |
 | `restic` | binary | P | BSD-2-Clause | 0.19.1 · 2026-07-05 | 0.19.1 · 2026-07-05 | 3 | Active | team | encrypted, deduplicated backup snapshots (`deploy/backup/`, ADR-0013); release binary checked by SHA-256 | Borg · medium | 2026-10-16 |
 | `rclone` | binary | P | MIT | 1.75.2 · 2026-10-09 | 1.75.2 · 2026-10-09 | many | Active | team | restic's way to Google Drive (`rclone:` backend, ADR-0013); release binary checked by SHA-256 | restic's own S3, B2 or SFTP backends · low | 2026-10-16 |
 | `actions/checkout` | action | P | MIT | v5.1.0 · 2026-07-16 | — | — | Active | company | CI checkout | — | 2026-10-09 |

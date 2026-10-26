@@ -24,7 +24,7 @@ Open-source software (MIT) for small Indian diagnostic lab chains: patients, vis
 - **End every piece of work with an audit:** re-read the tracker rows and the plan, review the full diff against them, and confirm each fix has a test that fails on the old code.
 - **Follow the plan.** If it's ambiguous, stop and ask. Don't widen the scope: a small improvement found on the way gets its own tracker ID and commit, and larger ones are listed at the end.
 - **Continuing a run:** when told to continue a run of item groups, do them back to back, and commit each group locally once its gate is green.
-- **One push per round.** Get the gate green locally before pushing. Use one branch and one PR for a round of related work, not a PR per fix. Reproduce a CI failure locally instead of re-running CI to test a guess. Each round means a wait of 10 minutes or more, longer when the portability workflow runs; minutes are free on this public repository, so the wait is the cost.
+- **One push per round.** Get the gate green locally, and run `scripts/ci_portability.sh --if-needed`, before pushing. Use one branch and one PR for a round of related work, not a PR per fix. Reproduce a CI failure locally instead of re-running CI to test a guess. Each round means a wait of 10 minutes or more, longer when the portability workflow runs; minutes are free on this public repository, so the wait is the cost.
 - **The maintainer decides what leaves the machine.** Say so before any push that starts a workflow. Never open or merge a PR, or change a GitHub setting (the ruleset, Actions, secrets), without the maintainer's go; maintainers do the merge.
 - **No status-only PRs.** Close the tracker rows in the work PR, citing the branch's commit ([workflow step 7](docs/dev/workflow.md)).
 - **After a context compaction,** run `git status` and `git diff --stat` before editing again.
@@ -46,6 +46,7 @@ scripts/          gates and operational scripts
 |---|---|
 | Install | `uv sync` |
 | All local gates (same as CI) | `scripts/ci_local.sh` |
+| Portability workflow, locally ([runtimes](docs/dev/runtimes.md#run-the-portability-jobs-locally)) | `scripts/ci_portability.sh --if-needed` |
 | Tests | `uv run pytest` |
 | Lint and format | `uv run ruff check . && uv run ruff format .` |
 | Types | `uv run pyright` |
