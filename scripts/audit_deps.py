@@ -13,8 +13,8 @@
 - an image in compose.yaml, a Dockerfile (its `# syntax=` frontend too), the CI lab's
   Containerfile or a script's `<NAME>_IMAGE=` has no digest, or a `dev-image` row names an
   image that is shipped
-- a release binary a Dockerfile or script downloads (`<NAME>_VERSION`) has no `binary` row with
-  that version, or lacks a SHA-256 for each arch it fetches
+- a release binary a Dockerfile or script downloads (`<NAME>_VERSION`; `OSV_SCANNER` is the row
+  `osv-scanner`) has no `binary` row with that version, or lacks a SHA-256 for each arch it fetches
 - a vendored file doesn't match its SHA-256 in static/vendor/manifest.json
 - a pinned version is younger than MIN_AGE (uv.lock upload time, or the date in the Pinned
   cell of an Action, image or vendored row) and no Age exceptions row names its advisory
@@ -53,6 +53,7 @@ DEV_IMAGE_FILES = (ROOT / "deploy/ci-lab/Containerfile", ROOT / "scripts/build_i
 BINARY_FILES = {
     ROOT / "deploy/backup/Dockerfile": ("AMD64", "ARM64"),
     ROOT / "scripts/portability_job.sh": ("AMD64",),  # GitHub's runners and the CI lab
+    ROOT / "scripts/install_ci_tools.sh": ("AMD64",),  # GitHub's runners
 }
 
 ALLOWED = {
@@ -354,7 +355,7 @@ def check_binaries(rows: list[Row]) -> list[str]:
             if not m:
                 continue
             arg, key, version = m.groups()
-            name = key.lower()
+            name = key.lower().replace("_", "-")
             used.add(name)
             where = f"{path.relative_to(ROOT)}:{n}"
             for arch in arches:

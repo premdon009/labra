@@ -79,6 +79,9 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - CI and release image builds use the Node 24 releases of Docker's GitHub Actions (setup-qemu, setup-buildx, login, build-push), and every job names its runner, `ubuntu-26.04`, instead of `ubuntu-latest`.
 - The gate runs the tests in parallel, one worker per CPU (at most 8), each with its own database; the time-budget tests run after them on their own.
 - A new push to a pull request cancels its older CI and portability runs; runs on master and on the schedule always finish.
+- GitHub CI installs pinned gitleaks, osv-scanner, git-cliff and shellcheck and runs the gate with `--strict`, so the secret and vulnerability scans now run there and any stage that couldn't be checked fails the run.
+- A release runs the stack smoke test (restore, upgrade, rollback) on the tagged commit before it pushes any image.
+- The portability workflow also runs when `scripts/backup.sh` changes, and a test fails when a script its rows reach is missing from the paths it watches.
 - An upgrade that fails says which step failed, the migrations or the new version not starting in time, in its message and in the System page's *Upgrade* row.
 
 ### Fixed

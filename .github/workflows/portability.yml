@@ -21,6 +21,7 @@ on:
       - scripts/runtime_bench.py
       - scripts/compose_run.sh
       - scripts/upgrade.sh
+      - scripts/backup.sh
       - scripts/drill.sh
       - scripts/restore.sh
       - scripts/labra.sh

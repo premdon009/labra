@@ -1,5 +1,5 @@
 ---
-items: [W01, W08, W23, W25, W32]
+items: [W01, W08, W23, W25, W32, W37]
 ---
 
 # Developer setup
@@ -15,7 +15,7 @@ items: [W01, W08, W23, W25, W32]
 | git-cliff | changelog drafts (releases only) | `uv tool install git-cliff==2.14.2` (puts it on `PATH`) |
 | Pango, HarfBuzz (with its subset library) and fontconfig | PDFs: reports, bills, letterheads (WeasyPrint) | `sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig`, the Dockerfile's list |
 
-`scripts/check_tools.sh` prints what's present and which versions. Missing required tools fail the gate; missing optional ones show as warnings.
+`scripts/check_tools.sh` prints what's present and which versions. Missing required tools fail the gate; missing optional ones show as warnings. GitHub's runners get the optional tools from `scripts/install_ci_tools.sh` (gitleaks and osv-scanner pinned by version and SHA-256, git-cliff through uv, shellcheck from apt).
 
 ## First run
 ```bash
@@ -25,7 +25,7 @@ scripts/ci_local.sh                       # all gates
 uv run labra serve                        # http://127.0.0.1:8000
 ```
 
-Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, hygiene, lint, types, imports, services, tests, tracker, manual, docs, audit, stack). `--dry-run` lists the stages without running them.
+Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, hygiene, lint, types, imports, services, tests, tracker, manual, docs, audit, stack). `--dry-run` lists the stages without running them. `--strict` counts a `WARN` as a `FAIL`: GitHub CI and the release workflow run the gate that way, so a check that couldn't run there fails the run instead of passing unseen. Locally, without `--strict`, a missing tool or Docker still shows as `WARN`.
 
 ## Gate run logs
 Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the directory at the end as `Logs: …`:
