@@ -1,6 +1,6 @@
 ---
 title: Alerts and nightly checks
-features: [EC-D05, EC-B06, EC-E02]
+features: [EC-D05, EC-B06, EC-E02, W43]
 ---
 
 # Alerts and nightly checks
@@ -45,10 +45,9 @@ administrator sets up the alerts once, on the server and on Healthchecks.io.
    | Labra disk space | Simple, every 1 hour | 1 hour |
    | Labra watchdog | Simple, every 5 minutes | 10 minutes |
 
-3. In the `.env` file beside `compose.yaml`, add the ping addresses and turn on sending:
+3. In the `.env` file beside `compose.yaml`, add the ping addresses:
 
    ```bash
-   LABRA_HEARTBEAT=http
    LABRA_HEARTBEAT_URL_BACKUP=https://hc-ping.com/…
    LABRA_HEARTBEAT_URL_DRILL=https://hc-ping.com/…
    LABRA_HEARTBEAT_URL_AUDIT_VERIFY=https://hc-ping.com/…
@@ -61,6 +60,9 @@ administrator sets up the alerts once, on the server and on Healthchecks.io.
    too. If the tunnel asks people to sign in (Cloudflare Access), add a rule that lets
    `/healthz` through without signing in; that page shows nothing private. Without a public
    address, leave it out and the watchdog checks the server only.
+
+   Every ping leaves from the backup job. Labra itself has no way to the internet, so the
+   audit and disk checks hand their result to the backup job, which sends it on.
 4. Apply it: `docker compose up -d`.
 5. Install the timers, if not done yet: `sudo scripts/install_timers.sh`.
 6. Try each check once. Each should turn green on Healthchecks.io:

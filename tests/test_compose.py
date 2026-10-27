@@ -62,3 +62,24 @@ def test_every_container_runs_with_only_the_rights_it_needs() -> None:
         assert services[name]["tmpfs"] == ["/tmp"], name  # noqa: S108  the container's, in memory
     nginx = _services("deploy/nginx/compose.nginx.yaml")["proxy"]
     assert nginx["cap_add"] == ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
+
+
+@pytest.mark.item("W43")
+def test_web_has_no_route_to_the_internet_and_its_checks_ping_from_the_backup_image() -> None:
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    services = compose["services"]
+    internal = {
+        name for name, network in compose["networks"].items() if (network or {}).get("internal")
+    }
+    assert internal == {"db", "edge"}
+    for name in ("web", "migrate", "db"):
+        assert set(services[name]["networks"]) <= internal, name
+    assert compose["networks"]["edge"]["ipam"]["config"] == [
+        {"subnet": "${LABRA_EDGE_SUBNET:-172.30.0.0/24}"}
+    ]
+    # The proxy reaches web on edge and is reached on public; the tunnels need the internet.
+    assert services["proxy"]["networks"] == ["edge", "public"]
+    assert services["tunnel"]["networks"] == services["tailscale"]["networks"] == ["public"]
+    assert not [key for key in services["web"]["environment"] if "HEARTBEAT" in key]
+    for job in ("AUDIT_VERIFY", "DISK"):
+        assert f"LABRA_HEARTBEAT_URL_{job}" in services["backup"]["environment"]

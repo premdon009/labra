@@ -127,7 +127,7 @@ the next release.
 | `Cloudflare Tunnel` | service | P | — | — | — | — | Active | company | the tunnel cloudflared connects to | Tailscale · medium | 2026-10-09 |
 | `Tailscale` | service | P | BSD-3-Clause | — | — | — | Active | company | coordination for the `tailscale` profile; Headscale (BSD-3-Clause) replaces it self-hosted | Headscale or NetBird · low | 2026-10-09 |
 | `NetBird` | service | P | — | — | — | — | Active | company | control plane for the `netbird` profile; self-hostable (AGPL-3.0, run as a separate service) | Tailscale or WireGuard · low | 2026-10-09 |
-| `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups (`LABRA_HEARTBEAT=http`); self-hostable | Uptime Kuma · low | 2026-10-09 |
+| `Healthchecks.io` | service | P | BSD-3-Clause | — | — | — | Active | company | heartbeat pings after backups and checks (`LABRA_HEARTBEAT_URL_<JOB>`, sent from the backup image); self-hostable | Uptime Kuma · low | 2026-10-09 |
 | `Google Drive` | service | P | — | — | — | — | Active | company | the off-site backup copy, encrypted by restic before it leaves the lab (ADR-0013); the lab's own account | any rclone remote: S3, B2, SFTP · low | 2026-10-16 |
 
 ## Age exceptions

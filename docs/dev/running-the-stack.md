@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07, W41, W42, EC-D05, EC-B06, EC-E02, EC-E04]
+items: [W03, W16, W17, W19, W07, W41, W42, W43, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -103,11 +103,10 @@ Compose passes through:
 |---|---|---|
 | `LABRA_IMAGE` | the release's exact version | image to run |
 | `LABRA_SITE` | `labra.lan` | LAN host name the proxy serves |
-| `LABRA_HEARTBEAT` | `log` | `http` to ping a monitor such as Healthchecks.io |
-| `LABRA_MAILER` | `console` | `smtp` to send mail |
+| `LABRA_MAILER` | `console` | `smtp` to send mail, through a relay web can reach: it has no way to the internet |
 | `LABRA_SECRETS_DIR` | `./secrets` | where the secret files are |
 | `LABRA_HTTP_PORT`, `LABRA_HTTPS_PORT` | `80`, `443` | published ports (rootless runtimes: see [Container runtimes](runtimes.md)) |
-| `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the proxy network; the app trusts forwarded addresses only from it |
+| `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the network between the proxy and web; the app trusts forwarded addresses only from it |
 | `LABRA_CERT_CHECK_HOST` | `proxy:443` | where the System page reads the HTTPS certificate's expiry (by the `LABRA_SITE` name); empty switches it off |
 | `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
 | `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
@@ -197,11 +196,13 @@ scripts/labra.sh check-disk     # hourly: fails at 80% used (--percent N to chan
 scripts/watchdog.sh             # every 5 minutes: fetches /healthz, pings only when it answers ok
 ```
 
-`labra.sh` runs any `labra` command in the running `web` container. The watchdog runs in the
-backup image without the backup lock, and fetches `LABRA_WATCHDOG_URL` (default
-`http://web:8000/healthz`; set it to the public address so the tunnel is checked too). Each
-check pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY`, `_DISK` or `_WATCHDOG` when
-`LABRA_HEARTBEAT=http`. An empty URL means "not set". The administrator's guide is
+`labra.sh` runs any `labra` command in the running `web` container. Web has no way to the
+internet, so for these two it hands the result to `labra-backup ping` in the backup image,
+which pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY` or `_DISK`. When web doesn't answer it pings
+nothing, and the monitor's missed-ping alert fires. The watchdog runs in the backup image
+without the backup lock, fetches `LABRA_WATCHDOG_URL` (default `http://web:8000/healthz`;
+set it to the public address so the tunnel is checked too) and pings `_WATCHDOG`. An empty
+URL means "not set". The administrator's guide is
 [Alerts and nightly checks](../manual/admin/alerts-and-checks.md).
 
 ## Logs

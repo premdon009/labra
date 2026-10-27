@@ -31,10 +31,6 @@ x-labra-env: &labra-env
   LABRA_DATABASE_URL_FILE: /run/secrets/database_url
   LABRA_FILES_DIR: /data/files
   LABRA_EXPORT_DIR: /data/export
-  LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
-  # The nightly audit check and the disk alert (scripts/install_timers.sh); empty is unset.
-  LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
-  LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
   LABRA_MAILER: ${LABRA_MAILER:-console}
   # The System page reads the HTTPS certificate's expiry from the proxy, by the LAN name.
   LABRA_CERT_CHECK_HOST: ${LABRA_CERT_CHECK_HOST-proxy:443}
@@ -146,7 +142,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks: [edge]
+    networks: [edge, public]
     mem_limit: ${LABRA_PROXY_MEMORY:-512m}
     cpus: ${LABRA_PROXY_CPUS:-0.25}
     pids_limit: 256
@@ -167,7 +163,7 @@ services:
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
       TUNNEL_TOKEN: ${LABRA_TUNNEL_TOKEN:-}
-    networks: [edge]
+    networks: [public]
     logging: *logging
     depends_on: [proxy]
 
@@ -188,7 +184,7 @@ services:
     volumes:
       - ./deploy/tailscale/serve.json:/config/serve.json:ro
       - tailscale_state:/var/lib/tailscale
-    networks: [edge]
+    networks: [public]
     logging: *logging
     depends_on: [proxy]
 
@@ -226,6 +222,10 @@ services:
       LABRA_HEARTBEAT_URL_BACKUP: ${LABRA_HEARTBEAT_URL_BACKUP:-}
       LABRA_HEARTBEAT_URL_DRILL: ${LABRA_HEARTBEAT_URL_DRILL:-}
       LABRA_HEARTBEAT_URL_WATCHDOG: ${LABRA_HEARTBEAT_URL_WATCHDOG:-}
+      # The nightly audit check and the disk alert run in web, which has no way to the internet;
+      # scripts/labra.sh passes their result to `labra-backup ping`. Empty is unset.
+      LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
+      LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
       LABRA_WATCHDOG_URL: ${LABRA_WATCHDOG_URL:-}
     # Read as uid 10001, like database_url: world-readable files inside the 0700 secrets folder.
     secrets: [backup_database_url, restic_password, rclone_conf]
@@ -258,10 +258,15 @@ networks:
     internal: true
   # Internet access for the backup job only (Google Drive, the heartbeat monitor).
   egress:
+  # Between the proxy and web only. Web has no way to the internet: a flaw in the app can't send
+  # data out or fetch anything in.
   edge:
+    internal: true
     ipam:
       config:
         - subnet: ${LABRA_EDGE_SUBNET:-172.30.0.0/24}
+  # The proxy's published ports, and the internet for it and the tunnels.
+  public:
 
 volumes:
   pgdata:

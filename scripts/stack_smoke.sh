@@ -260,6 +260,20 @@ check "db: only the rights to set up its folder" "00000000000000cb 1 rw" "$(priv
 proxy_caps=0000000000000400
 [[ $proxy == nginx ]] && proxy_caps=00000000000004c3
 check "proxy: only the rights it needs" "$proxy_caps 1 rw" "$(privileges proxy)"
+# Only the proxy has a route out: web and Postgres sit on internal networks.
+route_out() {
+  dc exec -T "$1" sh -s 2>/dev/null <<'SH'
+awk 'NR > 1 && $2 == "00000000" { r = "yes" } END { print r ? r : "no" }' /proc/net/route
+SH
+}
+if [[ $engine == nerdctl ]]; then
+  # nerdctl compose ignores `internal: true` (docs/dev/runtimes.md), so this is shown, not checked.
+  echo "INFO  route out on nerdctl: web $(route_out web), db $(route_out db)"
+else
+  check "web has no way to the internet" no "$(route_out web)"
+  check "db has no way to the internet" no "$(route_out db)"
+fi
+check "proxy has a way out" yes "$(route_out proxy)"
 
 # The laptop budgets: three users against about two years of patients, within the limits above.
 # Only a run on the real laptop counts; this one catches a regression. The patients stay for
@@ -359,6 +373,9 @@ check "audit check from the timer's wrapper" 0 "$("$ROOT/scripts/labra.sh" audit
 check "audit check logged" t "$(last_run verify)"
 check "disk check" 0 "$("$ROOT/scripts/labra.sh" check-disk >/dev/null 2>&1; echo $?)"
 check "disk check logged" t "$(last_run disk)"
+# Web can't reach a monitor, so the backup image pings for it; an http address it refuses.
+check "disk check pinged from the backup image" 1 "$(LABRA_HEARTBEAT_URL_DISK=http://monitor.invalid/ping \
+  "$ROOT/scripts/labra.sh" check-disk 2>&1 >/dev/null | grep -c 'heartbeat for disk not sent')"
 check "watchdog reaches the app" 0 "$("$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
 check "watchdog fails when nothing answers" 1 \
   "$(LABRA_WATCHDOG_URL=http://web:9/healthz "$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"

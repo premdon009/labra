@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 33/44 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 33/44 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -84,7 +84,8 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W40~~ | ~~The test fixtures' container-runtime probe no longer leaks a socket when Docker is unreachable; the leak failed one test per worker, so a machine without Docker showed the tests stage as FAIL instead of WARN~~ | P | done | 2026-10-27 · 3466e88 |
 | W41 | The database runs with least privilege: the app connects as `labra_app` (data only: no DDL, not a superuser) and the backup job as `labra_backup` (read-only); `labra migrate` creates and updates both roles every run; the owner `labra` is used only by migrate, restore and upgrade | P | doing | |
 | W42 | Containers run with limits and hardening by default: memory, CPU and process caps (overridable), no new privileges, every capability dropped where none is needed, and a read-only root with a tmpfs `/tmp` for web | P | doing | |
-| W43 | Web has no internet access: it sits on internal networks only, and the host timers send the audit-check and disk-check heartbeats themselves | P | doing | |
+| W43 | Web has no internet access: it sits on internal networks only, and the timers' wrapper hands the audit-check and disk-check results to the backup job, which sends the heartbeats | P | doing | |
+| W44 | nerdctl: make the `db` and `edge` networks internal there too. nerdctl compose ignores `internal: true`; networks made with `nerdctl network create --internal` and named as external ones in an override file do hold | P2 | todo | |
 | ~~W46~~ | ~~GitHub CI runs the banned-terms check with the list from the `BANNED_TERMS` secret; without it (a fork's pull request) the check skips instead of failing the `--strict` gate, and a release fails~~ | P | done | 2026-10-27 · 8bf5472 |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
