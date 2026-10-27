@@ -15,17 +15,17 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 **Rules:**
 - IDs are never renumbered or reused. A dropped item stays in the table, struck through, with status `dropped` and the reason.
 - A new idea takes the next free number in its prefix. It's added here in the same change that adds it to the docs.
-- **Status** goes `todo` → `doing` → `done`, or `blocked` / `dropped` (each with a reason). On `done`, strike through the ID and title, then fill in the date and PR. Example: `| ~~M08~~ | ~~Barcode sample labels~~ | P | done | 2026-11-02 · #14 |`.
+- **Status** goes `todo` → `doing` → `done`, or `blocked` / `dropped` (each with a reason). On `done`, strike through the ID and title, then fill in the date and the branch's main commit, in the work PR itself ([workflow step 7](dev/workflow.md) — never a status-only PR). Example: `| ~~M08~~ | ~~Barcode sample labels~~ | P | done | 2026-11-02 · 1a2b3c4 |`. Older rows cite a PR number instead (`· #14`).
 - Branches, commits and PRs carry the ID, e.g. `feat/m07-billing` and `feat(billing): M07 part payment and dues`. Then `git log --grep M07` shows an item's whole history.
 - Manual pages list the IDs they document (`features: [M07]` front matter). That keeps the manual's features overview (§13a) linked to this table.
 - **Each item is ticked in one place only.** Features are ticked here. Checklist items are ticked in `docs/ENTERPRISE_CHECKLIST.md`; this table only shows their counts per section, filled in by a script, so the two can't disagree.
 
 **Tracker tooling (adopted by the owner 2026-10-08; built as W08.1, mirror deferred as X34):**
-1. **Status column plus strike-through,** not strike-through alone. The strike makes done items stand out; the status, date and PR make each one auditable and searchable.
+1. **Status column plus strike-through,** not strike-through alone. The strike makes done items stand out; the status, date and commit make each one auditable and searchable.
 2. **`scripts/check_tracker.py` in CI and pre-commit.** It fails on:
    - a duplicate ID
    - an ID used in docs or commits but missing here
-   - a `done` row without a date and PR
+   - a `done` row without a date and a commit hash (or PR number)
    - an old ID that was removed or renumbered
    - a status row or progress line in any other doc (statuses live only in `docs/TRACKER.md`)
 
@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 22/30 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 28/36 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -72,6 +72,12 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W28~~ | ~~The System page counts the HTTPS certificate as renewed by the proxy only when Caddy's own authority issued it (the issuer's common name, read from the DER bytes); any other certificate warns 30 days before it runs out, however short its life~~ | P | done | 2026-10-21 · 7aabe64 |
 | ~~W29~~ | ~~Restore on a new server: the backup image owns `/data/files`, so a new files volume is writable; the row counts are checked inside the restore's transaction; stored files that fail after the database loaded exit 4, leave Labra stopped and say how to finish~~ | P | done | 2026-10-21 · 17b0ced |
 | ~~W30~~ | ~~Portability workflow: rootless nerdctl gets an AppArmor profile for RootlessKit; a smoke test that fails prints each container's health checks and the whole log, and a hung drill, restore or upgrade is stopped after 10 minutes with the commands still running; Podman 5 health checks without spaces in their arguments (`python -m labra.probe`); nerdctl gets the backup image, and the smoke test commits its upgrade images there instead of building them (BuildKit looks a `FROM` image up in a registry); containers started under podman-compose no longer inherit the job lock (the restore and drill hang); jobs run through `scripts/compose_run.sh`, which reads a job's own exit status on nerdctl (no `-T`), and the database is started again after web stops (nerdctl's `compose stop` also stops what web depends on); scripts find containers by their Compose labels (podman-compose's `ps` takes no service name); upgrades run the migrations as a job first, with `--no-deps`, and time-limit the stack start (podman-compose waited for ever after a failed migration; nerdctl's `compose run` started a second database); nginx looks web up again after it is recreated; the drill reads results from stdout only~~ | P | done | 2026-10-23 · 5582824 |
+| ~~W31~~ | ~~Portability jobs run locally: each row of the portability workflow is a function in `scripts/portability_job.sh`, which GitHub and `scripts/ci_portability.sh` both call; the local runner starts each row in its own lab container (`deploy/ci-lab/`) with the images built once on the host, prints a PASS/FAIL/SKIP table, and with `--if-needed` runs only when the workflow's paths changed; the paths list covers every script the stack smoke runs~~ | P | done | 2026-10-26 · fd0d2e6 |
+| ~~W32~~ | ~~Tests run in parallel (pytest-xdist): the gate uses one worker per CPU (at most 8) and keeps a file's tests on one worker; each worker has its own Postgres container, or its own database on an outside server; the time-budget tests run afterwards on their own~~ | P | done | 2026-10-26 · 6021aff |
+| ~~W33~~ | ~~Dependency register checks the build tools: Kaniko's image digest in `scripts/build_image.sh` and the Dockerfile frontend are `dev-image` rows, the nerdctl tarball `scripts/portability_job.sh` downloads is a `binary` row with its version and checksum; `--refresh` no longer suggests Active for a pre-1.0 package; the pillow age exception is dropped~~ | P | done | 2026-10-26 · 50bc6fb |
+| ~~W34~~ | ~~Dockerfile frontend pinned: the `# syntax=` line of the app and backup images names `docker/dockerfile` by version and digest, and the local CI lab preloads it~~ | P | done | 2026-10-26 · 50bc6fb |
+| ~~W35~~ | ~~Stack smoke waits for the app through the proxy after the upgrade's rollback, as it does after a restore, before signing in~~ | P | done | 2026-10-26 · 64085cf |
+| ~~W36~~ | ~~Upgrade says which step failed (the migrations, or the app not starting in time), and the stack smoke checks that a failed migration stops the upgrade before the app starts~~ | P | done | 2026-10-26 · 7482b16 |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

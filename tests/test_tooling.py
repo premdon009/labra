@@ -235,6 +235,68 @@ def test_ofl_only_for_font_files_and_mpl11_only_for_pyphen(
     assert problems == ["vendor/some.js: a font row vendors font files only"]
 
 
+DEV_IMAGE_REGISTER = """\
+| Component | Kind | Gate | Licence | Pinned | Latest · date | Rel. 12m | Status |
+|---|---|---|---|---|---|---|---|
+| `ubuntu` | dev-image | P | GPL-2.0-only | 26.04 · 2026-01-01 | 26.04 | — | Active |
+| `debian` | dev-image | P | GPL-2.0-only | 13 · 2026-01-01 | 13 | — | Active |
+| `ghcr.io/astral-sh/uv` | image | P | MIT | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `busybox` | image | P | GPL-2.0-only | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `docker/dockerfile` | dev-image | P | Apache-2.0 | 1.0 · 2026-01-01 | 1.0 | — | Active |
+| `ghcr.io/example/builder` | dev-image | P | Apache-2.0 | 1.0 · 2026-01-01 | 1.0 | — | Active |
+"""
+
+
+@pytest.mark.item("W31")
+def test_gpl_only_for_an_image_that_is_never_shipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    rows = audit.parse_register(DEV_IMAGE_REGISTER)
+    assert {r.name for r in rows if audit.licence_problem(r)} == {"busybox"}
+
+    digest = "@sha256:" + "0" * 64
+    shipped, lab = tmp_path / "Dockerfile", tmp_path / "Containerfile"
+    script = tmp_path / "build.sh"
+    # The frontend of a shipped image's build runs in the build only.
+    shipped.write_text(
+        f"# syntax=docker.io/docker/dockerfile:1.0{digest}\n"
+        f"FROM docker.io/library/debian:13{digest}\nFROM docker.io/library/busybox:1{digest}\n",
+        encoding="utf-8",
+    )
+    uv = f"FROM ghcr.io/astral-sh/uv:1.0{digest} AS uv\n"
+    lab.write_text(f"{uv}FROM docker.io/library/ubuntu:26.04{digest}\n", encoding="utf-8")
+    script.write_text(f"BUILDER_IMAGE=ghcr.io/example/builder:1.0{digest}\n", encoding="utf-8")
+    monkeypatch.setattr(audit, "IMAGE_FILES", (shipped,))
+    monkeypatch.setattr(audit, "DEV_IMAGE_FILES", (lab, script))
+    assert audit.check_images(rows) == [
+        "Dockerfile:2: image debian is shipped; its row's kind is image"
+    ]
+    shipped.write_text(
+        "# syntax=docker/dockerfile:1\n"
+        f"FROM docker.io/library/debian:13{digest}\nFROM docker.io/library/busybox:1{digest}\n",
+        encoding="utf-8",
+    )
+    script.write_text("BUILDER_IMAGE=ghcr.io/example/builder:1.0\n", encoding="utf-8")
+    assert audit.check_images(rows) == [
+        "Dockerfile:1: image docker/dockerfile:1 has no @sha256 digest",
+        "Dockerfile:1: image docker/dockerfile:1 needs its registry, e.g. docker.io/library/…",
+        "Dockerfile:2: image debian is shipped; its row's kind is image",
+        "build.sh:1: image ghcr.io/example/builder:1.0 has no @sha256 digest",
+    ]
+    script.write_text(f"BUILDER_IMAGE=ghcr.io/example/builder:1.0{digest}\n", encoding="utf-8")
+    lab.write_text(f"{uv}FROM scratch\n", encoding="utf-8")
+    assert audit.check_images(rows) == [
+        "Dockerfile:1: image docker/dockerfile:1 has no @sha256 digest",
+        "Dockerfile:1: image docker/dockerfile:1 needs its registry, e.g. docker.io/library/…",
+        "Dockerfile:2: image debian is shipped; its row's kind is image",
+        "Containerfile:2: image scratch has no @sha256 digest",
+        "Containerfile:2: image scratch needs its registry, e.g. docker.io/library/…",
+        "Containerfile:2: image scratch has no row in docs/DEPENDENCIES.md",
+        "DEPENDENCIES.md:3: image ubuntu isn't used; drop the row",
+    ]
+
+
 @pytest.mark.item("W14")
 @pytest.mark.parametrize(
     ("ref", "name"),
@@ -296,6 +358,14 @@ def _job(workflow: str, name: str) -> str:
     return m.group(1)
 
 
+def _row_packages(row: str) -> set[str]:
+    """The packages scripts/portability_job.sh --install puts on the runner for a row."""
+    text = (ROOT / "scripts" / "portability_job.sh").read_text(encoding="utf-8")
+    m = re.search(rf'^  \[{row}\]="([^"]*)"$', text, re.MULTILINE)
+    assert m is not None, f"portability_job.sh installs nothing for {row}"
+    return set(m.group(1).split())
+
+
 @pytest.mark.item("W23")
 @pytest.mark.parametrize(
     ("workflow", "job"), [("ci.yml", "gate"), ("portability.yml", "outside-postgres")]
@@ -306,7 +376,10 @@ def test_ci_test_jobs_get_the_images_pdf_libraries_on_the_snapshot_os(
     image = _apt_packages((ROOT / "Dockerfile").read_text(encoding="utf-8"))
     assert {"libpango-1.0-0", "libharfbuzz-subset0", "fontconfig"} <= image
     text = _job(workflow, job)
-    assert _apt_packages(text) == image
+    if f"scripts/portability_job.sh --install {job}" in text:
+        assert _row_packages(job) == image
+    else:
+        assert _apt_packages(text) == image
     assert "runs-on: ubuntu-26.04" in text
 
 
@@ -340,17 +413,23 @@ def test_no_health_check_argument_holds_a_space() -> None:
 
 @pytest.mark.item("W30")
 def test_the_nerdctl_job_gives_rootlesskit_an_apparmor_profile_before_setup() -> None:
-    nerdctl = _job("portability.yml", "runtime").split("- name: nerdctl\n", 1)[1]
-    nerdctl = nerdctl.split("- name: ", 1)[0]
-    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in nerdctl
-    assert "userns," in nerdctl
-    steps = [
-        "tee /etc/apparmor.d/usr.local.bin.rootlesskit",
-        "systemctl restart apparmor.service",
-        "containerd-rootless-setuptool.sh install\n",
-        "scripts/compare_runtimes.sh",
-    ]
-    assert [nerdctl.index(step) for step in steps] == sorted(nerdctl.index(step) for step in steps)
+    text = (ROOT / "scripts" / "portability_job.sh").read_text(encoding="utf-8")
+    install = re.search(r"^install_nerdctl\(\) \{\n(.*?)^\}\n\n", text, re.MULTILINE | re.DOTALL)
+    row = re.search(r"^  nerdctl\)\n(.*?)^    ;;", text, re.MULTILINE | re.DOTALL)
+    assert install is not None and row is not None
+    assert "/usr/local/bin/rootlesskit flags=(unconfined) {" in install.group(1)
+    assert "userns," in install.group(1)
+    profile = install.group(1).index("tee /etc/apparmor.d/usr.local.bin.rootlesskit")
+    assert install.group(1).index("systemctl restart apparmor.service") > profile
+    # The workflow runs --install, then the row.
+    steps = _job("portability.yml", "runtime")
+    install_step = "run: scripts/portability_job.sh --install ${{ matrix.row }}"
+    assert steps.index(install_step) < steps.index(
+        "run: scripts/portability_job.sh ${{ matrix.row }}"
+    )
+    assert row.group(1).index("containerd-rootless-setuptool.sh install;") < row.group(1).index(
+        "compare --runtimes nerdctl"
+    )
 
 
 @pytest.mark.item("W08")
@@ -363,6 +442,24 @@ def test_every_job_names_its_runner() -> None:
     }
     assert len(runners) >= 4
     assert {runner for _, runner in runners} == {"ubuntu-26.04"}, sorted(runners)
+
+
+CONCURRENCY = (
+    "concurrency:\n"
+    "  group: ${{ github.workflow }}-"
+    "${{ github.event_name == 'pull_request' && github.ref || github.run_id }}\n"
+    "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"
+)
+
+
+@pytest.mark.item("W08")
+@pytest.mark.parametrize("workflow", ["ci.yml", "portability.yml"])
+def test_a_new_push_cancels_only_the_pull_requests_older_run(workflow: str) -> None:
+    # A group keeps one running and one pending run, so master and scheduled runs each get a
+    # group of their own (the run ID), or a newer pending run would replace an older one.
+    text = (ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+    assert CONCURRENCY in text
+    assert text.index(CONCURRENCY) < text.index("\njobs:\n")
 
 
 @pytest.mark.item("W01")
@@ -628,9 +725,52 @@ def test_a_downloaded_binary_matches_its_row_and_has_a_checksum_per_arch(
     dockerfile.parent.mkdir(parents=True)
     dockerfile.write_text(BINARY_DOCKERFILE.format(amd="a" * 64, arm=arm))
     monkeypatch.setattr(audit, "ROOT", tmp_path)
-    monkeypatch.setattr(audit, "BINARY_FILES", (dockerfile,))
+    monkeypatch.setattr(audit, "BINARY_FILES", {dockerfile: ("AMD64", "ARM64")})
     register = f"| `tool` | binary | P | MIT | {pinned} | — |\n" if pinned else ""
     assert audit.check_binaries(audit.parse_register(register)) == want
+
+
+@pytest.mark.item("W33")
+def test_a_binary_a_script_downloads_needs_a_checksum_for_each_arch_it_fetches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    script = tmp_path / "scripts" / "job.sh"
+    script.parent.mkdir()
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "BINARY_FILES", {script: ("AMD64",)})
+    rows = audit.parse_register("| `tool` | binary | P | MIT | 1.2.0 · 2026-09-01 | — |\n")
+    script.write_text(f"TOOL_VERSION=1.2.0\nTOOL_SHA256_AMD64={'a' * 64}\n")
+    assert audit.check_binaries(rows) == []
+    script.write_text(f"TOOL_VERSION=1.3.0\nTOOL_SHA256={'a' * 64}\n")
+    assert audit.check_binaries(rows) == [
+        "scripts/job.sh:1: tool needs TOOL_SHA256_AMD64=<sha256>",
+        "DEPENDENCIES.md:1: tool pinned 1.2.0, scripts/job.sh downloads 1.3.0",
+    ]
+
+
+@pytest.mark.item("W33")
+def test_the_real_register_checks_kaniko_nerdctl_and_the_dockerfile_frontend() -> None:
+    audit = _script("audit_deps")
+    rows = {r.name: r for r in audit.parse_register(audit.REGISTER.read_text(encoding="utf-8"))}
+    assert rows["ghcr.io/osscontainertools/kaniko"].kind == "dev-image"
+    assert rows["docker/dockerfile"].kind == "dev-image"
+    assert rows["nerdctl"].kind == "binary"
+    assert audit.check_images(list(rows.values())) == []
+    assert audit.check_binaries(list(rows.values())) == []
+
+
+@pytest.mark.item("W33")
+@pytest.mark.parametrize(
+    ("latest", "age_days", "hint"),
+    [("0.0.73", 1, "Watch"), ("1.4.0", 1, "Active"), ("2.0", 400, "Stable or Watch")],
+)
+def test_refresh_never_suggests_active_for_a_pre_1_0_package(
+    latest: str, age_days: int, hint: str
+) -> None:
+    # The register's own rule: a pre-1.0 API is a risk to its future, so Watch.
+    when = (NOW - timedelta(days=age_days)).date().isoformat()
+    assert _script("audit_deps").suggested_status(when, NOW, latest) == hint
 
 
 @pytest.mark.item("M16")
@@ -638,7 +778,7 @@ def test_a_binary_row_with_nothing_downloading_it_is_dropped(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     audit = _script("audit_deps")
-    monkeypatch.setattr(audit, "BINARY_FILES", (tmp_path / "missing",))
+    monkeypatch.setattr(audit, "BINARY_FILES", {tmp_path / "missing": ("AMD64",)})
     rows = audit.parse_register("| `gone` | binary | P | MIT | 1.0 · 2026-09-01 | — |\n")
     assert audit.check_binaries(rows) == [
         "DEPENDENCIES.md:1: binary gone isn't downloaded anywhere; drop the row"
@@ -1020,6 +1160,107 @@ def test_pytest_summary_names_failed_and_flaky_tests(
     assert capsys.readouterr().out.splitlines() == lines
     flaky_txt = tmp_path / "flaky.txt"
     assert (flaky_txt.read_text() if flaky_txt.exists() else None) == flaky
+
+
+# Real output of `pytest -q -rfEsR --reruns 1 -n 2 --dist loadfile`: the workers' lines
+# arrive interleaved, and each failure names its worker.
+PYTEST_XDIST = """\
+bringing up nodes...
+bringing up nodes...
+
+RER.sRF..                                                                [100%]
+==================================== ERRORS ====================================
+___________________ ERROR at setup of test_setup[one - two] ____________________
+[gw1] linux -- Python 3.14.7 /usr/bin/python3
+
+    @pytest.fixture
+    def boom():
+>       raise RuntimeError("setup")
+E       RuntimeError: setup
+
+tests/test_b.py:4: RuntimeError
+=================================== FAILURES ===================================
+_________________________________ test_broken __________________________________
+[gw0] linux -- Python 3.14.7 /usr/bin/python3
+
+    def test_broken():
+>       assert 1 == 2
+E       assert 1 == 2
+
+tests/test_a.py:10: AssertionError
+=========================== rerun test summary info ============================
+RERUN tests/test_a.py::test_flaky
+PASSED tests/test_a.py::test_flaky
+RERUN tests/test_b.py::test_setup[one - two]
+ERROR tests/test_b.py::test_setup[one - two]
+RERUN tests/test_a.py::test_broken
+FAILED tests/test_a.py::test_broken
+=========================== short test summary info ============================
+FAILED tests/test_a.py::test_broken - assert 1 == 2
+ERROR tests/test_b.py::test_setup[one - two] - RuntimeError: setup
+SKIPPED [1] tests/test_b.py:8: no Postgres for tests
+1 failed, 3 passed, 1 skipped, 1 error, 3 rerun in 0.68s
+"""
+
+
+@pytest.mark.item("W32")
+def test_pytest_summary_reads_parallel_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "pytest.txt").write_text(PYTEST_XDIST)
+    assert _script("pytest_summary").main([str(tmp_path / "pytest.txt"), str(tmp_path)]) == 1
+    assert capsys.readouterr().out.splitlines() == [
+        "failed: tests/test_a.py::test_broken",
+        "failed: tests/test_b.py::test_setup[one - two]",
+        "flaky (passed on re-run): tests/test_a.py::test_flaky",
+    ]
+    # The gate greps the same output for skipped database tests.
+    assert re.search("SKIPPED.*no Postgres for tests", PYTEST_XDIST)
+
+
+@pytest.mark.item("W32")
+def test_the_gate_runs_the_tests_in_parallel_then_the_time_budgets_alone() -> None:
+    gate = (ROOT / "scripts" / "ci_local.sh").read_text(encoding="utf-8")
+    stage = gate.split("stage_tests() {", 1)[1].split("\n}\n", 1)[0]
+    common = re.search(r"local pytest=\((.*)\)", stage)
+    assert common is not None
+    assert "--reruns 1" in common[1]
+    assert "--cov " in common[1]
+    parallel, serial = (call.split("| tee", 1)[0] for call in stage.split('"${pytest[@]}" ')[1:3])
+    assert parallel.startswith('-m "not serial"')
+    assert '-n "${LABRA_TEST_WORKERS:-auto}" --maxprocesses 8 --dist loadfile' in parallel
+    assert serial.startswith("-m serial")
+    assert "--cov-append" in serial
+    assert '| tee -a "$out"' in stage
+    assert "-n " not in serial
+
+
+@pytest.mark.item("W32")
+def test_the_time_budget_tests_run_serially() -> None:
+    marked = {
+        path.name
+        for path in (ROOT / "tests").glob("test_*.py")
+        if "@pytest.mark.serial\n" in path.read_text(encoding="utf-8")
+    }
+    assert marked == {
+        "test_db_laptop_budget.py",
+        "test_db_lab_worklist.py",
+        "test_db_pdf_snapshots.py",
+    }
+
+
+@pytest.mark.item("W32")
+def test_each_worker_gets_its_own_test_database() -> None:
+    from tests.conftest import worker_database_url
+
+    server = "postgresql://postgres@localhost:5432/labra_test"
+    urls = {worker: worker_database_url(server, worker) for worker in ("", "gw0", "gw1")}
+    assert urls[""].endswith("/labra_test")
+    assert urls["gw0"].endswith("/labra_gw0_test")
+    assert urls["gw1"].endswith("/labra_gw1_test")
+    assert all(url.startswith("postgresql+psycopg://") for url in urls.values())
+    with pytest.raises(pytest.UsageError):
+        worker_database_url("postgresql://postgres@localhost:5432/labra", "gw0")
 
 
 HISTORY = """\

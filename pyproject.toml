@@ -71,6 +71,7 @@ dev = [
     "pytest>=9.1",
     "pytest-cov>=7",
     "pytest-rerunfailures>=16.7",
+    "pytest-xdist>=3.8",
     "ruff>=0.16.10",
     "testcontainers[postgres]>=4.15",
     "zensical>=0.0.68",
@@ -92,7 +93,7 @@ build-backend = "hatchling.build"
 # Minimum release age: lock only releases at least 7 days old. A critical fix goes in
 # exclude-newer-package with an Age exceptions row in docs/DEPENDENCIES.md.
 exclude-newer = "7 days"
-exclude-newer-package = { pillow = "2026-10-17T00:00:00Z", certifi = "2026-10-20T03:00:00Z", pypdf = "2026-10-17T11:00:00Z", virtualenv = "2026-10-17T17:00:00Z" }
+exclude-newer-package = { certifi = "2026-10-20T03:00:00Z", pypdf = "2026-10-21T17:00:00Z", virtualenv = "2026-10-22T20:30:00Z", brotli = "2026-10-22T14:00:00Z", brotlicffi = "2026-10-22T16:30:00Z" }
 
 [tool.ruff]
 line-length = 100
@@ -122,6 +123,7 @@ markers = [
     "item(id): tracker ID this test proves",
     "db: needs Postgres (Docker); skipped with a reason when Docker isn't reachable",
     "e2e: drives a real browser; skipped with a reason when Chromium isn't installed",
+    "serial: a time budget; the gate runs it after the parallel tests, on an idle machine",
 ]
 addopts = "--strict-markers"
 # Deprecations in the libraries Labra leans on hardest fail the test that hits them, so a

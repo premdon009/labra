@@ -11,7 +11,7 @@ Open-source software (MIT) for small Indian diagnostic lab chains: patients, vis
 
 ## Hard rules
 1. **Synthetic data only.** No real patient, staff or lab names, numbers or results anywhere: code, tests, fixtures, screenshots, issues, commits.
-2. **Never name the commercial lab product** that the feature checklist was taken from, or its vendor, and never copy its wording or screenshots. A local pre-commit hook checks for this.
+2. **Never name the commercial lab product** that the feature checklist was taken from, or its vendor, and never copy its wording or screenshots. A local pre-commit hook checks for this. When checking for the names, report counts or file names only, never the names themselves. Don't re-analyse the product's material unless a maintainer asks.
 3. **Secrets come from the environment only.** Never commit `.env*`, keys, passwords or tokens. Never read `.env*`, `data/` or backups while working.
 4. **Every change ships its tests and its manual page update in the same PR.** An item isn't done until code, tests and docs are merged together.
 5. **No AI attribution trailers** (`Co-Authored-By: <AI>`) in commits or PRs.
@@ -22,7 +22,11 @@ Open-source software (MIT) for small Indian diagnostic lab chains: patients, vis
 ## Working as an agent
 - **Done means `scripts/ci_local.sh` is green,** not just `pytest`. A `WARN` stage is unchecked, not passed; say so when reporting.
 - **End every piece of work with an audit:** re-read the tracker rows and the plan, review the full diff against them, and confirm each fix has a test that fails on the old code.
-- **Follow the plan.** If it's ambiguous, stop and ask. Don't widen the scope; list unrelated improvements at the end instead.
+- **Follow the plan.** If it's ambiguous, stop and ask. Don't widen the scope: a small improvement found on the way gets its own tracker ID and commit, and larger ones are listed at the end.
+- **Continuing a run:** when told to continue a run of item groups, do them back to back, and commit each group locally once its gate is green.
+- **One push per round.** Get the gate green locally, and run `scripts/ci_portability.sh --if-needed`, before pushing. Use one branch and one PR for a round of related work, not a PR per fix. Reproduce a CI failure locally instead of re-running CI to test a guess. Each round means a wait of 10 minutes or more, longer when the portability workflow runs; minutes are free on this public repository, so the wait is the cost.
+- **The maintainer decides what leaves the machine.** Say so before any push that starts a workflow. Never open or merge a PR, or change a GitHub setting (the ruleset, Actions, secrets), without the maintainer's go; maintainers do the merge.
+- **No status-only PRs.** Close the tracker rows in the work PR, citing the branch's commit ([workflow step 7](docs/dev/workflow.md)).
 - **After a context compaction,** run `git status` and `git diff --stat` before editing again.
 - **Commands use repo-relative or absolute paths;** don't rely on an earlier `cd`.
 - **Reuse search results** from earlier in the session instead of searching again.
@@ -42,6 +46,7 @@ scripts/          gates and operational scripts
 |---|---|
 | Install | `uv sync` |
 | All local gates (same as CI) | `scripts/ci_local.sh` |
+| Portability workflow, locally ([runtimes](docs/dev/runtimes.md#run-the-portability-jobs-locally)) | `scripts/ci_portability.sh --if-needed` |
 | Tests | `uv run pytest` |
 | Lint and format | `uv run ruff check . && uv run ruff format .` |
 | Types | `uv run pyright` |
@@ -64,7 +69,7 @@ Every piece of work has a permanent ID in [`docs/TRACKER.md`](docs/TRACKER.md).
 | Tests | `@pytest.mark.item("M07")` on the tests that prove the item | — |
 | ADR | front matter `items: [W02]` | — |
 | Code | **no IDs in code comments** (they go stale); test markers carry the traceability | — |
-| Status | `todo → doing → done` (strike-through, date and PR), or `blocked` / `dropped` with a reason; updated in the same PR | — |
+| Status | `todo → doing → done` (strike-through, date and the branch's commit), or `blocked` / `dropped` with a reason; updated in the same PR | `2026-10-26 · 1a2b3c4` |
 | New idea | next free number in its prefix, tracker row added in the same change; never renumber or reuse | — |
 | Git tags | releases only, e.g. `v0.1.0`; the pilot tag is refused while any `W`, `M` or gate-P `EC` item is open | — |
 

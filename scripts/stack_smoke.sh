@@ -160,11 +160,15 @@ https() { curl -sk --resolve "$site:$https_port:127.0.0.1" "$@"; }
 url() { echo "https://$site:$https_port$1"; }
 code() { https -o /dev/null -w '%{http_code}' "$@"; }
 
-# Ready, not just up: where Compose doesn't wait on health checks, web starts before migrate ends.
-for _ in $(seq 60); do
-  [[ $(code "$(url /readyz)") == 200 ]] && break
-  sleep 1
-done
+# Ready through the proxy, not just up: where Compose doesn't wait on health checks, web starts
+# before migrate ends, and after a restart the proxy may still reach for the container that went.
+ready() {
+  for _ in $(seq 60); do
+    [[ $(code "$(url /readyz)") == 200 ]] && return
+    sleep 1
+  done
+}
+ready
 took=$((${EPOCHREALTIME/./} - started))
 echo "INFO  ready in $((took / 1000000)).$((took / 100000 % 10)) s"
 
@@ -306,10 +310,7 @@ check "refused restore changed nothing" 1 "$(sql "$b9")"
 check "restore --replace from the newest snapshot" 0 "$(restore --replace; echo $?)"
 check "restore checked the audit log" '*Audit log intact*' "$(tail -3 "$work/restore.log")"
 check "data written after the backup is gone" 0 "$(sql "$b9")"
-for _ in $(seq 60); do
-  [[ $(code "$(url /readyz)") == 200 ]] && break
-  sleep 1
-done
+ready
 check "sign in after the restore" 303 "$(sign_in)"
 job --no-deps --entrypoint sh backup -c 'chmod -R u+w /backup/usb/labra/data &&
   find /backup/usb/labra/data -type f -exec truncate -s 64 {} +' >/dev/null 2>&1
@@ -393,11 +394,15 @@ check "upgrade logged" t "$(last_run upgrade)"
 check "pre-upgrade backup taken" $((before + 1)) "$(sql "$backups")"
 dc exec -T web labra add-branch --code B8 --name "Branch eight" --kind collection_centre >/dev/null 2>&1
 check "an upgrade whose migration fails rolls back" 4 "$(upgrade localhost/labra-smoke:broken; echo $?)"
+# Not the stack start's migration: there, podman-compose starts web after it fails.
+check "the failed migration stopped the upgrade before the app started" 1 \
+  "$(grep -c '^The upgrade failed: the migrations failed\.' "$work/upgrade.log")"
 check "web runs the previous image again" localhost/labra-smoke:next "$(web_image)"
 check "failed upgrade logged" f "$(last_run upgrade)"
 check "data from before the upgrade kept" 1 "$(sql "select count(*) from branch where code = 'B8'")"
 check "the image in use is kept for the next start" "LABRA_IMAGE=localhost/labra-smoke:next" \
   "$(cat "$work/env")"
+ready
 check "sign in after the rollback" 303 "$(sign_in)"
 ((fails == fails_before_upgrade)) || tail -20 "$work/upgrade.log" | sed 's/^/INFO    /'
 

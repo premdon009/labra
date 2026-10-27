@@ -190,16 +190,23 @@ def test_an_image_reference_is_used_as_given_and_not_pulled_when_already_here(
     assert stat.S_IMODE(upgrade.env_file.stat().st_mode) == 0o600
 
 
+@pytest.mark.item("W36")
 @pytest.mark.item("EC-G03")
-@pytest.mark.parametrize("failing", ["UP_0.2.0", "READY_0.2.0"])
-def test_a_failed_migration_or_an_app_that_never_gets_ready_is_rolled_back(
-    upgrade: Upgrade, failing: str
+@pytest.mark.parametrize(
+    ("failing", "why"),
+    [
+        ("UP_0.2.0", "the stack didn't start within 0 s"),
+        ("READY_0.2.0", "the app didn't answer within 0 s"),
+    ],
+)
+def test_a_stack_or_an_app_that_never_gets_ready_is_rolled_back(
+    upgrade: Upgrade, failing: str, why: str
 ) -> None:
     upgrade.env_file.write_text("LABRA_SITE=labra.lan\n")
     upgrade.fail(failing)
     result = upgrade("0.2.0")
     assert result.returncode == 4, result.stderr
-    assert "rolling back" in result.stderr
+    assert f"The upgrade failed: {why}. Rolling back to {OLD}" in result.stderr
     # The pre-upgrade backup goes back over the database, from the USB copy, on the old image.
     restore = upgrade.called(" restore restore ")
     assert restore == [
@@ -208,10 +215,11 @@ def test_a_failed_migration_or_an_app_that_never_gets_ready_is_rolled_back(
     ]
     assert upgrade.started[-1].startswith(f"compose LABRA_IMAGE={OLD} ")
     assert upgrade.called("labra audit verify")
-    assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
+    assert upgrade.logged == f"false not upgraded to {NEW}: {why}; rolled back to {OLD}"
     assert upgrade.env_file.read_text() == f"LABRA_SITE=labra.lan\nLABRA_IMAGE={OLD}\n"
 
 
+@pytest.mark.item("W36")
 @pytest.mark.item("W30")
 def test_a_failed_migration_is_rolled_back_before_the_new_app_starts(upgrade: Upgrade) -> None:
     # podman-compose starts web after a failed migrate, then waits for ever for it to be healthy.
@@ -223,7 +231,12 @@ def test_a_failed_migration_is_rolled_back_before_the_new_app_starts(upgrade: Up
         f"compose LABRA_IMAGE={NEW} --profile jobs run --rm -T --no-deps migrate"
     ]
     assert [c.split(" ")[1] for c in upgrade.started] == [f"LABRA_IMAGE={OLD}"]
-    assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
+    # The stack smoke tells this message from the others, so it sees a migration that failed
+    # inside the stack start instead.
+    assert "The upgrade failed: the migrations failed." in result.stderr
+    assert upgrade.logged == (
+        f"false not upgraded to {NEW}: the migrations failed; rolled back to {OLD}"
+    )
 
 
 @pytest.mark.item("W30")
@@ -248,7 +261,9 @@ def test_a_stack_start_that_never_returns_is_rolled_back_after_the_wait(
         f"LABRA_IMAGE={NEW}",
         f"LABRA_IMAGE={OLD}",
     ]
-    assert upgrade.logged == f"false not upgraded to {NEW}; rolled back to {OLD}"
+    assert upgrade.logged == (
+        f"false not upgraded to {NEW}: the stack didn't start within 1 s; rolled back to {OLD}"
+    )
 
 
 @pytest.mark.item("EC-G03")
@@ -268,7 +283,10 @@ def test_a_failed_rollback_says_so_and_names_the_runbook(upgrade: Upgrade) -> No
     assert "THE ROLLBACK FAILED" in result.stderr
     assert "docs/runbooks/restore-from-backup.md" in result.stderr
     assert "usb:bbbb2222" in result.stderr
-    assert upgrade.logged == f"false not upgraded to {NEW}, and the rollback to {OLD} failed"
+    assert upgrade.logged == (
+        f"false not upgraded to {NEW}: the stack didn't start within 0 s, "
+        f"and the rollback to {OLD} failed"
+    )
     assert (ROOT / "docs" / "runbooks" / "restore-from-backup.md").exists()
 
 

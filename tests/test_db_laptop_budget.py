@@ -71,6 +71,7 @@ def test_the_fill_refuses_a_database_with_patients_of_its_own(
 
 
 @pytest.mark.item("EC-F01")
+@pytest.mark.serial
 @pytest.mark.parametrize("username", ["anil", "priya"])
 def test_patient_search_stays_within_300_ms_over_two_years_of_patients(
     seeded: Session, platform: Platform, db_client: TestClient, username: str

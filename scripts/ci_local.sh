@@ -12,7 +12,8 @@
 # (a tool or Docker is missing) and is never counted as a pass. Exit 1 on any FAIL.
 #
 # Every run keeps its logs in ${LABRA_CI_LOGS:-.ci/runs}/<UTC time>/: one <stage>.log per
-# stage, the test output (pytest.txt), a JUnit XML report (junit.xml), coverage.json,
+# stage, the test output (pytest.txt), JUnit XML reports (junit.xml; junit-serial.xml for the
+# tests marked serial), coverage.json,
 # summary.txt, and the failed and flaky tests (failed-tests.txt, flaky.txt). The newest 10
 # runs are kept, and the newest failed run is never removed. Each tests stage also appends
 # to history.tsv there, which scripts/flaky_report.py reads.
@@ -114,11 +115,17 @@ stage_tests() {
   local out="$RUN_DIR/pytest.txt"
   # Coverage floors are checked by check_coverage.py, so a skipped database run can
   # report them as unchecked instead of failed. A failed test is re-run once: if it then
-  # passes it is flaky, and the stage still fails, naming it.
-  uv run pytest -q -rfEsR --reruns 1 --junitxml="$RUN_DIR/junit.xml" \
-    --cov --cov-fail-under=0 --cov-report=term \
-    --cov-report=json:"$RUN_DIR/coverage.json" | tee "$out"
+  # passes it is flaky, and the stage still fails, naming it. The tests run on one worker per
+  # CPU, at most 8 (LABRA_TEST_WORKERS=0 runs them one at a time); a file's tests stay together.
+  # Tests marked serial hold a time budget, so they run afterwards on an idle machine.
+  local pytest=(uv run pytest -q -rfEsR --reruns 1 --cov --cov-fail-under=0)
+  "${pytest[@]}" -m "not serial" --junitxml="$RUN_DIR/junit.xml" \
+    -n "${LABRA_TEST_WORKERS:-auto}" --maxprocesses 8 --dist loadfile \
+    --cov-report= | tee "$out"
   local rc=${PIPESTATUS[0]} named commit
+  "${pytest[@]}" -m serial --junitxml="$RUN_DIR/junit-serial.xml" --cov-append \
+    --cov-report=term --cov-report=json:"$RUN_DIR/coverage.json" | tee -a "$out"
+  ((PIPESTATUS[0] != 0)) && rc=1
   commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
   [[ -n $(git status --porcelain 2>/dev/null) ]] && commit+=-dirty
   uv run python scripts/pytest_summary.py "$out" "$RUN_DIR" --history "$LOGS_ROOT/history.tsv" \

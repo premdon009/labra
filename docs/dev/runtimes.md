@@ -21,7 +21,7 @@ install the ones you want to compare. `scripts/check_tools.sh` lists what it fin
 | Kaniko | nothing; it runs as a container on Docker or Podman | — |
 | Podman Desktop | [podman-desktop.io](https://podman-desktop.io) (Windows, macOS) | see the checklist below |
 
-nerdctl, pinned by checksum:
+nerdctl, pinned by checksum (the version `scripts/portability_job.sh` installs):
 ```sh
 v=2.4.1
 curl -fsSLO https://github.com/containerd/nerdctl/releases/download/v$v/nerdctl-full-$v-linux-amd64.tar.gz
@@ -103,8 +103,8 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   that capture output should read stdout only.
 - **Rootless nerdctl on Ubuntu 23.10 and later** stops at "RootlessKit failed" with
   `apparmor_restrict_unprivileged_userns is set to 1`: AppArmor refuses user namespaces to a
-  program without a profile. Give RootlessKit one, as `.github/workflows/portability.yml` does
-  (the `nerdctl` job), then run `containerd-rootless-setuptool.sh install`, and
+  program without a profile. Give RootlessKit one, as `scripts/portability_job.sh` does
+  (`install_nerdctl`), then run `containerd-rootless-setuptool.sh install`, and
   `containerd-rootless-setuptool.sh install-buildkit` to build images.
 - **nerdctl compose** pulls a missing image where Docker and Podman build it, so load the
   backup image before `compose run backup` (`scripts/compare_runtimes.sh` puts both images in
@@ -141,6 +141,64 @@ will be sent over the network to a collector (X35), so they won't depend on the 
   or skip containers and use `LABRA_TEST_DATABASE_URL` with a database whose name ends in
   `_test`.
 
+## Run the portability jobs locally
+`.github/workflows/portability.yml` runs each row on a fresh GitHub runner. The commands for
+each row are in `scripts/portability_job.sh`, so the same rows can run here before a push:
+
+```sh
+scripts/ci_portability.sh                            # every row, two at a time
+scripts/ci_portability.sh nerdctl podman-compose --jobs 1
+scripts/ci_portability.sh --if-needed                # only if the branch changes a watched path
+```
+
+Each row gets its own lab: a privileged Ubuntu 26.04 container from
+`deploy/ci-lab/Containerfile` with systemd as PID 1, Docker, Podman, Buildah and a sudo user
+`runner`. Podman's health checks, its socket and rootless containerd therefore run as user
+services, as they do on the runner. The script builds the lab image once (again only when the
+Containerfile changes) and the app and backup images once on this machine. It loads those images
+into every lab along with the pinned Postgres, Caddy, nginx and Kaniko images and the app
+image's Python and uv base images and Dockerfile frontend, so a lab pulls nothing except
+Kaniko's base images. It copies in the working tree, uncommitted changes included, and runs
+`portability_job.sh --install ROW` and then `portability_job.sh ROW` as `runner`. At the end it
+prints one line per row: PASS, FAIL with the log to read, or SKIP with the reason. It exits 1 if
+any row failed.
+
+Logs and each row's results go to `.ci/portability/<UTC time>/<row>/`. `--build` makes each row
+build its own images, as the runner does. `--keep` leaves the labs running, so you can look
+inside with `docker exec -it -u runner labra-ci-<UTC time>-<row> bash`.
+
+The local run doesn't cover everything the GitHub run does:
+- **incus** is always SKIP: it needs a VM, so it runs on GitHub only.
+- **Docker's version differs.** The lab has Ubuntu's `docker.io` package (29.1.3, Compose
+  2.40.3), not the Docker packages on GitHub's runner image, and the kernel is this machine's.
+  A fault tied to one Docker release or kernel can still show up only on GitHub.
+- **outside-postgres** starts a throwaway PostgreSQL at the digest the workflow's service
+  runs, instead of a service container.
+- **Kaniko in the builders row** fetches its base images from the registries itself, so its
+  build can fail here when Docker Desktop drops a pull
+  ([tooling issues](tooling-issues.md#docker-desktop-pulls-fail-now-and-then)). A Kaniko
+  failure with a registry error in `build-kaniko.log` is the network, not the change; GitHub's
+  run checks Kaniko.
+
+The lab is built this way for these reasons:
+- systemd boots as PID 1 under `--privileged --cgroupns=private` with `/run` on tmpfs, also on
+  Docker Desktop under WSL2, so Podman's health checks run as they do on a host. The cgroup
+  namespace must be the lab's own: with the host's, systemd sees its tree under
+  `/docker/<id>/` while Podman looks for a pod's slice at the top, asks systemd to create it a
+  second time, and podman-compose waits for ever on containers that never start.
+- `/var/lib/docker`, `/var/lib/containerd`, `/var/lib/containers` and `/home/runner` are
+  volumes. An overlay filesystem inside another one refuses whiteouts, and `docker load` then
+  failed with "operation not permitted".
+- Commands run as `runner` get Docker's default `PATH`, the `sbin` directories included.
+  `containerd-rootless-setuptool.sh` writes the `PATH` it runs with into the containerd user
+  service, and RootlessKit needs `ip` from `iproute2`.
+- Recommended packages are installed, as the runner's `apt-get install` does. Without them
+  Podman has no `aardvark-dns`, and the stack's containers can't find each other by name.
+- `/` is made a shared mount at boot, which Podman needs.
+- The lab is on Docker's default bridge, so it gets this machine's name servers, as the runner
+  has real ones. On a network of its own it would see only Docker's `127.0.0.11`, and nerdctl
+  would print a notice about it on every `run` into output the checks compare.
+
 ## Podman Desktop on Windows
 A GUI, so it's checked by hand once per release:
 1. Install Podman Desktop, create the Podman machine, and enable "Docker compatibility".
@@ -163,6 +221,7 @@ inside a test container, so they prove behaviour, not performance:
 | Builds: Docker, Podman, Buildah, Kaniko (fork) | BuildKit, 5.8.7, 1.43.4, 1.28.5 | image checks pass |
 | Incus system container with nesting | 6.23 | starts and runs Podman; the full stack needs a run on a real host |
 | Tailscale and NetBird profiles | 1.102.5, 0.80.0 | start and wait for login; the proxy keeps serving |
+| Local CI lab, every portability row ([above](#run-the-portability-jobs-locally)), 2026-10-26 | Docker 29.1.3, Compose 2.40.3, Podman 5.7.0, podman-compose 1.5.0, nerdctl 2.4.1 | every row passes but incus, which is SKIP; a full run takes about 30 minutes two at a time |
 
 ## Measured
 `compare_runtimes.sh` on one WSL2 laptop, 10 s of load per endpoint. Run it again on the

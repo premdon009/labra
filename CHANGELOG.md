@@ -55,8 +55,10 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - `labra set-password` gives someone a new password at the server.
 - The runbooks are in the app's manual and its PDF, so they open with the internet down.
 - Anyone signed in can change their own password from the **Password** link in the header; their other sessions end.
+- `scripts/ci_portability.sh` runs the portability workflow's rows on a developer's machine before a push, each in its own lab container, and prints which passed; the workflow and the local runner share the same steps.
 
 ### Changed
+- The app and backup image builds use a Dockerfile frontend pinned by version and digest, so a build no longer fetches whatever `docker/dockerfile:1` points to that day.
 - Every container in the Compose stack keeps at most five 10 MB log files, so the install guide no longer changes Docker's own settings.
 - Package and comment preset forms take tests by typed code instead of listing every test.
 - Admin lists show the first page for a page number that isn't a number, and stay on the same page after a row is saved.
@@ -72,8 +74,12 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - The demo seed draws every person's name from Faker and the letterhead preview samples show role labels, so no person's name is written in the code.
 - Dependencies must be at least 7 days old before Labra adopts them, except fixes for published advisories; `uv lock` picks only such releases and `scripts/audit_deps.py --check` refuses younger ones.
 - Pillow 13.0.0 and certifi 2026.10.19, for published advisories.
+- Brotli 1.2.1 (used for the fonts in every PDF) and pypdf 6.21.2, for published advisories.
 - The stack smoke test checks that Postgres runs with fsync and data checksums on.
 - CI and release image builds use the Node 24 releases of Docker's GitHub Actions (setup-qemu, setup-buildx, login, build-push), and every job names its runner, `ubuntu-26.04`, instead of `ubuntu-latest`.
+- The gate runs the tests in parallel, one worker per CPU (at most 8), each with its own database; the time-budget tests run after them on their own.
+- A new push to a pull request cancels its older CI and portability runs; runs on master and on the schedule always finish.
+- An upgrade that fails says which step failed, the migrations or the new version not starting in time, in its message and in the System page's *Upgrade* row.
 
 ### Fixed
 - Visit screen: a test code typed while the last test is still being added is no longer lost.

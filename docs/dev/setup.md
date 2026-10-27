@@ -1,5 +1,5 @@
 ---
-items: [W01, W08, W23, W25]
+items: [W01, W08, W23, W25, W32]
 ---
 
 # Developer setup
@@ -38,6 +38,7 @@ Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the director
 | `failed-tests.txt` | one line per failed or flaky test |
 | `flaky.txt` | the flaky tests' IDs, one per line (only when there are some) |
 | `junit.xml` | the test results as JUnit XML, which GitLab, Forgejo, Jenkins, Allure, IDEs and most CI systems read; a re-run test is listed twice |
+| `junit-serial.xml` | the same for the tests marked `serial`, which run after the others |
 | `coverage.json` | coverage per file |
 | `failed` | an empty marker: some stage failed |
 
@@ -57,6 +58,10 @@ The tests marked `e2e` drive a working day in a real browser with the keyboard: 
 `tests/test_db_pdf_snapshots.py` keeps the words of a 3-page report and of a bill, with their positions, in `tests/goldens/`. After a deliberate change to a PDF template or its CSS, write them again with `LABRA_WRITE_GOLDENS=1 uv run pytest tests/test_db_pdf_snapshots.py` and review the JSON diff before committing it.
 
 The goldens were written on Ubuntu 26.04 with its Pango and HarfBuzz, and GitHub CI runs the tests on `ubuntu-26.04` with the same libraries as the image (`tests/test_tooling.py` checks that the workflows' list matches the Dockerfile's). Another build of those libraries can move text by a fraction of a point, which the test's tolerance absorbs. If CI moves to a newer Ubuntu and the snapshots fail, write the goldens again on that release, check that only positions moved by small amounts, and commit them with the runner change. Without `libharfbuzz-subset0`, WeasyPrint warns that it is using fontTools instead of HarfBuzz-Subset for each font: the PDFs look the same, but fontTools is slower and WeasyPrint plans to drop it.
+
+The gate runs the tests in parallel with pytest-xdist: one worker per CPU, at most 8, and all of a file's tests on the same worker. Each worker starts its own Postgres container, or, with `LABRA_TEST_DATABASE_URL`, uses its own database on that server (`labra_test` becomes `labra_gw0_test`, `labra_gw1_test`, …, created when missing, so the role needs `CREATEDB`). `LABRA_TEST_WORKERS=4 scripts/ci_local.sh` sets the number of workers. The tests that hold a time budget are marked `serial`; the gate runs them afterwards, on their own, so the other workers can't slow them down.
+
+A plain `uv run pytest` runs everything one test at a time, which is the easiest way to debug. Add `-n auto` for the gate's parallel run, or `-n 0` to turn it off again in a command that has it.
 
 On Windows with WSL: turn on *Settings ▸ Resources ▸ WSL integration* in Docker Desktop for your distribution, so `docker` inside WSL talks to the Docker Desktop engine.
 

@@ -134,13 +134,19 @@ keep_image "$new"
 # The migrations run first, as a job, so a failed one is its exit status on every Compose:
 # podman-compose starts web after a failed migrate. They may take as long as they need. They
 # use the database already running: nerdctl's compose run would start a second one.
-if LABRA_IMAGE=$new compose_run --no-deps migrate && LABRA_IMAGE=$new up && LABRA_IMAGE=$new ready; then
+if ! LABRA_IMAGE=$new compose_run --no-deps migrate; then
+  why="the migrations failed"
+elif ! LABRA_IMAGE=$new up; then
+  why="the stack didn't start within $wait_for s"
+elif ! LABRA_IMAGE=$new ready; then
+  why="the app didn't answer within $wait_for s"
+else
   log_run true "upgraded from $old to $new"
   echo "Upgraded to $new."
   exit 0
 fi
 
-echo "The upgrade failed; rolling back to $old from snapshot $repo:$snapshot" >&2
+echo "The upgrade failed: $why. Rolling back to $old from snapshot $repo:$snapshot" >&2
 keep_image "$old"
 export LABRA_IMAGE=$old
 stop_web
@@ -148,11 +154,11 @@ if [[ -n $snapshot ]] &&
   compose_run restore restore --replace --from "$repo" "$snapshot" &&
   up && ready &&
   compose_run --no-deps web labra audit verify; then
-  log_run false "not upgraded to $new; rolled back to $old"
+  log_run false "not upgraded to $new: $why; rolled back to $old"
   echo "Rolled back: the lab runs $old again, with its data as before the upgrade." >&2
   exit 4
 fi
-log_run false "not upgraded to $new, and the rollback to $old failed"
+log_run false "not upgraded to $new: $why, and the rollback to $old failed"
 echo "THE ROLLBACK FAILED. Follow docs/runbooks/restore-from-backup.md (The same server)" \
   "with snapshot $repo:$snapshot." >&2
 exit 5

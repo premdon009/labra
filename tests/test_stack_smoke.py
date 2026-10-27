@@ -60,3 +60,13 @@ def test_a_stack_that_does_not_start_shows_each_containers_health_checks(tmp_pat
     inspected = [c for c in calls if c.startswith("fake inspect ")]
     assert [c.split()[-1] for c in inspected] == ["c0ffee", "bada55"]
     assert all(".State.Health.Log" in c for c in inspected)
+
+
+@pytest.mark.item("W35")
+def test_each_sign_in_after_a_restart_waits_for_the_app_through_the_proxy() -> None:
+    # After a restore or a rollback the proxy may still reach for the web container that went.
+    lines = [x.strip() for x in SMOKE.read_text().splitlines()]
+    lines = [x for x in lines if x and not x.startswith("#")]
+    sign_ins = [i for i, x in enumerate(lines) if x.startswith('check "sign in after ')]
+    assert len(sign_ins) == 2
+    assert all(lines[i - 1] == "ready" for i in sign_ins)
