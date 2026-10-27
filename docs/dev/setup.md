@@ -1,5 +1,5 @@
 ---
-items: [W01, W08, W23, W25, W32, W37]
+items: [W01, W08, W23, W25, W32, W37, W46]
 ---
 
 # Developer setup
@@ -26,6 +26,12 @@ uv run labra serve                        # http://127.0.0.1:8000
 ```
 
 Run one stage with `scripts/ci_local.sh --only lint` (stages: preflight, hygiene, lint, types, imports, services, tests, tracker, manual, docs, audit, stack). `--dry-run` lists the stages without running them. `--strict` counts a `WARN` as a `FAIL`: GitHub CI and the release workflow run the gate that way, so a check that couldn't run there fails the run instead of passing unseen. Locally, without `--strict`, a missing tool or Docker still shows as `WARN`.
+
+The hygiene stage's banned-terms check (AGENTS.md rule 2) reads its list from outside the
+repository, `~/.config/labra/banned-terms.txt` or the file `LABRA_BANNED_TERMS` names, one
+term per line; without one it shows as `WARN`. GitHub CI writes the list from the repository
+secret `BANNED_TERMS`. A run without that secret, such as a fork's pull request, skips the
+check (`LABRA_BANNED_TERMS_OPTIONAL=1`); the release workflow fails without it.
 
 ## Gate run logs
 Every gate run keeps its logs in `.ci/runs/<UTC time>/`, and prints the directory at the end as `Logs: …`:

@@ -1478,6 +1478,56 @@ def test_a_binary_variable_with_an_underscore_names_a_hyphenated_row(
     assert audit.check_binaries(rows) == []
 
 
+def _banned_terms(*files: Path, **env: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "check_banned_terms.sh"), *map(str, files)],
+        env={k: v for k, v in os.environ.items() if not k.startswith("LABRA_BANNED")} | env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.item("W46")
+def test_the_banned_terms_check_names_the_file_but_never_the_term(tmp_path: Path) -> None:
+    terms = tmp_path / "terms.txt"
+    terms.write_text("# made up for the test\nZorblax Pathware\n", encoding="utf-8")
+    page = tmp_path / "page.md"
+    page.write_text("Fine.\nSee zorblax pathware here.\n", encoding="utf-8")
+    found = _banned_terms(page, LABRA_BANNED_TERMS=str(terms))
+    assert found.returncode == 1, found.stdout + found.stderr
+    assert found.stdout.splitlines()[1:] == [str(page)]
+    assert "zorblax" not in (found.stdout + found.stderr).lower()
+
+
+@pytest.mark.item("W46")
+def test_a_missing_banned_terms_list_is_skipped_only_where_the_run_allows_it(
+    tmp_path: Path,
+) -> None:
+    missing = str(tmp_path / "none.txt")
+    unchecked = _banned_terms(LABRA_BANNED_TERMS=missing)
+    assert unchecked.returncode == 2
+    assert "WARN: no banned-terms list" in unchecked.stderr
+    skipped = _banned_terms(LABRA_BANNED_TERMS=missing, LABRA_BANNED_TERMS_OPTIONAL="1")
+    assert skipped.returncode == 0, skipped.stdout + skipped.stderr
+    assert "check skipped" in skipped.stdout
+
+
+@pytest.mark.item("W46")
+@pytest.mark.parametrize(("workflow", "optional"), [("ci.yml", True), ("release.yml", False)])
+def test_the_gate_jobs_get_the_banned_terms_list_from_a_secret(
+    workflow: str, *, optional: bool
+) -> None:
+    steps = _job(workflow, "gate")
+    write = steps.index('- run: printf \'%s\' "$TERMS" >"$RUNNER_TEMP/banned-terms.txt"')
+    assert "TERMS: ${{ secrets.BANNED_TERMS }}" in steps[write:]
+    gate = steps.index("- run: scripts/ci_local.sh --strict\n")
+    assert write < gate
+    gate_step = steps[gate:].split("\n      - ", 1)[0]
+    assert "LABRA_BANNED_TERMS: ${{ runner.temp }}/banned-terms.txt" in gate_step
+    assert ('LABRA_BANNED_TERMS_OPTIONAL: "1"' in gate_step) is optional
+
+
 @pytest.mark.item("W38")
 def test_the_release_gate_runs_the_stack_smoke_after_the_full_gate() -> None:
     steps = _job("release.yml", "gate")

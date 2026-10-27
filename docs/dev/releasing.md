@@ -1,5 +1,5 @@
 ---
-items: [W12, W11, EC-G03, W38]
+items: [W12, W11, EC-G03, W38, W46]
 ---
 
 # Releasing
@@ -37,7 +37,8 @@ person's machine.
    git push origin master v0.1.0rc1
    ```
 5. The `release` workflow checks that the tag matches `pyproject.toml`, runs the tag gate,
-   the full local gate with `--strict` (a `WARN` fails the release) and the stack smoke test
+   the full local gate with `--strict` (a `WARN` fails the release, so the repository secret
+   `BANNED_TERMS` must hold the banned-terms list) and the stack smoke test
    (`scripts/ci_local.sh --strict --only stack`: the tagged commit's image through a restore,
    an upgrade and a rollback), then builds amd64 and arm64 images on GHCR, `labra` and
    `labra-backup`, with the same tags:

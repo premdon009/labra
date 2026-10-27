@@ -26,8 +26,14 @@ jobs:
       - run: uv run python scripts/check_tracker.py --tag "$GITHUB_REF_NAME"
       - run: uv run playwright install --with-deps chromium # for the browser test
       - run: scripts/install_ci_tools.sh # gitleaks, osv-scanner, git-cliff, shellcheck
-      # --strict: a stage that couldn't be checked (WARN) fails the release.
+      # The banned-terms list comes from a secret, so the names stay out of the repository.
+      - run: printf '%s' "$TERMS" >"$RUNNER_TEMP/banned-terms.txt"
+        env:
+          TERMS: ${{ secrets.BANNED_TERMS }}
+      # --strict: a stage that couldn't be checked (WARN) fails the release, a missing list too.
       - run: scripts/ci_local.sh --strict
+        env:
+          LABRA_BANNED_TERMS: ${{ runner.temp }}/banned-terms.txt
       # The tagged commit's image through restore, upgrade and rollback before anything is pushed.
       - run: scripts/ci_local.sh --strict --only stack
 
