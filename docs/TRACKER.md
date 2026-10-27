@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 28/40 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 32/40 · Minimal 43/44 · After pilot (P2) 3/11 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -78,10 +78,10 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | ~~W34~~ | ~~Dockerfile frontend pinned: the `# syntax=` line of the app and backup images names `docker/dockerfile` by version and digest, and the local CI lab preloads it~~ | P | done | 2026-10-26 · 50bc6fb |
 | ~~W35~~ | ~~Stack smoke waits for the app through the proxy after the upgrade's rollback, as it does after a restore, before signing in~~ | P | done | 2026-10-26 · 64085cf |
 | ~~W36~~ | ~~Upgrade says which step failed (the migrations, or the app not starting in time), and the stack smoke checks that a failed migration stops the upgrade before the app starts~~ | P | done | 2026-10-26 · 7482b16 |
-| W37 | Secret and vulnerability scans run in GitHub CI: the gate jobs install pinned gitleaks, osv-scanner and git-cliff (`scripts/install_ci_tools.sh`, checked by SHA-256) and run `scripts/ci_local.sh --strict`, where a WARN stage counts as FAIL; locally WARN stays unchecked | P | doing | |
-| W38 | Release gate runs the stack smoke (build, restore, upgrade, rollback) on the tagged commit before any image is pushed | P | doing | |
-| W39 | Portability workflow watches every script the stack smoke reaches (`scripts/backup.sh` was missing), and a test fails when a new one is left out of its paths | P | doing | |
-| W40 | The test fixtures' container-runtime probe no longer leaks a socket when Docker is unreachable; the leak failed one test per worker, so a machine without Docker showed the tests stage as FAIL instead of WARN | P | doing | |
+| ~~W37~~ | ~~Secret and vulnerability scans run in GitHub CI: the gate jobs install pinned gitleaks, osv-scanner and git-cliff (`scripts/install_ci_tools.sh`, checked by SHA-256) and run `scripts/ci_local.sh --strict`, where a WARN stage counts as FAIL; locally WARN stays unchecked~~ | P | done | 2026-10-27 · d5986c2 |
+| ~~W38~~ | ~~Release gate runs the stack smoke (build, restore, upgrade, rollback) on the tagged commit before any image is pushed~~ | P | done | 2026-10-27 · d5986c2 |
+| ~~W39~~ | ~~Portability workflow watches every script the stack smoke reaches (`scripts/backup.sh` was missing), and a test fails when a new one is left out of its paths~~ | P | done | 2026-10-27 · d5986c2 |
+| ~~W40~~ | ~~The test fixtures' container-runtime probe no longer leaks a socket when Docker is unreachable; the leak failed one test per worker, so a machine without Docker showed the tests stage as FAIL instead of WARN~~ | P | done | 2026-10-27 · 3466e88 |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
