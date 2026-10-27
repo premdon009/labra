@@ -1,5 +1,5 @@
 ---
-items: [W08]
+items: [W08, W40]
 ---
 
 # Known tooling issues
@@ -14,7 +14,7 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 ## Docker unreachable from WSL
 **Symptom:** tests that need Postgres are skipped with "no Postgres for tests"; `docker ps` in WSL fails or runs a Windows-side shim.
 **Cause:** Docker Desktop is running, but WSL integration is off for this distribution.
-**Fix:** Docker Desktop ▸ Settings ▸ Resources ▸ WSL integration ▸ enable the distribution, then restart the WSL shell. Until then, `docker.exe compose config` can still validate Compose files.
+**Fix:** Docker Desktop ▸ Settings ▸ Resources ▸ WSL integration ▸ enable the distribution, then restart the WSL shell. Until then, `docker.exe compose config` can still validate Compose files. The tests stage shows `WARN` (database tests unchecked), never `FAIL`, for this.
 
 ## Docker socket: permission denied in WSL
 **Symptom:** `docker version` in WSL shows the client, then "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"; database tests are skipped.

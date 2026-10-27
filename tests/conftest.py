@@ -10,8 +10,10 @@ Under pytest-xdist each worker has its own: its own container, or its own databa
 server named in LABRA_TEST_DATABASE_URL (`labra_test` becomes `labra_gw0_test`, and so on).
 """
 
+import gc
 import os
 import uuid
+import warnings
 from collections.abc import Iterator
 from datetime import date
 from functools import cache
@@ -76,13 +78,19 @@ def postgres_available() -> bool:
     if TEST_DATABASE_URL:
         checked_test_url(TEST_DATABASE_URL)
         return True
-    try:
-        import docker
+    # docker-py leaves its socket open when the connection fails. Collect it here, with the
+    # warning off, rather than in whichever test the garbage collector next runs in.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ResourceWarning)
+        try:
+            import docker
 
-        docker.from_env(timeout=5).ping()
-    except Exception:  # noqa: BLE001  any failure means "can't run db tests here"
-        return False
-    return True
+            docker.from_env(timeout=5).ping()
+            ok = True
+        except Exception:  # noqa: BLE001  any failure means "can't run db tests here"
+            ok = False
+        gc.collect()
+    return ok
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

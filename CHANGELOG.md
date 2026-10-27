@@ -85,6 +85,7 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - An upgrade that fails says which step failed, the migrations or the new version not starting in time, in its message and in the System page's *Upgrade* row.
 
 ### Fixed
+- On a machine without Docker the tests stage reports its database tests as unchecked (`WARN`) again, instead of failing one test per worker on a socket the runtime check left open.
 - Visit screen: a test code typed while the last test is still being added is no longer lost.
 - A UPI reference must contain a digit, so a word typed by mistake is refused.
 - The audit log records a new visit before its bill.

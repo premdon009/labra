@@ -1,6 +1,7 @@
 """The command line and the repository gate scripts."""
 
 import fnmatch
+import gc
 import hashlib
 import importlib.util
 import json
@@ -1516,3 +1517,20 @@ def test_the_portability_workflow_watches_every_script_its_rows_reach() -> None:
         if not any(fnmatch.fnmatchcase(path, p.replace("**", "*")) for p in patterns)
     )
     assert unwatched == []
+
+
+@pytest.mark.item("W40")
+def test_an_unreachable_runtime_leaves_no_socket_for_a_later_test_to_trip_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # docker-py leaves its socket open when the connection fails; under the ResourceWarning
+    # filter that failed whichever test the garbage collector next ran in.
+    from tests import conftest
+
+    monkeypatch.setattr(conftest, "TEST_DATABASE_URL", None)
+    monkeypatch.setenv("DOCKER_HOST", f"unix://{tmp_path}/missing.sock")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert conftest.postgres_available.__wrapped__() is False
+        gc.collect()
+    assert [w.message for w in caught if issubclass(w.category, ResourceWarning)] == []
