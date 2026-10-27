@@ -1533,6 +1533,40 @@ def test_the_gate_jobs_get_the_banned_terms_list_from_a_secret(
     assert ('LABRA_BANNED_TERMS_OPTIONAL: "1"' in gate_step) is optional
 
 
+@pytest.mark.item("W45")
+def test_pip_audit_checks_the_locked_packages_by_their_hashes(tmp_path: Path) -> None:
+    uv = shutil.which("uv")
+    assert uv is not None, "uv is not installed"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    # The real uv exports the lock; the pip-audit run only records what it was given.
+    stub = bin_dir / "uv"
+    stub.write_text(
+        "#!/usr/bin/env bash\n"
+        f'[[ $1 == export ]] && exec {uv} "$@"\n'
+        f'printf "%s\\n" "$@" >{tmp_path}/args\n'
+        f'while (($#)); do [[ $1 == -r ]] && cp "$2" {tmp_path}/requirements.txt; shift; done\n'
+        "echo 'No known vulnerabilities found'\n",
+        encoding="utf-8",
+    )
+    stub.chmod(0o755)
+    done = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "audit_python.sh")],
+        env=os.environ | {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    args = (tmp_path / "args").read_text(encoding="utf-8").split()
+    assert "--require-hashes" in args
+    assert "--no-deps" not in args
+    requirements = (tmp_path / "requirements.txt").read_text(encoding="utf-8")
+    pins = [p for p in requirements.replace("\\\n", "").splitlines() if p[:1].isalnum()]
+    assert len(pins) > 50
+    assert [p for p in pins if "--hash=sha256:" not in p] == []
+
+
 @pytest.mark.item("W38")
 def test_the_release_gate_runs_the_stack_smoke_after_the_full_gate() -> None:
     steps = _job("release.yml", "gate")
