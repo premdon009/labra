@@ -164,6 +164,15 @@ def test_the_database_password_reaches_pg_dump_only_through_its_environment(job)
     assert "s3cret" not in _log(job.stubs, "calls.log")
 
 
+@pytest.mark.item("W41")
+def test_the_job_logs_in_with_the_url_its_service_names(job, tmp_path: Path) -> None:
+    # Compose gives the backup a read-only user and the restore the owner, in different files.
+    url = tmp_path / "backup_database_url"
+    url.write_text("postgresql+psycopg://labra_backup:r3ad@db:5432/labra")
+    assert job("backup", LABRA_DATABASE_URL_FILE=str(url)).returncode == 0
+    assert "PGPASSWORD=r3ad PGHOST=db PGUSER=labra_backup" in _log(job.stubs, "env.log")
+
+
 @pytest.mark.item("EC-D01")
 def test_a_missing_usb_disk_fails_the_run_but_the_drive_copy_still_happens(job) -> None:
     (job.usb / "config").unlink()  # the mount point is empty when the disk isn't there

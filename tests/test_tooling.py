@@ -838,7 +838,8 @@ def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     assert "files:/data/files:ro" in service
     assert "edge" not in service
     assert re.search(r"^  egress:\n(?!    internal: true)", compose, re.M)
-    # The restore job is the same service with the files writable, and nothing else changed.
+    # The restore job is the same service with the files writable and the owner's login, and
+    # nothing else changed.
     m = re.search(r"^  restore:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
     assert m is not None
     restore = [line.strip() for line in m.group(1).splitlines() if line.strip()]
@@ -846,6 +847,10 @@ def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     assert "- files:/data/files" in restore
     assert [line for line in restore if not line.startswith(("#", "-"))] == [
         "<<: *backup",
+        "environment:",
+        "<<: *backup-env",
+        "LABRA_DATABASE_URL_FILE: /run/secrets/owner_database_url",
+        "secrets: [owner_database_url, restic_password, rclone_conf]",
         "volumes:",
     ]
 

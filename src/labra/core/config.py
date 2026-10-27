@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, ValidationInfo, field_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix=ENV_PREFIX, extra="ignore")
 
     database_url: SecretStr = SecretStr("postgresql+psycopg://labra@localhost:5432/labra")
+    # Read by `labra migrate` only, which connects as the owner (database_url) and gives the web
+    # app and the backup job the logins in these URLs, with only the rights they need. Unset,
+    # everything runs as the one login in database_url (development, tests).
+    app_database_url: SecretStr | None = None
+    backup_database_url: SecretStr | None = None
     files_dir: Path = Path("/data/files")
     # Where `labra export` writes; exports hold patient data, so a folder on the data volume.
     export_dir: Path | None = None
@@ -75,16 +80,18 @@ class Settings(BaseSettings):
     session_idle_minutes: int = 30
     session_absolute_hours: int = 12
 
-    @field_validator("database_url")
+    @field_validator("database_url", "app_database_url", "backup_database_url")
     @classmethod
-    def _postgresql_only(cls, url: SecretStr) -> SecretStr:
+    def _postgresql_only(cls, url: SecretStr | None, info: ValidationInfo) -> SecretStr | None:
         # ConfigError passes through pydantic unwrapped, so `labra check-config` exits 2. The
         # URL holds a password, so it is never echoed.
+        if url is None:
+            return None
         scheme = url.get_secret_value().partition("://")[0]
         if scheme.partition("+")[0] != "postgresql":
             raise ConfigError(
-                "LABRA_DATABASE_URL must start with postgresql:// or postgresql+<driver>://. "
-                "Labra runs on PostgreSQL; see docs/dev/services.md."
+                f"{ENV_PREFIX}{(info.field_name or '').upper()} must start with postgresql:// "
+                "or postgresql+<driver>://. Labra runs on PostgreSQL; see docs/dev/services.md."
             )
         return url
 

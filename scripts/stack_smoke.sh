@@ -108,18 +108,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Secrets the way running-the-stack.md sets them up. The app reads database_url as a non-root
-# user whose host UID differs by runtime, so that one file is world-readable inside a 0700
-# directory; the others are read as root.
+# Secrets the way running-the-stack.md sets them up. The app and the jobs read the URLs as a
+# non-root user whose host UID differs by runtime, so those files are world-readable inside a
+# 0700 directory; db_password is read as root.
 secrets=$work/secrets
 mkdir -m 700 "$secrets"
 openssl rand -hex 24 | tr -d '\n' >"$secrets/db_password"
-printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(<"$secrets/db_password")" \
-  >"$secrets/database_url"
+db_url() { printf 'postgresql+psycopg://%s:%s@db:5432/labra' "$1" "$2" >"$secrets/$3"; }
+db_url labra "$(<"$secrets/db_password")" owner_database_url
+db_url labra_app "$(openssl rand -hex 24)" database_url
+db_url labra_backup "$(openssl rand -hex 24)" backup_database_url
 openssl rand -hex 24 | tr -d '\n' >"$secrets/restic_password"
 printf '[drive]\ntype = local\n' >"$secrets/rclone.conf"
 chmod 600 "$secrets/db_password"
-chmod 644 "$secrets/database_url" "$secrets/restic_password" "$secrets/rclone.conf"
+chmod 644 "$secrets"/*database_url "$secrets/restic_password" "$secrets/rclone.conf"
 if [[ $proxy == nginx ]]; then
   mkdir -m 700 "$secrets/tls"
   openssl req -x509 -newkey rsa:2048 -nodes -days 7 -subj "/CN=$site" \
@@ -202,6 +204,19 @@ check "tunnel listener: app 200, /metrics 404" "200 404" "$tunnel"
 check "Postgres: fsync and data checksums on" "on on" \
   "$(dc exec -T db psql -U labra -d labra -Atc \
     "select current_setting('fsync') || ' ' || current_setting('data_checksums')" 2>/dev/null)"
+check "web, the backup job: logins that aren't superusers" "labra_app f f|labra_backup f t" \
+  "$(dc exec -T db psql -U labra -d labra -Atc "select string_agg(concat_ws(' ', rolname,
+    rolsuper, pg_has_role(oid, 'pg_read_all_data', 'member')), '|' order by rolname)
+    from pg_roles where rolname in ('labra_app', 'labra_backup')" 2>/dev/null)"
+check "web's login can't change the schema" InsufficientPrivilege "$(dc exec -T web python -c "
+from sqlalchemy import text
+from labra.core.db import get_engine
+with get_engine().connect() as c:
+    try:
+        c.execute(text('create table planted (id int)'))
+        print('created as', c.scalar(text('select current_user')))
+    except Exception as x:
+        print(type(getattr(x, 'orig', x)).__name__)" 2>/dev/null | tail -1)"
 
 # First start, then sign in through the proxy.
 password=smoke-test-pass-$$

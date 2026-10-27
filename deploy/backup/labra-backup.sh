@@ -24,8 +24,9 @@
 #   labra-backup version                        tool versions
 #
 # Settings (environment): LABRA_BACKUP_REPO_DRIVE (e.g. rclone:drive:labra-backup),
-# LABRA_BACKUP_REPO_USB (e.g. /backup/usb/labra), LABRA_HEARTBEAT_URL_<JOB>. Secrets:
-# /run/secrets/database_url, /run/secrets/restic_password, /run/secrets/rclone_conf.
+# LABRA_BACKUP_REPO_USB (e.g. /backup/usb/labra), LABRA_HEARTBEAT_URL_<JOB>,
+# LABRA_DATABASE_URL_FILE (default /run/secrets/database_url: the backup job's read-only user,
+# the owner for a restore). Secrets: /run/secrets/restic_password, /run/secrets/rclone_conf.
 set -euo pipefail
 
 SECRETS=${LABRA_SECRETS:-/run/secrets}
@@ -59,10 +60,10 @@ repo_location() {
   return 1
 }
 
-# libpq settings from the app's database URL, so the password never sits on a command line.
+# libpq settings from the job's database URL, so the password never sits on a command line.
 connect() {
   local url rest auth hostport
-  url=$(<"$SECRETS/database_url")
+  url=$(<"${LABRA_DATABASE_URL_FILE:-$SECRETS/database_url}")
   rest=${url#*://}
   auth=${rest%%@*}
   hostport=${rest#*@}

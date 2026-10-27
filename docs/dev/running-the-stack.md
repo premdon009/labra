@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02, EC-E04]
+items: [W03, W16, W17, W19, W07, W41, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -20,20 +20,34 @@ and `nerdctl compose` take the same arguments ([Container runtimes](runtimes.md)
 | `netbird` | NetBird, cloud or self-hosted, under the `netbird` profile | branches, over NetBird |
 
 ## First start
-1. Create the two secrets. They stay on the server and are never committed (`secrets/` is
-   ignored by git):
+1. Create the secrets: the database password and three logins. They stay on the server and
+   are never committed (`secrets/` is ignored by git):
    ```sh
    mkdir -p secrets && chmod 700 secrets
-   # Hex, so the password needs no escaping inside the URL.
+   # Hex, so the passwords need no escaping inside the URLs.
    openssl rand -hex 24 | tr -d '\n' > secrets/db_password
-   printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(cat secrets/db_password)" \
-     > secrets/database_url
+   url() { printf 'postgresql+psycopg://%s:%s@db:5432/labra' "$1" "$2" > "secrets/$3"; }
+   url labra "$(cat secrets/db_password)" owner_database_url   # migrate and restore
+   url labra_app "$(openssl rand -hex 24)" database_url         # the web app
+   url labra_backup "$(openssl rand -hex 24)" backup_database_url  # the backup job
    chmod 600 secrets/db_password
-   # The app reads this one as its own user, whose number on the host differs between
-   # runtimes (rootless ones remap it). The 0700 directory is what keeps it private.
-   chmod 644 secrets/database_url
+   # The app and the jobs read the URLs as their own user, whose number on the host differs
+   # between runtimes (rootless ones remap it). The 0700 directory is what keeps them private.
+   chmod 644 secrets/*database_url
    ```
    To keep secrets elsewhere, set `LABRA_SECRETS_DIR`.
+
+   `labra` owns the tables and is used only by `migrate`, a restore and the drill. Each time
+   it runs, `migrate` creates `labra_app` and `labra_backup` if they are missing, sets their
+   passwords from these files and puts their rights back:
+   - `labra_app` reads and writes rows. It can't create, change or drop tables, switch off the
+     audit log's triggers, change the schema version, or run programs on the server, so a
+     flaw in the app reaches the data but not the database itself.
+   - `labra_backup` reads everything and adds rows to the run log, nothing else.
+
+   To change a password, edit its file and run `docker compose up -d` again. A restore
+   loads tables without their rights; `migrate`, which starts with the stack afterwards,
+   gives them back.
 2. Start it, then create the first branch and administrator:
    ```sh
    docker compose up -d
@@ -127,8 +141,9 @@ scripts/restore.sh [--from usb|drive] [--replace] [SNAPSHOT]   # put the data ba
 sudo scripts/install_timers.sh --dry-run   # the systemd timers it would install
 ```
 
-It needs two more secrets beside `database_url`, both mode 0644 inside the 0700 folder,
-because the job runs as uid 10001 like the app:
+It logs in as `labra_backup` (`backup_database_url`); a restore and the drill log in as
+the owner (`owner_database_url`), since they load tables. It needs two more secrets, both
+mode 0644 inside the 0700 folder, because the job runs as uid 10001 like the app:
 
 - `restic_password`: the repository password. Keep a paper copy; without it no backup opens.
 - `rclone.conf`: an rclone config with a remote named `drive`. For a test, `[drive]` with

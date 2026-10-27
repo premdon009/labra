@@ -25,21 +25,25 @@ x-logging: &logging
     max-size: "10m"
     max-file: "5"
 
+# Web logs in to the database as a user that reads and writes rows only (database_url). Migrate
+# logs in as the owner, and gives web and the backup job their users (src/labra/core/dbroles.py).
+x-labra-env: &labra-env
+  LABRA_DATABASE_URL_FILE: /run/secrets/database_url
+  LABRA_FILES_DIR: /data/files
+  LABRA_EXPORT_DIR: /data/export
+  LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
+  # The nightly audit check and the disk alert (scripts/install_timers.sh); empty is unset.
+  LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
+  LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
+  LABRA_MAILER: ${LABRA_MAILER:-console}
+  # The System page reads the HTTPS certificate's expiry from the proxy, by the LAN name.
+  LABRA_CERT_CHECK_HOST: ${LABRA_CERT_CHECK_HOST-proxy:443}
+  LABRA_CERT_CHECK_NAME: ${LABRA_SITE:-labra.lan}
+
 x-labra: &labra
   image: ${LABRA_IMAGE:-ghcr.io/premdon009/labra:0.1.0}
   build: .
-  environment:
-    LABRA_DATABASE_URL_FILE: /run/secrets/database_url
-    LABRA_FILES_DIR: /data/files
-    LABRA_EXPORT_DIR: /data/export
-    LABRA_HEARTBEAT: ${LABRA_HEARTBEAT:-log}
-    # The nightly audit check and the disk alert (scripts/install_timers.sh); empty is unset.
-    LABRA_HEARTBEAT_URL_AUDIT_VERIFY: ${LABRA_HEARTBEAT_URL_AUDIT_VERIFY:-}
-    LABRA_HEARTBEAT_URL_DISK: ${LABRA_HEARTBEAT_URL_DISK:-}
-    LABRA_MAILER: ${LABRA_MAILER:-console}
-    # The System page reads the HTTPS certificate's expiry from the proxy, by the LAN name.
-    LABRA_CERT_CHECK_HOST: ${LABRA_CERT_CHECK_HOST-proxy:443}
-    LABRA_CERT_CHECK_NAME: ${LABRA_SITE:-labra.lan}
+  environment: *labra-env
   secrets: [database_url]
   volumes:
     - files:/data/files
@@ -75,6 +79,12 @@ services:
     <<: *labra
     command: ["labra", "migrate"]
     restart: "no"
+    environment:
+      <<: *labra-env
+      LABRA_DATABASE_URL_FILE: /run/secrets/owner_database_url
+      LABRA_APP_DATABASE_URL_FILE: /run/secrets/database_url
+      LABRA_BACKUP_DATABASE_URL_FILE: /run/secrets/backup_database_url
+    secrets: [owner_database_url, database_url, backup_database_url]
     depends_on:
       db:
         condition: service_healthy
@@ -180,7 +190,9 @@ services:
     build: deploy/backup
     profiles: [jobs]
     restart: "no"
-    environment:
+    environment: &backup-env
+      # A user that reads everything and writes only the run log.
+      LABRA_DATABASE_URL_FILE: /run/secrets/backup_database_url
       LABRA_BACKUP_REPO_DRIVE: ${LABRA_BACKUP_REPO_DRIVE:-}
       LABRA_BACKUP_REPO_USB: ${LABRA_BACKUP_REPO_USB:-}
       LABRA_HEARTBEAT_URL_BACKUP: ${LABRA_HEARTBEAT_URL_BACKUP:-}
@@ -188,7 +200,7 @@ services:
       LABRA_HEARTBEAT_URL_WATCHDOG: ${LABRA_HEARTBEAT_URL_WATCHDOG:-}
       LABRA_WATCHDOG_URL: ${LABRA_WATCHDOG_URL:-}
     # Read as uid 10001, like database_url: world-readable files inside the 0700 secrets folder.
-    secrets: [database_url, restic_password, rclone_conf]
+    secrets: [backup_database_url, restic_password, rclone_conf]
     volumes:
       - files:/data/files:ro
       - backup_cache:/backup/cache
@@ -198,10 +210,14 @@ services:
     networks: [db, egress]
     logging: *logging
 
-  # The same job image for scripts/restore.sh. Only a restore writes the files back, so only
-  # it mounts them writable.
+  # The same job image for scripts/restore.sh and the drill. Only a restore writes the files
+  # back, so only it mounts them writable; it loads tables, so it logs in as the owner.
   restore:
     <<: *backup
+    environment:
+      <<: *backup-env
+      LABRA_DATABASE_URL_FILE: /run/secrets/owner_database_url
+    secrets: [owner_database_url, restic_password, rclone_conf]
     volumes:
       - files:/data/files
       - backup_cache:/backup/cache
@@ -230,8 +246,12 @@ volumes:
 secrets:
   db_password:
     file: ${LABRA_SECRETS_DIR:-./secrets}/db_password
+  owner_database_url:
+    file: ${LABRA_SECRETS_DIR:-./secrets}/owner_database_url
   database_url:
     file: ${LABRA_SECRETS_DIR:-./secrets}/database_url
+  backup_database_url:
+    file: ${LABRA_SECRETS_DIR:-./secrets}/backup_database_url
   restic_password:
     file: ${LABRA_SECRETS_DIR:-./secrets}/restic_password
   rclone_conf:
