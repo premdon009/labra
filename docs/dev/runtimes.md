@@ -1,5 +1,5 @@
 ---
-items: [W17, W18, W19]
+items: [W17, W18, W19, W42]
 ---
 
 # Container runtimes
@@ -136,6 +136,10 @@ will be sent over the network to a collector (X35), so they won't depend on the 
 - **Rootless ports below 1024** are refused. Use `LABRA_HTTP_PORT=8080 LABRA_HTTPS_PORT=8443`,
   or allow them once: `sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80` (and add it to
   `/etc/sysctl.d/`).
+- **Rootless limits need cgroup v2** with the `cpu`, `memory` and `pids` controllers
+  delegated to the user. Without them Podman refuses to start a container that has limits, and
+  rootless Docker drops the limits with a warning. Check with
+  `cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/cgroup.controllers`.
 - **Tests on Podman:** point testcontainers at Podman's socket with
   `DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock TESTCONTAINERS_RYUK_DISABLED=true`,
   or skip containers and use `LABRA_TEST_DATABASE_URL` with a database whose name ends in

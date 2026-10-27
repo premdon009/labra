@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07, W41, EC-D05, EC-B06, EC-E02, EC-E04]
+items: [W03, W16, W17, W19, W07, W41, W42, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -111,9 +111,30 @@ Compose passes through:
 | `LABRA_CERT_CHECK_HOST` | `proxy:443` | where the System page reads the HTTPS certificate's expiry (by the `LABRA_SITE` name); empty switches it off |
 | `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
 | `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
+| `LABRA_WEB_MEMORY`, `LABRA_WEB_CPUS` | `2g`, `1` | the most memory and CPU web may use |
+| `LABRA_DB_MEMORY`, `LABRA_DB_CPUS` | `1536m`, `0.75` | the same for Postgres |
+| `LABRA_PROXY_MEMORY`, `LABRA_PROXY_CPUS` | `512m`, `0.25` | the same for the proxy |
 
 Anything else, such as the `LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the
 top of `compose.yaml`. Run `docker compose exec web labra check-config` after changing them.
+
+### Limits and container rights
+
+The limits add up to 4 GB and 2 CPUs, the laptop the design assumes. A container that reaches
+its memory limit is stopped and restarted rather than slowing the whole server down; on a
+bigger machine raise the limits in `.env`, for example `LABRA_WEB_MEMORY=3g`. Each container
+also runs with only the rights it needs, so a flaw in one of them gives an attacker little to
+work with:
+
+| Service | Rights |
+|---|---|
+| `web`, `migrate` | uid 10001, no capabilities, read-only filesystem apart from its volumes and an in-memory `/tmp` |
+| `db` | starts as root to set up its data folder (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID`), then runs as `postgres` |
+| `proxy` | Caddy: root inside the container with only `NET_BIND_SERVICE`; nginx adds what its master process needs to start workers |
+| `backup`, `restore` | uid 10001, no capabilities |
+
+None can gain privileges once started (`no-new-privileges`). `scripts/stack_smoke.sh` reads
+the limits and rights from inside each container on every stack run.
 
 ## Exports
 

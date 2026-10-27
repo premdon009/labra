@@ -11,6 +11,9 @@ services:
     image: docker.io/library/nginx:1.30@sha256:9bf97bd7714f5e24c1ccd545ecb9eb5435cb6d109c97cebb15e7e455e0239edb
     # labra.conf is a template: the image's entrypoint fills in the DNS server from the
     # container's resolv.conf (Docker's and Podman's differ) and writes conf.d/default.conf.
+    # Added to compose.yaml's NET_BIND_SERVICE: the image's root master process writes the
+    # config, reads the key, makes its cache folders and starts workers as the nginx user.
+    cap_add: [CHOWN, DAC_OVERRIDE, SETGID, SETUID]
     environment:
       NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"
       NGINX_ENVSUBST_FILTER: "^NGINX_LOCAL_RESOLVERS"

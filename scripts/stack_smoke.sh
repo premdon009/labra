@@ -237,9 +237,33 @@ check "forged CSRF token refused" 403 "$(code -b "$jar" \
   -d "username=admin&password=x&csrf_token=forged" "$(url /login)")"
 check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/null | head -1)"
 
-# The laptop budgets: three users against about two years of patients, with the containers held
-# to 2 CPUs and 4 GB between them. Only a run on the real laptop counts; this one catches a
-# regression. The patients stay for the backups below, so those are a realistic size too.
+# compose.yaml holds web, db and proxy to 4 GB and 2 CPUs between them, and takes away the
+# rights each doesn't need. Both are read from inside the container, the same on every engine:
+# the cgroup's memory, CPU and process limits; PID 1's capabilities, whether it can gain
+# privileges, and whether / is read-only.
+limits() {
+  dc exec -T "$1" cat /sys/fs/cgroup/{memory,cpu,pids}.max 2>/dev/null | paste -sd ' '
+}
+privileges() {
+  dc exec -T "$1" sh -s 2>/dev/null <<'SH'
+awk '/^(CapBnd|NoNewPrivs):/ { printf "%s ", $2 }' /proc/1/status
+awk '$2 == "/" { split($4, o, ","); r = o[1] } END { print r }' /proc/mounts
+SH
+}
+check "web held to 2 GB, one CPU, 256 processes" "2147483648 100000 100000 256" "$(limits web)"
+check "db held to 1.5 GB, 0.75 CPU" "1610612736 75000 100000 256" "$(limits db)"
+check "proxy held to 512 MB, a quarter CPU" "536870912 25000 100000 256" "$(limits proxy)"
+check "web: no capabilities, no privilege gain, read-only" "0000000000000000 1 ro" \
+  "$(privileges web)"
+check "db: only the rights to set up its folder" "00000000000000cb 1 rw" "$(privileges db)"
+# Caddy may listen on low ports only; nginx also sets up its cache and starts its workers.
+proxy_caps=0000000000000400
+[[ $proxy == nginx ]] && proxy_caps=00000000000004c3
+check "proxy: only the rights it needs" "$proxy_caps 1 rw" "$(privileges proxy)"
+
+# The laptop budgets: three users against about two years of patients, within the limits above.
+# Only a run on the real laptop counts; this one catches a regression. The patients stay for
+# the backups below, so those are a realistic size too.
 # compose.yaml caps every container's logs. Docker reports it as set; Podman and nerdctl
 # translate it to their own log drivers, so they are shown rather than checked.
 logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(cid web)" 2>&1)
@@ -251,10 +275,6 @@ print(c["Type"], c["Config"].get("max-size"), c["Config"].get("max-file"))' "$lo
 else
   echo "INFO  web's log settings on $engine: $logs_config"
 fi
-cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(cid "$1")"; }
-capped=$(cap web 1 2g >/dev/null 2>&1 && cap db 0.75 1536m >/dev/null 2>&1 &&
-  cap proxy 0.25 512m >/dev/null 2>&1 && echo yes || echo no)
-echo "INFO  containers capped to 2 CPUs and 4 GB between them: $capped"
 python3 "$ROOT/scripts/laptop_budget.py" fill 50000 |
   dc exec -T db psql -U labra -d labra -q -v ON_ERROR_STOP=1 >/dev/null 2>&1
 check "50,000 synthetic patients added" 50000 \
