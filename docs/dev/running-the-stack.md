@@ -1,5 +1,5 @@
 ---
-items: [W03, W16, W17, W19, W07, EC-D05, EC-B06, EC-E02, EC-E04]
+items: [W03, W16, W17, W19, W07, W41, W42, W43, EC-D05, EC-B06, EC-E02, EC-E04]
 ---
 
 # Running the stack
@@ -20,20 +20,34 @@ and `nerdctl compose` take the same arguments ([Container runtimes](runtimes.md)
 | `netbird` | NetBird, cloud or self-hosted, under the `netbird` profile | branches, over NetBird |
 
 ## First start
-1. Create the two secrets. They stay on the server and are never committed (`secrets/` is
-   ignored by git):
+1. Create the secrets: the database password and three logins. They stay on the server and
+   are never committed (`secrets/` is ignored by git):
    ```sh
    mkdir -p secrets && chmod 700 secrets
-   # Hex, so the password needs no escaping inside the URL.
+   # Hex, so the passwords need no escaping inside the URLs.
    openssl rand -hex 24 | tr -d '\n' > secrets/db_password
-   printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(cat secrets/db_password)" \
-     > secrets/database_url
+   url() { printf 'postgresql+psycopg://%s:%s@db:5432/labra' "$1" "$2" > "secrets/$3"; }
+   url labra "$(cat secrets/db_password)" owner_database_url   # migrate and restore
+   url labra_app "$(openssl rand -hex 24)" database_url         # the web app
+   url labra_backup "$(openssl rand -hex 24)" backup_database_url  # the backup job
    chmod 600 secrets/db_password
-   # The app reads this one as its own user, whose number on the host differs between
-   # runtimes (rootless ones remap it). The 0700 directory is what keeps it private.
-   chmod 644 secrets/database_url
+   # The app and the jobs read the URLs as their own user, whose number on the host differs
+   # between runtimes (rootless ones remap it). The 0700 directory is what keeps them private.
+   chmod 644 secrets/*database_url
    ```
    To keep secrets elsewhere, set `LABRA_SECRETS_DIR`.
+
+   `labra` owns the tables and is used only by `migrate`, a restore and the drill. Each time
+   it runs, `migrate` creates `labra_app` and `labra_backup` if they are missing, sets their
+   passwords from these files and puts their rights back:
+   - `labra_app` reads and writes rows. It can't create, change or drop tables, switch off the
+     audit log's triggers, change the schema version, or run programs on the server, so a
+     flaw in the app reaches the data but not the database itself.
+   - `labra_backup` reads everything and adds rows to the run log, nothing else.
+
+   To change a password, edit its file and run `docker compose up -d` again. A restore
+   loads tables without their rights; `migrate`, which starts with the stack afterwards,
+   gives them back.
 2. Start it, then create the first branch and administrator:
    ```sh
    docker compose up -d
@@ -89,17 +103,37 @@ Compose passes through:
 |---|---|---|
 | `LABRA_IMAGE` | the release's exact version | image to run |
 | `LABRA_SITE` | `labra.lan` | LAN host name the proxy serves |
-| `LABRA_HEARTBEAT` | `log` | `http` to ping a monitor such as Healthchecks.io |
-| `LABRA_MAILER` | `console` | `smtp` to send mail |
+| `LABRA_MAILER` | `console` | `smtp` to send mail, through a relay web can reach: it has no way to the internet |
 | `LABRA_SECRETS_DIR` | `./secrets` | where the secret files are |
 | `LABRA_HTTP_PORT`, `LABRA_HTTPS_PORT` | `80`, `443` | published ports (rootless runtimes: see [Container runtimes](runtimes.md)) |
-| `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the proxy network; the app trusts forwarded addresses only from it |
+| `LABRA_EDGE_SUBNET` | `172.30.0.0/24` | the network between the proxy and web; the app trusts forwarded addresses only from it |
 | `LABRA_CERT_CHECK_HOST` | `proxy:443` | where the System page reads the HTTPS certificate's expiry (by the `LABRA_SITE` name); empty switches it off |
 | `LABRA_HEARTBEAT_URL_<JOB>` | empty | a monitor's ping address per job: `BACKUP`, `DRILL`, `AUDIT_VERIFY`, `DISK`, `WATCHDOG` |
 | `LABRA_WATCHDOG_URL` | `http://web:8000/healthz` | what the watchdog fetches; the public address checks the tunnel too |
+| `LABRA_WEB_MEMORY`, `LABRA_WEB_CPUS` | `2g`, `1` | the most memory and CPU web may use |
+| `LABRA_DB_MEMORY`, `LABRA_DB_CPUS` | `1536m`, `0.75` | the same for Postgres |
+| `LABRA_PROXY_MEMORY`, `LABRA_PROXY_CPUS` | `512m`, `0.25` | the same for the proxy |
 
 Anything else, such as the `LABRA_SMTP_URL_FILE` secret, goes in the `x-labra` block at the
 top of `compose.yaml`. Run `docker compose exec web labra check-config` after changing them.
+
+### Limits and container rights
+
+The limits add up to 4 GB and 2 CPUs, the laptop the design assumes. A container that reaches
+its memory limit is stopped and restarted rather than slowing the whole server down; on a
+bigger machine raise the limits in `.env`, for example `LABRA_WEB_MEMORY=3g`. Each container
+also runs with only the rights it needs, so a flaw in one of them gives an attacker little to
+work with:
+
+| Service | Rights |
+|---|---|
+| `web`, `migrate` | uid 10001, no capabilities, read-only filesystem apart from its volumes and an in-memory `/tmp` |
+| `db` | starts as root to set up its data folder (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID`), then runs as `postgres` |
+| `proxy` | Caddy: root inside the container with only `NET_BIND_SERVICE`; nginx adds what its master process needs to start workers |
+| `backup`, `restore` | uid 10001, no capabilities |
+
+None can gain privileges once started (`no-new-privileges`). `scripts/stack_smoke.sh` reads
+the limits and rights from inside each container on every stack run.
 
 ## Exports
 
@@ -127,8 +161,9 @@ scripts/restore.sh [--from usb|drive] [--replace] [SNAPSHOT]   # put the data ba
 sudo scripts/install_timers.sh --dry-run   # the systemd timers it would install
 ```
 
-It needs two more secrets beside `database_url`, both mode 0644 inside the 0700 folder,
-because the job runs as uid 10001 like the app:
+It logs in as `labra_backup` (`backup_database_url`); a restore and the drill log in as
+the owner (`owner_database_url`), since they load tables. It needs two more secrets, both
+mode 0644 inside the 0700 folder, because the job runs as uid 10001 like the app:
 
 - `restic_password`: the repository password. Keep a paper copy; without it no backup opens.
 - `rclone.conf`: an rclone config with a remote named `drive`. For a test, `[drive]` with
@@ -161,11 +196,13 @@ scripts/labra.sh check-disk     # hourly: fails at 80% used (--percent N to chan
 scripts/watchdog.sh             # every 5 minutes: fetches /healthz, pings only when it answers ok
 ```
 
-`labra.sh` runs any `labra` command in the running `web` container. The watchdog runs in the
-backup image without the backup lock, and fetches `LABRA_WATCHDOG_URL` (default
-`http://web:8000/healthz`; set it to the public address so the tunnel is checked too). Each
-check pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY`, `_DISK` or `_WATCHDOG` when
-`LABRA_HEARTBEAT=http`. An empty URL means "not set". The administrator's guide is
+`labra.sh` runs any `labra` command in the running `web` container. Web has no way to the
+internet, so for these two it hands the result to `labra-backup ping` in the backup image,
+which pings `LABRA_HEARTBEAT_URL_AUDIT_VERIFY` or `_DISK`. When web doesn't answer it pings
+nothing, and the monitor's missed-ping alert fires. The watchdog runs in the backup image
+without the backup lock, fetches `LABRA_WATCHDOG_URL` (default `http://web:8000/healthz`;
+set it to the public address so the tunnel is checked too) and pings `_WATCHDOG`. An empty
+URL means "not set". The administrator's guide is
 [Alerts and nightly checks](../manual/admin/alerts-and-checks.md).
 
 ## Logs

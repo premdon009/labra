@@ -164,6 +164,15 @@ def test_the_database_password_reaches_pg_dump_only_through_its_environment(job)
     assert "s3cret" not in _log(job.stubs, "calls.log")
 
 
+@pytest.mark.item("W41")
+def test_the_job_logs_in_with_the_url_its_service_names(job, tmp_path: Path) -> None:
+    # Compose gives the backup a read-only user and the restore the owner, in different files.
+    url = tmp_path / "backup_database_url"
+    url.write_text("postgresql+psycopg://labra_backup:r3ad@db:5432/labra")
+    assert job("backup", LABRA_DATABASE_URL_FILE=str(url)).returncode == 0
+    assert "PGPASSWORD=r3ad PGHOST=db PGUSER=labra_backup" in _log(job.stubs, "env.log")
+
+
 @pytest.mark.item("EC-D01")
 def test_a_missing_usb_disk_fails_the_run_but_the_drive_copy_still_happens(job) -> None:
     (job.usb / "config").unlink()  # the mount point is empty when the disk isn't there
@@ -469,6 +478,120 @@ def test_the_watchdog_stays_silent_when_the_app_does_not_answer_ok(job, answer) 
     assert result.returncode == 1
     assert "watchdog:" in result.stderr
     assert _log(job.stubs, "pings.log") == ""  # silence is the alarm, never /fail
+
+
+# The checks web runs. Web has no route to the internet, so scripts/labra.sh hands their result
+# to the backup image's `ping`.
+
+CHECKS = {
+    "LABRA_HEARTBEAT_URL_AUDIT_VERIFY": "https://hc.example.test/ping/audit",
+    "LABRA_HEARTBEAT_URL_DISK": "https://hc.example.test/ping/disk",
+}
+
+
+@pytest.mark.item("W43")
+def test_ping_sends_a_checks_result_to_its_monitor(job) -> None:
+    result = job("ping", "disk", "false", "/data/files: 91% used", **CHECKS)
+    assert result.returncode == 0, result.stderr
+    assert _log(job.stubs, "pings.log").strip() == "https://hc.example.test/ping/disk/fail"
+    assert _log(job.stubs, "ping.body") == "/data/files: 91% used"
+    assert "psql" not in _log(job.stubs, "calls.log")  # no database needed
+
+
+@pytest.mark.item("W43")
+@pytest.mark.parametrize(
+    "args", [("disk", "yes", "x"), ("../disk", "true", "x"), ("disk", "true"), ()]
+)
+def test_ping_refuses_what_is_not_a_job_and_a_result(job, args: tuple[str, ...]) -> None:
+    result = job("ping", *args, **CHECKS)
+    assert result.returncode == 2
+    assert "usage: labra-backup ping JOB true|false DETAIL" in result.stderr
+    assert _log(job.stubs, "pings.log") == ""
+
+
+# A stand-in Compose answers `exec web labra …` with the app's output in app.out and its exit
+# status in app.status; a FAIL_PING file makes the ping job fail.
+LABRA_COMPOSE = """#!/usr/bin/env bash
+printf '%s\\n' "$*" >>"$STUBS/compose.log"
+case "$*" in
+  "exec -T web labra "*) cat "$STUBS/app.out"; exit "$(cat "$STUBS/app.status")" ;;
+  *" backup ping "*) [[ ! -f $STUBS/FAIL_PING ]] ;;
+esac
+"""
+
+
+def _labra_sh(job, *args: str, out: str, status: int):
+    (job.stubs / "compose").write_text(LABRA_COMPOSE)
+    (job.stubs / "compose").chmod(0o755)
+    (job.stubs / "app.out").write_text(out)
+    (job.stubs / "app.status").write_text(str(status))
+    result = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "labra.sh"), *args],
+        env={
+            "PATH": os.environ["PATH"],
+            "STUBS": str(job.stubs),
+            "LABRA_COMPOSE": str(job.stubs / "compose"),
+        },
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    return result, _log(job.stubs, "compose.log").splitlines()
+
+
+@pytest.mark.item("W43")
+@pytest.mark.parametrize(
+    ("args", "line", "status", "ping"),
+    [
+        (
+            ("audit", "verify"),
+            "Audit log intact: 3 rows checked.",
+            0,
+            "backup ping audit_verify true 3 rows checked.",
+        ),
+        (
+            ("check-disk", "--percent", "80"),
+            "DISK SPACE LOW: /data/files: 91% used, 4.2 GB free (the alert is at 80%)",
+            1,
+            "backup ping disk false /data/files: 91% used, 4.2 GB free (the alert is at 80%)",
+        ),
+    ],
+)
+def test_the_checks_web_runs_are_pinged_from_the_backup_image(
+    job, args: tuple[str, ...], line: str, status: int, ping: str
+) -> None:
+    out = f'{{"event":"job finished","level":"info"}}\n{line}\n'
+    result, calls = _labra_sh(job, *args, out=out, status=status)
+    assert result.returncode == status
+    assert result.stdout == out
+    assert calls == [
+        f"exec -T web labra {' '.join(args)}",
+        f"--profile jobs run --rm -T --no-deps {ping}",
+    ]
+
+
+@pytest.mark.item("W43")
+def test_a_check_the_app_did_not_answer_sends_no_ping(job) -> None:
+    result, calls = _labra_sh(job, "audit", "verify", out="", status=1)
+    assert result.returncode == 1
+    assert calls == ["exec -T web labra audit verify"]  # the missed-ping alert fires
+
+
+@pytest.mark.item("W43")
+def test_a_ping_that_fails_leaves_the_checks_result_alone(job) -> None:
+    (job.stubs / "FAIL_PING").touch()
+    result, _ = _labra_sh(job, "check-disk", out="Disk space OK: /data/files: 40% used\n", status=0)
+    assert result.returncode == 0
+    assert "the disk ping was not sent" in result.stderr
+
+
+@pytest.mark.item("W43")
+def test_other_commands_run_in_web_as_before(job) -> None:
+    result, calls = _labra_sh(job, "audit", "verify", "--database", "labra_drill", out="", status=0)
+    assert result.returncode == 0
+    assert calls == ["exec -T web labra audit verify --database labra_drill"]
 
 
 # Timers

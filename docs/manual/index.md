@@ -143,3 +143,4 @@ Every feature Labra has, and the manual page that explains it.
 | W04 | Foundation: settings, number series, file store | [Settings](admin/settings.md) |
 | W07 | Restore-drill script and runbooks | [Backups and restore](admin/backups-and-restore.md) |
 | W16 | Observability endpoints: `/readyz`, `/metrics` (Prometheus, internal or token only), request and job metrics without personal labels, job heartbeat pings (§17.6) | [Backups and restore](admin/backups-and-restore.md) |
+| W43 | Web has no internet access: it sits on internal networks only, and the timers' wrapper hands the audit-check and disk-check results to the backup job, which sends the heartbeats | [Alerts and nightly checks](admin/alerts-and-checks.md) |

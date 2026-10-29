@@ -23,6 +23,8 @@ cd "$ROOT"
 # shellcheck source=scripts/compose_run.sh
 source "$ROOT/scripts/compose_run.sh"
 job() { compose_run backup "$@"; }
+# Loading and dropping the scratch copy, and reading it, take the owner's login.
+owner_job() { compose_run restore "$@"; }
 
 started=$(date -u +%FT%TZ)
 ok=true
@@ -36,9 +38,9 @@ if ! names=$(job repos 2>"$err"); then
 fi
 # Results are read from stdout only: the engine and Compose may add warnings on stderr after them.
 for name in $names; do
-  if out=$(job restore --from "$name" --scratch "$scratch" 2>"$err"); then
+  if out=$(owner_job restore --from "$name" --scratch "$scratch" 2>"$err"); then
     lines+=("$name: $(tail -1 <<<"$out")")
-    if out=$(compose_run --no-deps web labra audit verify --database "$scratch" 2>"$err"); then
+    if out=$(compose_run --no-deps migrate labra audit verify --database "$scratch" 2>"$err"); then
       lines+=("$name: $(tail -1 <<<"$out")")
     else
       ok=false
@@ -53,7 +55,7 @@ if ((${#lines[@]} == 0)); then
   ok=false
   lines+=("no repository configured: set LABRA_BACKUP_REPO_DRIVE or LABRA_BACKUP_REPO_USB")
 fi
-job drop-database "$scratch" >/dev/null 2>&1 || true
+owner_job drop-database "$scratch" >/dev/null 2>&1 || true
 detail=$(printf '%s\n' "${lines[@]}")
 printf '%s\n' "$detail"
 job log-run drill "$started" "$ok" "$detail" >/dev/null 2>&1 || echo "run log not written" >&2

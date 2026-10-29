@@ -39,7 +39,9 @@ def cmd_serve(args: argparse.Namespace) -> int:
 def cmd_migrate(args: argparse.Namespace) -> int:
     from sqlalchemy.orm import Session
 
+    from labra.core.config import get_settings
     from labra.core.db import get_engine, wait_for_database
+    from labra.core.dbroles import ensure_roles_from_settings
     from labra.core.migrate import upgrade
     from labra.org.service import sync_system_roles
 
@@ -47,8 +49,11 @@ def cmd_migrate(args: argparse.Namespace) -> int:
     upgrade()
     with Session(get_engine()) as db:
         sync_system_roles(db)
+        logins = ensure_roles_from_settings(db.connection(), get_settings())
         db.commit()
     _out("Database is at the latest version.")
+    if logins:
+        _out(f"Logins with limited rights: {', '.join(logins)}.")
     return 0
 
 

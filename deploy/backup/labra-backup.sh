@@ -15,6 +15,8 @@
 #                                               into a new scratch database, files left alone
 #   labra-backup drop-database NAME_drill       drop a scratch database
 #   labra-backup log-run KIND STARTED OK DETAIL add a run log row and ping the job's monitor
+#   labra-backup ping JOB true|false DETAIL     ping the job's monitor only: for the checks
+#                                               web runs, as web has no way to the internet
 #   labra-backup init                           create the repositories that don't exist yet
 #   labra-backup snapshots                      list the snapshots in every repository
 #   labra-backup watchdog                       fetch LABRA_WATCHDOG_URL (default: the app's
@@ -24,8 +26,9 @@
 #   labra-backup version                        tool versions
 #
 # Settings (environment): LABRA_BACKUP_REPO_DRIVE (e.g. rclone:drive:labra-backup),
-# LABRA_BACKUP_REPO_USB (e.g. /backup/usb/labra), LABRA_HEARTBEAT_URL_<JOB>. Secrets:
-# /run/secrets/database_url, /run/secrets/restic_password, /run/secrets/rclone_conf.
+# LABRA_BACKUP_REPO_USB (e.g. /backup/usb/labra), LABRA_HEARTBEAT_URL_<JOB>,
+# LABRA_DATABASE_URL_FILE (default /run/secrets/database_url: the backup job's read-only user,
+# the owner for a restore). Secrets: /run/secrets/restic_password, /run/secrets/rclone_conf.
 set -euo pipefail
 
 SECRETS=${LABRA_SECRETS:-/run/secrets}
@@ -59,10 +62,10 @@ repo_location() {
   return 1
 }
 
-# libpq settings from the app's database URL, so the password never sits on a command line.
+# libpq settings from the job's database URL, so the password never sits on a command line.
 connect() {
   local url rest auth hostport
-  url=$(<"$SECRETS/database_url")
+  url=$(<"${LABRA_DATABASE_URL_FILE:-$SECRETS/database_url}")
   rest=${url#*://}
   auth=${rest%%@*}
   hostport=${rest#*@}
@@ -309,6 +312,15 @@ cmd_log_run() {
   heartbeat "$1" "$3" "$4"
 }
 
+# The app logs these runs itself; only the ping needs a way out.
+cmd_ping() {
+  if (($# != 3)) || [[ ! $1 =~ ^[a-z_]+$ || ! $2 =~ ^(true|false)$ ]]; then
+    echo "usage: labra-backup ping JOB true|false DETAIL" >&2
+    exit 2
+  fi
+  heartbeat "$@"
+}
+
 # Pings only on success: a dead server, line or tunnel sends nothing, and the monitor's
 # grace period turns that silence into one alert instead of one per blip.
 cmd_watchdog() {
@@ -360,6 +372,7 @@ case $cmd in
   restore) cmd_restore "$@" ;;
   drop-database) cmd_drop_database "$@" ;;
   log-run) cmd_log_run "$@" ;;
+  ping) cmd_ping "$@" ;;
   watchdog) cmd_watchdog ;;
   repos) repos | cut -d= -f1 ;;
   version) pg_dump --version; restic version; rclone version | head -1 ;;

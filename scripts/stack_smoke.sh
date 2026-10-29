@@ -108,18 +108,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Secrets the way running-the-stack.md sets them up. The app reads database_url as a non-root
-# user whose host UID differs by runtime, so that one file is world-readable inside a 0700
-# directory; the others are read as root.
+# Secrets the way running-the-stack.md sets them up. The app and the jobs read the URLs as a
+# non-root user whose host UID differs by runtime, so those files are world-readable inside a
+# 0700 directory; db_password is read as root.
 secrets=$work/secrets
 mkdir -m 700 "$secrets"
 openssl rand -hex 24 | tr -d '\n' >"$secrets/db_password"
-printf 'postgresql+psycopg://labra:%s@db:5432/labra' "$(<"$secrets/db_password")" \
-  >"$secrets/database_url"
+db_url() { printf 'postgresql+psycopg://%s:%s@db:5432/labra' "$1" "$2" >"$secrets/$3"; }
+db_url labra "$(<"$secrets/db_password")" owner_database_url
+db_url labra_app "$(openssl rand -hex 24)" database_url
+db_url labra_backup "$(openssl rand -hex 24)" backup_database_url
 openssl rand -hex 24 | tr -d '\n' >"$secrets/restic_password"
 printf '[drive]\ntype = local\n' >"$secrets/rclone.conf"
 chmod 600 "$secrets/db_password"
-chmod 644 "$secrets/database_url" "$secrets/restic_password" "$secrets/rclone.conf"
+chmod 644 "$secrets"/*database_url "$secrets/restic_password" "$secrets/rclone.conf"
 if [[ $proxy == nginx ]]; then
   mkdir -m 700 "$secrets/tls"
   openssl req -x509 -newkey rsa:2048 -nodes -days 7 -subj "/CN=$site" \
@@ -202,6 +204,19 @@ check "tunnel listener: app 200, /metrics 404" "200 404" "$tunnel"
 check "Postgres: fsync and data checksums on" "on on" \
   "$(dc exec -T db psql -U labra -d labra -Atc \
     "select current_setting('fsync') || ' ' || current_setting('data_checksums')" 2>/dev/null)"
+check "web, the backup job: logins that aren't superusers" "labra_app f f|labra_backup f t" \
+  "$(dc exec -T db psql -U labra -d labra -Atc "select string_agg(concat_ws(' ', rolname,
+    rolsuper, pg_has_role(oid, 'pg_read_all_data', 'member')), '|' order by rolname)
+    from pg_roles where rolname in ('labra_app', 'labra_backup')" 2>/dev/null)"
+check "web's login can't change the schema" InsufficientPrivilege "$(dc exec -T web python -c "
+from sqlalchemy import text
+from labra.core.db import get_engine
+with get_engine().connect() as c:
+    try:
+        c.execute(text('create table planted (id int)'))
+        print('created as', c.scalar(text('select current_user')))
+    except Exception as x:
+        print(type(getattr(x, 'orig', x)).__name__)" 2>/dev/null | tail -1)"
 
 # First start, then sign in through the proxy.
 password=smoke-test-pass-$$
@@ -222,9 +237,47 @@ check "forged CSRF token refused" 403 "$(code -b "$jar" \
   -d "username=admin&password=x&csrf_token=forged" "$(url /login)")"
 check "audit log intact" '*intact*' "$(dc exec -T web labra audit verify 2>/dev/null | head -1)"
 
-# The laptop budgets: three users against about two years of patients, with the containers held
-# to 2 CPUs and 4 GB between them. Only a run on the real laptop counts; this one catches a
-# regression. The patients stay for the backups below, so those are a realistic size too.
+# compose.yaml holds web, db and proxy to 4 GB and 2 CPUs between them, and takes away the
+# rights each doesn't need. Both are read from inside the container, the same on every engine:
+# the cgroup's memory, CPU and process limits; PID 1's capabilities, whether it can gain
+# privileges, and whether / is read-only.
+limits() {
+  dc exec -T "$1" cat /sys/fs/cgroup/{memory,cpu,pids}.max 2>/dev/null | paste -sd ' '
+}
+privileges() {
+  dc exec -T "$1" sh -s 2>/dev/null <<'SH'
+awk '/^(CapBnd|NoNewPrivs):/ { printf "%s ", $2 }' /proc/1/status
+awk '$2 == "/" { split($4, o, ","); r = o[1] } END { print r }' /proc/mounts
+SH
+}
+check "web held to 2 GB, one CPU, 256 processes" "2147483648 100000 100000 256" "$(limits web)"
+check "db held to 1.5 GB, 0.75 CPU" "1610612736 75000 100000 256" "$(limits db)"
+check "proxy held to 512 MB, a quarter CPU" "536870912 25000 100000 256" "$(limits proxy)"
+check "web: no capabilities, no privilege gain, read-only" "0000000000000000 1 ro" \
+  "$(privileges web)"
+check "db: only the rights to set up its folder" "00000000000000cb 1 rw" "$(privileges db)"
+# Caddy may listen on low ports only; nginx also sets up its cache and starts its workers.
+proxy_caps=0000000000000400
+[[ $proxy == nginx ]] && proxy_caps=00000000000004c3
+check "proxy: only the rights it needs" "$proxy_caps 1 rw" "$(privileges proxy)"
+# Only the proxy has a route out: web and Postgres sit on internal networks.
+route_out() {
+  dc exec -T "$1" sh -s 2>/dev/null <<'SH'
+awk 'NR > 1 && $2 == "00000000" { r = "yes" } END { print r ? r : "no" }' /proc/net/route
+SH
+}
+if [[ $engine == nerdctl ]]; then
+  # nerdctl compose ignores `internal: true` (docs/dev/runtimes.md), so this is shown, not checked.
+  echo "INFO  route out on nerdctl: web $(route_out web), db $(route_out db)"
+else
+  check "web has no way to the internet" no "$(route_out web)"
+  check "db has no way to the internet" no "$(route_out db)"
+fi
+check "proxy has a way out" yes "$(route_out proxy)"
+
+# The laptop budgets: three users against about two years of patients, within the limits above.
+# Only a run on the real laptop counts; this one catches a regression. The patients stay for
+# the backups below, so those are a realistic size too.
 # compose.yaml caps every container's logs. Docker reports it as set; Podman and nerdctl
 # translate it to their own log drivers, so they are shown rather than checked.
 logs_config=$("$engine" inspect --format '{{json .HostConfig.LogConfig}}' "$(cid web)" 2>&1)
@@ -236,10 +289,6 @@ print(c["Type"], c["Config"].get("max-size"), c["Config"].get("max-file"))' "$lo
 else
   echo "INFO  web's log settings on $engine: $logs_config"
 fi
-cap() { "$engine" update --cpus "$2" --memory "$3" --memory-swap "$3" "$(cid "$1")"; }
-capped=$(cap web 1 2g >/dev/null 2>&1 && cap db 0.75 1536m >/dev/null 2>&1 &&
-  cap proxy 0.25 512m >/dev/null 2>&1 && echo yes || echo no)
-echo "INFO  containers capped to 2 CPUs and 4 GB between them: $capped"
 python3 "$ROOT/scripts/laptop_budget.py" fill 50000 |
   dc exec -T db psql -U labra -d labra -q -v ON_ERROR_STOP=1 >/dev/null 2>&1
 check "50,000 synthetic patients added" 50000 \
@@ -324,6 +373,9 @@ check "audit check from the timer's wrapper" 0 "$("$ROOT/scripts/labra.sh" audit
 check "audit check logged" t "$(last_run verify)"
 check "disk check" 0 "$("$ROOT/scripts/labra.sh" check-disk >/dev/null 2>&1; echo $?)"
 check "disk check logged" t "$(last_run disk)"
+# Web can't reach a monitor, so the backup image pings for it; an http address it refuses.
+check "disk check pinged from the backup image" 1 "$(LABRA_HEARTBEAT_URL_DISK=http://monitor.invalid/ping \
+  "$ROOT/scripts/labra.sh" check-disk 2>&1 >/dev/null | grep -c 'heartbeat for disk not sent')"
 check "watchdog reaches the app" 0 "$("$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"
 check "watchdog fails when nothing answers" 1 \
   "$(LABRA_WATCHDOG_URL=http://web:9/healthz "$ROOT/scripts/watchdog.sh" >/dev/null 2>&1; echo $?)"

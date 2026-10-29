@@ -83,6 +83,10 @@ All notable changes to Labra are recorded here. The format follows [Keep a Chang
 - GitHub CI checks for banned terms with the list from the `BANNED_TERMS` secret; a run without it skips the check instead of failing, and a release fails.
 - A release runs the stack smoke test (restore, upgrade, rollback) on the tagged commit before it pushes any image.
 - The portability workflow also runs when `scripts/backup.sh` changes, and a test fails when a script its rows reach is missing from the paths it watches.
+- The web app and the backup job no longer log in to the database as its owner: `labra migrate` gives them `labra_app` (rows only, no schema changes) and `labra_backup` (read-only, plus the run log). An existing install needs two new secret files, `owner_database_url` and `backup_database_url`, and a new `database_url` ([Running the stack](docs/dev/running-the-stack.md#first-start)).
+- Compose holds web, Postgres and the proxy to 4 GB and 2 CPUs between them, settable with `LABRA_*_MEMORY` and `LABRA_*_CPUS`, and runs every container with no capabilities it doesn't need and no way to gain more; web's filesystem is read-only.
+- Web has no way to the internet: it sits on internal networks only, and the audit and disk checks' heartbeats are sent from the backup job (`labra-backup ping`, through `scripts/labra.sh`). `LABRA_HEARTBEAT` is no longer set for web; the `LABRA_HEARTBEAT_URL_*` addresses are all the stack needs.
+- The audit stage checks the locked Python packages by their hashes in `uv.lock`, so pip-audit no longer warns about `--no-deps` on every run.
 - An upgrade that fails says which step failed, the migrations or the new version not starting in time, in its message and in the System page's *Upgrade* row.
 
 ### Fixed

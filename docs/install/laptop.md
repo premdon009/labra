@@ -186,7 +186,7 @@ Every command from here on runs in `/opt/labra`.
 1. **Images.** Until the first release is published, build Labra's images on the server (15
    to 30 minutes): `docker compose --profile jobs build`. After that, `docker compose pull`
    fetches them instead.
-2. **Secrets.** Make the database password and its connection string as in
+2. **Secrets.** Make the database password and the three logins as in
    [Running the stack](../dev/running-the-stack.md#first-start), step 1. They stay in
    `/opt/labra/secrets`, readable only by your user; never copy them anywhere else.
 3. **Start it,** then make the main lab and the first administrator:

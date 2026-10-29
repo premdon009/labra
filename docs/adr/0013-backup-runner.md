@@ -53,7 +53,9 @@ container would carry the backup secrets.
   it.
 - **Heartbeats:** the shell jobs ping `LABRA_HEARTBEAT_URL_<JOB>` with `curl`, following the
   same rules as `HttpHeartbeat`: https only, `/fail` appended on failure, body capped at
-  10 kB. An unreachable monitor never fails a job.
+  10 kB. An unreachable monitor never fails a job. Web has no route to the internet, so the
+  audit and disk checks it runs are pinged from the backup image too: `scripts/labra.sh`
+  passes their result to `labra-backup ping`.
 - **Restore drill:** restores the newest snapshot into a scratch database that lives only for
   the drill. It checks that every table holds as many rows as the dump's `COPY` blocks, and
   runs `labra audit verify` against that database.

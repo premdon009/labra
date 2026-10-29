@@ -1,5 +1,5 @@
 ---
-items: [EC-F01, W32]
+items: [EC-F01, W32, W42]
 ---
 
 # Performance budgets
@@ -29,9 +29,10 @@ long before that.
 
   These tests are marked `serial`. The gate runs the other tests in parallel first, then
   these on their own, so other workers can't use up their time budget.
-- **Every `scripts/ci_local.sh --only stack` run:** `scripts/stack_smoke.sh` caps the
-  containers to 2 CPUs and 4 GB between them (web 1 CPU and 2 GB, db 0.75 CPU and 1.5 GB,
-  proxy 0.25 CPU and 512 MB), adds 50,000 synthetic patients, and runs
+- **Every `scripts/ci_local.sh --only stack` run:** with the containers held to the limits in
+  `compose.yaml`, 2 CPUs and 4 GB between them (web 1 CPU and 2 GB, db 0.75 CPU and 1.5 GB,
+  proxy 0.25 CPU and 512 MB), `scripts/stack_smoke.sh` checks those limits, adds 50,000
+  synthetic patients, and runs
   `scripts/laptop_budget.py` with three users for 20 seconds. Its PDF budget shows as
   unchecked (WARN) there, because the smoke stack has no released report.
 - **On the laptop, before the pilot:** the full run below.

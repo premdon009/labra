@@ -838,7 +838,8 @@ def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     assert "files:/data/files:ro" in service
     assert "edge" not in service
     assert re.search(r"^  egress:\n(?!    internal: true)", compose, re.M)
-    # The restore job is the same service with the files writable, and nothing else changed.
+    # The restore job is the same service with the files writable and the owner's login, and
+    # nothing else changed.
     m = re.search(r"^  restore:\n(.*?)(?=^  \S|^\S)", compose, re.M | re.S)
     assert m is not None
     restore = [line.strip() for line in m.group(1).splitlines() if line.strip()]
@@ -846,6 +847,10 @@ def test_the_backup_job_is_never_started_by_a_plain_up() -> None:
     assert "- files:/data/files" in restore
     assert [line for line in restore if not line.startswith(("#", "-"))] == [
         "<<: *backup",
+        "environment:",
+        "<<: *backup-env",
+        "LABRA_DATABASE_URL_FILE: /run/secrets/owner_database_url",
+        "secrets: [owner_database_url, restic_password, rclone_conf]",
         "volumes:",
     ]
 
@@ -1526,6 +1531,40 @@ def test_the_gate_jobs_get_the_banned_terms_list_from_a_secret(
     gate_step = steps[gate:].split("\n      - ", 1)[0]
     assert "LABRA_BANNED_TERMS: ${{ runner.temp }}/banned-terms.txt" in gate_step
     assert ('LABRA_BANNED_TERMS_OPTIONAL: "1"' in gate_step) is optional
+
+
+@pytest.mark.item("W45")
+def test_pip_audit_checks_the_locked_packages_by_their_hashes(tmp_path: Path) -> None:
+    uv = shutil.which("uv")
+    assert uv is not None, "uv is not installed"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    # The real uv exports the lock; the pip-audit run only records what it was given.
+    stub = bin_dir / "uv"
+    stub.write_text(
+        "#!/usr/bin/env bash\n"
+        f'[[ $1 == export ]] && exec {uv} "$@"\n'
+        f'printf "%s\\n" "$@" >{tmp_path}/args\n'
+        f'while (($#)); do [[ $1 == -r ]] && cp "$2" {tmp_path}/requirements.txt; shift; done\n'
+        "echo 'No known vulnerabilities found'\n",
+        encoding="utf-8",
+    )
+    stub.chmod(0o755)
+    done = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "audit_python.sh")],
+        env=os.environ | {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    args = (tmp_path / "args").read_text(encoding="utf-8").split()
+    assert "--require-hashes" in args
+    assert "--no-deps" not in args
+    requirements = (tmp_path / "requirements.txt").read_text(encoding="utf-8")
+    pins = [p for p in requirements.replace("\\\n", "").splitlines() if p[:1].isalnum()]
+    assert len(pins) > 50
+    assert [p for p in pins if "--hash=sha256:" not in p] == []
 
 
 @pytest.mark.item("W38")

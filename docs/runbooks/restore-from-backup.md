@@ -150,7 +150,7 @@ Each line of the detail names a repository (`drive` or `usb`):
 
 | The detail says | What to do |
 |---|---|
-| `restore failed: … is damaged` | That repository is broken; the other one is probably fine. For the full message, run `scripts/backup.sh restore --scratch labra_drill --from usb` (or `--from drive`), then `scripts/backup.sh drop-database labra_drill`. To start a fresh repository, rename the broken one's folder on the USB disk or in Drive, then run `scripts/backup.sh init` and `scripts/backup.sh backup`. |
+| `restore failed: … is damaged` | That repository is broken; the other one is probably fine. For the full message, run `docker compose --profile jobs run --rm restore restore --scratch labra_drill --from usb` (or `--from drive`), then `docker compose --profile jobs run --rm restore drop-database labra_drill`. To start a fresh repository, rename the broken one's folder on the USB disk or in Drive, then run `scripts/backup.sh init` and `scripts/backup.sh backup`. |
 | `restore failed: no repository at … (is the disk mounted?)` | Plug in and mount the USB disk, then run `scripts/drill.sh` again. |
 | `restore failed: the restored tables don't match the dump` | The backup is incomplete. Run `scripts/backup.sh backup`, then `scripts/drill.sh`. If it fails again, report it as a bug. |
 | `AUDIT LOG DAMAGED: … row N: …` | The audit log in the backup has been changed or cut short. Run `docker compose exec web labra audit verify` on the live data and tell the owner straight away. |
