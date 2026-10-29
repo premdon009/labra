@@ -7,6 +7,7 @@
 #   scripts/ci_local.sh --fast          skip docs and audit
 #   scripts/ci_local.sh --dry-run       list stages, run nothing
 #   scripts/ci_local.sh --quiet         print only the summary and failures
+#   scripts/ci_local.sh --strict        count a WARN as a FAIL (GitHub CI runs this)
 #
 # Each stage ends PASS, FAIL, WARN or SKIP. WARN means "could not be checked"
 # (a tool or Docker is missing) and is never counted as a pass. Exit 1 on any FAIL.
@@ -24,14 +25,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 STAGES=(preflight hygiene lint types imports services tests tracker manual docs audit stack)
-only=() fast=0 dry=0 quiet=0
+only=() fast=0 dry=0 quiet=0 strict=0
 while (($#)); do
   case "$1" in
     --only) only+=("$2"); shift 2 ;;
     --fast) fast=1; shift ;;
     --dry-run) dry=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    --strict) strict=1; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -197,6 +199,11 @@ for s in "${STAGES[@]}"; do
     "stage_$s" 2>&1 | tee "$RUN_DIR/$s.log"; rc=${PIPESTATUS[0]}
   fi
   SECONDS_TAKEN[$s]=$(($(date +%s) - start))
+  if ((rc == 2 && strict)); then
+    echo "WARN counted as FAIL (--strict)" >>"$RUN_DIR/$s.log"
+    ((quiet)) || echo "WARN counted as FAIL (--strict)"
+    rc=1
+  fi
   case $rc in
     0) RESULT[$s]=PASS ;;
     2) RESULT[$s]=WARN ;;

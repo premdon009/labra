@@ -31,8 +31,17 @@ jobs:
           sudo apt-get update && sudo apt-get install -y --no-install-recommends
           libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fontconfig
       - run: uv run playwright install --with-deps chromium # for the browser test
-      - run: scripts/ci_local.sh
+      - run: scripts/install_ci_tools.sh # gitleaks, osv-scanner, git-cliff, shellcheck
+      # The banned-terms list comes from a secret, so the names stay out of the repository.
+      - run: printf '%s' "$TERMS" >"$RUNNER_TEMP/banned-terms.txt"
         env:
+          TERMS: ${{ secrets.BANNED_TERMS }}
+      # --strict: a stage that couldn't be checked (WARN) fails the run. A fork's pull request
+      # gets no secrets, so there the banned-terms check skips.
+      - run: scripts/ci_local.sh --strict
+        env:
+          LABRA_BANNED_TERMS: ${{ runner.temp }}/banned-terms.txt
+          LABRA_BANNED_TERMS_OPTIONAL: "1"
           LABRA_CI_LOGS: ${{ runner.temp }}/ci-logs # outside the checkout, so the gate never scans it
       # Each stage's log, pytest.txt and junit.xml, for finding what failed.
       - if: failure()

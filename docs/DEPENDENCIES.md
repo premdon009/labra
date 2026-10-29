@@ -111,10 +111,10 @@ the next release.
 | `docker/login-action` | action | P | Apache-2.0 | v4.6.0 · 2026-07-29 | — | — | Active | company | push release images to GHCR (W12) | — | 2026-10-21 |
 | `docker/build-push-action` | action | P | Apache-2.0 | v7.4.0 · 2026-09-15 | — | — | Active | company | build and push release images (W12) | — | 2026-10-21 |
 | `uv` | CLI | P | MIT OR Apache-2.0 | 0.12 | 0.12.18 | many | Active | company | Python, virtualenv and lock file | pip + pip-tools · low | 2026-10-09 |
-| `gitleaks` | CLI | P | MIT | — | — | — | Active | company | secret scan (`scripts/check_secrets.sh`) | trufflehog · low | 2026-10-09 |
-| `osv-scanner` | CLI | P | Apache-2.0 | — | — | — | Active | company | vulnerability scan of `uv.lock` and images | grype · low | 2026-10-09 |
-| `git-cliff` | CLI | P | MIT OR Apache-2.0 | — | 2.14.2 · 2026-09-18 | 4 | Active | team | changelog drafts from commit subjects (W12); `uv tool install` | hand-written changelog · low | 2026-10-09 |
-| `shellcheck` | CLI | P | GPL-3.0 | — | 0.11.0 | — | Active | team | lints `scripts/*.sh` (`scripts/check_shell.sh`, W25); a dev tool, never shipped | none · low | 2026-10-16 |
+| `gitleaks` | binary | P | MIT | 8.30.1 · 2026-03-21 | 8.30.1 · 2026-03-21 | 4 | Active | company | secret scan (`scripts/check_secrets.sh`); release binary for GitHub's runners pinned by SHA-256 in `scripts/install_ci_tools.sh` | trufflehog · low | 2026-10-09 |
+| `osv-scanner` | binary | P | Apache-2.0 | 2.7.0 · 2026-10-12 | 2.7.0 · 2026-10-12 | 13 | Active | company | vulnerability scan of `uv.lock` and images; release binary for GitHub's runners pinned by SHA-256 in `scripts/install_ci_tools.sh` | grype · low | 2026-10-09 |
+| `git-cliff` | CLI | P | MIT OR Apache-2.0 | 2.14.2 | 2.14.2 · 2026-09-18 | 4 | Active | team | changelog drafts from commit subjects (W12); `uv tool install`, pinned for GitHub's runners in `scripts/install_ci_tools.sh` | hand-written changelog · low | 2026-10-09 |
+| `shellcheck` | CLI | P | GPL-3.0 | — | 0.11.0 | — | Active | team | lints `scripts/*.sh` (`scripts/check_shell.sh`, W25); from apt on GitHub's runners (`scripts/install_ci_tools.sh`); a dev tool, never shipped | none · low | 2026-10-16 |
 | `docker` | CLI | P | Apache-2.0 | — | — | — | Active | company | runs the stack and the database tests | Podman or nerdctl, tested (ADR-0009) · low | 2026-10-09 |
 | `podman` | CLI | P | Apache-2.0 | 5 | 5.8.7 | — | Active | company | daemonless, rootless runtime for the stack and tests (ADR-0009); below 5 lacks DNS on internal networks | Docker · low | 2026-10-09 |
 | `Podman Desktop` | CLI | P | Apache-2.0 | — | — | — | Active | company | Podman on Windows and macOS desktops | Docker Desktop · low | 2026-10-09 |

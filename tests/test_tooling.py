@@ -1,5 +1,7 @@
 """The command line and the repository gate scripts."""
 
+import fnmatch
+import gc
 import hashlib
 import importlib.util
 import json
@@ -1053,8 +1055,8 @@ def test_compose_flow_style_services_refused(text: str, line: int) -> None:
     assert facts.problems == [f"compose.yaml:{line}: {mod.FLOW_STYLE}"]
 
 
-def _gate(logs: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, "LABRA_CI_LOGS": str(logs)}
+def _gate(logs: Path, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "LABRA_CI_LOGS": str(logs), **env}
     return subprocess.run(  # noqa: S603
         [str(ROOT / "scripts" / "ci_local.sh"), *args],
         env=env,
@@ -1410,3 +1412,175 @@ def test_flaky_report_orders_same_second_runs_by_suffix(
         2,
         2,
     )
+
+
+def _path_without(tool: str, tmp_path: Path) -> str:
+    """PATH without the directories that hold `tool`, with uv and git still on it."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    for name in ("uv", "git"):
+        found = shutil.which(name)
+        assert found is not None, f"{name} is not installed"
+        (bin_dir / name).symlink_to(found)
+    dirs = [d for d in os.environ["PATH"].split(os.pathsep) if d and not (Path(d) / tool).exists()]
+    return os.pathsep.join([str(bin_dir), *dirs])
+
+
+@pytest.mark.item("W37")
+def test_strict_counts_a_stage_that_could_not_be_checked_as_failed(tmp_path: Path) -> None:
+    path = _path_without("gitleaks", tmp_path)
+    loose = _gate(tmp_path / "loose", "--only", "preflight", "--quiet", PATH=path)
+    assert loose.returncode == 0, loose.stdout + loose.stderr
+    assert "preflight  WARN" in loose.stdout
+    strict = _gate(tmp_path / "strict", "--only", "preflight", "--quiet", "--strict", PATH=path)
+    assert strict.returncode == 1, strict.stdout + strict.stderr
+    assert "preflight  FAIL" in strict.stdout
+    assert "WARN counted as FAIL (--strict)" in strict.stdout
+
+
+@pytest.mark.item("W37")
+@pytest.mark.parametrize("workflow", ["ci.yml", "release.yml"])
+def test_the_gate_jobs_install_the_tools_and_count_a_warn_as_failed(workflow: str) -> None:
+    steps = _job(workflow, "gate")
+    gates = re.findall(r"^ +- run: (scripts/ci_local\.sh.*)$", steps, re.MULTILINE)
+    assert gates, f"{workflow} runs no gate"
+    assert all(gate.startswith("scripts/ci_local.sh --strict") for gate in gates), gates
+    install = steps.index("- run: scripts/install_ci_tools.sh")
+    assert install < steps.index("- run: scripts/ci_local.sh")
+
+
+@pytest.mark.item("W37")
+def test_the_ci_runner_gets_every_tool_the_gate_can_warn_about() -> None:
+    tools = (ROOT / "scripts" / "check_tools.sh").read_text(encoding="utf-8")
+    m = re.search(r"^optional=\((.*)\)$", tools, re.MULTILINE)
+    assert m is not None
+    install = (ROOT / "scripts" / "install_ci_tools.sh").read_text(encoding="utf-8")
+    missing = [t for t in m.group(1).split() if f"if ! command -v {t} " not in install]
+    assert missing == []
+    audit = _script("audit_deps")
+    assert ROOT / "scripts" / "install_ci_tools.sh" in audit.BINARY_FILES
+    rows = {r.name: r for r in audit.parse_register(audit.REGISTER.read_text(encoding="utf-8"))}
+    assert rows["gitleaks"].kind == rows["osv-scanner"].kind == "binary"
+    assert audit.check_binaries(list(rows.values())) == []
+
+
+@pytest.mark.item("W37")
+def test_a_binary_variable_with_an_underscore_names_a_hyphenated_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit = _script("audit_deps")
+    script = tmp_path / "scripts" / "tools.sh"
+    script.parent.mkdir()
+    script.write_text(f"SOME_TOOL_VERSION=1.2.0\nSOME_TOOL_SHA256_AMD64={'a' * 64}\n")
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    monkeypatch.setattr(audit, "BINARY_FILES", {script: ("AMD64",)})
+    rows = audit.parse_register("| `some-tool` | binary | P | MIT | 1.2.0 · 2026-09-01 | — |\n")
+    assert audit.check_binaries(rows) == []
+
+
+def _banned_terms(*files: Path, **env: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603
+        ["/bin/bash", str(ROOT / "scripts" / "check_banned_terms.sh"), *map(str, files)],
+        env={k: v for k, v in os.environ.items() if not k.startswith("LABRA_BANNED")} | env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+@pytest.mark.item("W46")
+def test_the_banned_terms_check_names_the_file_but_never_the_term(tmp_path: Path) -> None:
+    terms = tmp_path / "terms.txt"
+    terms.write_text("# made up for the test\nZorblax Pathware\n", encoding="utf-8")
+    page = tmp_path / "page.md"
+    page.write_text("Fine.\nSee zorblax pathware here.\n", encoding="utf-8")
+    found = _banned_terms(page, LABRA_BANNED_TERMS=str(terms))
+    assert found.returncode == 1, found.stdout + found.stderr
+    assert found.stdout.splitlines()[1:] == [str(page)]
+    assert "zorblax" not in (found.stdout + found.stderr).lower()
+
+
+@pytest.mark.item("W46")
+def test_a_missing_banned_terms_list_is_skipped_only_where_the_run_allows_it(
+    tmp_path: Path,
+) -> None:
+    missing = str(tmp_path / "none.txt")
+    unchecked = _banned_terms(LABRA_BANNED_TERMS=missing)
+    assert unchecked.returncode == 2
+    assert "WARN: no banned-terms list" in unchecked.stderr
+    skipped = _banned_terms(LABRA_BANNED_TERMS=missing, LABRA_BANNED_TERMS_OPTIONAL="1")
+    assert skipped.returncode == 0, skipped.stdout + skipped.stderr
+    assert "check skipped" in skipped.stdout
+
+
+@pytest.mark.item("W46")
+@pytest.mark.parametrize(("workflow", "optional"), [("ci.yml", True), ("release.yml", False)])
+def test_the_gate_jobs_get_the_banned_terms_list_from_a_secret(
+    workflow: str, *, optional: bool
+) -> None:
+    steps = _job(workflow, "gate")
+    write = steps.index('- run: printf \'%s\' "$TERMS" >"$RUNNER_TEMP/banned-terms.txt"')
+    assert "TERMS: ${{ secrets.BANNED_TERMS }}" in steps[write:]
+    gate = steps.index("- run: scripts/ci_local.sh --strict\n")
+    assert write < gate
+    gate_step = steps[gate:].split("\n      - ", 1)[0]
+    assert "LABRA_BANNED_TERMS: ${{ runner.temp }}/banned-terms.txt" in gate_step
+    assert ('LABRA_BANNED_TERMS_OPTIONAL: "1"' in gate_step) is optional
+
+
+@pytest.mark.item("W38")
+def test_the_release_gate_runs_the_stack_smoke_after_the_full_gate() -> None:
+    steps = _job("release.yml", "gate")
+    full = steps.index("- run: scripts/ci_local.sh --strict\n")
+    assert full < steps.index("- run: scripts/ci_local.sh --strict --only stack\n")
+    assert "needs: gate" in _job("release.yml", "images")
+
+
+def _referenced_scripts(start: list[str]) -> set[str]:
+    """The repository scripts the files in `start` name, and the scripts those name, and so on."""
+    seen: set[str] = set()
+    todo = list(start)
+    while todo:
+        path = todo.pop()
+        if path in seen:
+            continue
+        seen.add(path)
+        text = (ROOT / path).read_text(encoding="utf-8")
+        todo += [m for m in re.findall(r"scripts/[\w-]+\.(?:sh|py)", text) if (ROOT / m).is_file()]
+    return seen
+
+
+@pytest.mark.item("W39")
+def test_the_portability_workflow_watches_every_script_its_rows_reach() -> None:
+    workflow = ".github/workflows/portability.yml"
+    text = (ROOT / workflow).read_text(encoding="utf-8")
+    m = re.search(r"^    paths:\n((?:      - .*\n)+)", text, re.MULTILINE)
+    assert m is not None
+    patterns = [line.strip().removeprefix("- ") for line in m.group(1).splitlines()]
+    # Matched the way scripts/ci_portability.sh --if-needed does: ** and * both cross a /.
+    reached = _referenced_scripts([workflow, "scripts/stack_smoke.sh"])
+    reached -= {workflow, "scripts/ci_portability.sh"}  # the local runner of these same rows
+    assert "scripts/backup.sh" in reached  # upgrade, restore and the drill wait on its lock
+    unwatched = sorted(
+        path
+        for path in reached
+        if not any(fnmatch.fnmatchcase(path, p.replace("**", "*")) for p in patterns)
+    )
+    assert unwatched == []
+
+
+@pytest.mark.item("W40")
+def test_an_unreachable_runtime_leaves_no_socket_for_a_later_test_to_trip_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # docker-py leaves its socket open when the connection fails; under the ResourceWarning
+    # filter that failed whichever test the garbage collector next ran in.
+    from tests import conftest
+
+    monkeypatch.setattr(conftest, "TEST_DATABASE_URL", None)
+    monkeypatch.setenv("DOCKER_HOST", f"unix://{tmp_path}/missing.sock")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert conftest.postgres_available.__wrapped__() is False
+        gc.collect()
+    assert [w.message for w in caught if issubclass(w.category, ResourceWarning)] == []
