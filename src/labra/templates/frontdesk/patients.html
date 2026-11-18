@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% from "_macros.html" import pager %}
+{% from "_macros.html" import csrf %}
 {% block title %}Find patient{% endblock %}
 {% block content %}
 <div class="page-head">
   <h1>Find patient</h1>
   {% if can_edit %}<a class="btn" href="/frontdesk/patients/new">Register patient</a>{% endif %}
 </div>
-<form method="get" action="/frontdesk/patients" class="search-row" role="search">
+<form method="post" action="/frontdesk/patients/search" class="search-row" role="search" id="patient-search">
+  {{ csrf(csrf_token) }}
   <div class="field-row"><label class="label" for="f-q">Phone, patient or visit number, or name</label>
     <input class="input" type="search" id="f-q" name="q" value="{{ q }}" autofocus></div>
   <div class="field-row"><label class="label" for="f-area">Address, city or PIN</label>
@@ -31,5 +32,12 @@
     {% endfor %}
   </tbody>
 </table>
-{{ pager(patients, request) }}
+{% if patients.has_prev or patients.has_next %}
+{# Pages are posted with the search, so it never shows in an address. #}
+<nav class="pager" aria-label="Pages">
+  {% if patients.has_prev %}<button type="submit" form="patient-search" class="btn-outline" name="page" value="{{ patients.number - 1 }}">Previous</button>{% endif %}
+  <span>Page {{ patients.number }}</span>
+  {% if patients.has_next %}<button type="submit" form="patient-search" class="btn-outline" name="page" value="{{ patients.number + 1 }}">Next</button>{% endif %}
+</nav>
+{% endif %}
 {% endblock %}

@@ -39,7 +39,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 ## C. Privacy and compliance (India)
 - [x] **P** `EC-C01` Consent recorded before testing and before referral-lab sharing; consent text versioned
 - [x] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
-- [ ] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
+- [x] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
 - [x] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
 - [ ] **P** `EC-C05` Retention: reports and audit kept ≥ 2 years (NABL); nothing hard-deleted
 - [ ] **1** `EC-C06` DPDP: privacy notice, patient data-access export, correction workflow, erasure request handling (anonymise beyond the retention period), breach register and 72-hour notification runbook
@@ -59,7 +59,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **L** `EC-D09` Warm standby (second laptop/mini PC with streaming replication)
 
 ## E. Observability and support
-- [ ] **P** `EC-E01` Structured JSON logs (structlog) with a request ID; IDs only, never names/phones; log rotation
+- [x] **P** `EC-E01` Structured JSON logs (structlog) with a request ID; IDs only, never names/phones; log rotation
 - [x] **P** `EC-E02` Uptime monitor (Uptime Kuma or Healthchecks.io) for the web app, backup job and Tunnel; alerts to the owner by email/Telegram
 - [x] **P** `EC-E03` Friendly error page with an error reference number, matching a log entry, so staff can report it
 - [x] **P** `EC-E04` `Admin ▸ System` page: version, last backup, disk space, database size, pending migrations, certificate expiry

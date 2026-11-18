@@ -36,6 +36,37 @@ def patients(
     visited_to: str = "",
     page: str = "1",
 ) -> Response:
+    """The list, and a search linked to by number (a saved patient, a scanned visit)."""
+    return _find(request, db, principal, q, area, visited_from, visited_to, page)
+
+
+@router.post("/patients/search", response_class=HTMLResponse)
+@page("frontdesk/find-patient", "frontdesk/patients.html")
+def patients_search(
+    request: Request,
+    db: DB,
+    principal: Annotated[Principal, Depends(require("patient.view"))],
+    q: Annotated[str, Form()] = "",
+    area: Annotated[str, Form()] = "",
+    visited_from: Annotated[str, Form()] = "",
+    visited_to: Annotated[str, Form()] = "",
+    page: Annotated[str, Form()] = "1",
+) -> Response:
+    """The search form, posted, so a typed name, phone or address stays out of addresses,
+    the browser's history and the logs that keep them."""
+    return _find(request, db, principal, q, area, visited_from, visited_to, page)
+
+
+def _find(
+    request: Request,
+    db: Session,
+    principal: Principal,
+    q: str,
+    area: str,
+    visited_from: str,
+    visited_to: str,
+    page: str,
+) -> Response:
     # A visit number, as the barcode on a report scans it, opens that visit.
     visit_id = service.visit_by_number(db, principal, q)
     if visit_id is not None:

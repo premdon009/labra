@@ -33,13 +33,13 @@
         <div class="field-row wide">
           <label class="label" for="f-phone">Phone</label>
           <input class="input" type="tel" id="f-phone" name="phone" value="{{ form.phone }}" autofocus autocomplete="off" inputmode="numeric" maxlength="10"
-            data-enter="phone-find" hx-get="/frontdesk/visits/new/patient" hx-trigger="input changed delay:300ms" hx-target="#patient-match" hx-indicator="#phone-busy"
+            data-enter="phone-find" hx-post="/frontdesk/visits/new/patient" hx-trigger="input changed delay:300ms" hx-target="#patient-match" hx-indicator="#phone-busy"
             {% if problems.get('phone') %}aria-invalid="true" aria-describedby="e-phone"{% endif %}>
           {% if problems.get('phone') %}<p class="field-error" id="e-phone">{{ problems.phone }}</p>{% endif %}
         </div>
         <div class="field-row">
           <span class="label">&nbsp;</span>
-          <button type="button" class="btn-outline" id="phone-find" hx-get="/frontdesk/visits/new/patient" hx-include="#f-phone" hx-target="#patient-match" hx-indicator="#phone-busy">Look up</button>
+          <button type="button" class="btn-outline" id="phone-find" hx-post="/frontdesk/visits/new/patient" hx-target="#patient-match" hx-indicator="#phone-busy">Look up</button>
           <span class="busy muted" id="phone-busy" role="status">Searching…</span>
         </div>
         <div class="full" id="patient-match" aria-live="polite"></div>

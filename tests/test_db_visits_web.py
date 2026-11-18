@@ -94,10 +94,11 @@ def test_visit_saved_from_one_screen_only_once(
     assert "Take payment" not in summary
 
     # Someone already registered: the screen offers them by phone and skips the consent tick.
-    match = db_client.get("/frontdesk/visits/new/patient?phone=9000000001").text
+    lookup = "/frontdesk/visits/new/patient"
+    match = post(db_client, lookup, {"phone": "9000000001"}).text
     assert f"/frontdesk/visits/new?patient_id={visit.patient_id}" in match
-    assert "No patient here" in db_client.get("/frontdesk/visits/new/patient?phone=9000000009").text
-    assert db_client.get("/frontdesk/visits/new/patient?phone=900").text.strip() == ""
+    assert "No patient here" in post(db_client, lookup, {"phone": "9000000009"}).text
+    assert post(db_client, lookup, {"phone": "900"}).text.strip() == ""
     known = db_client.get(f"/frontdesk/visits/new?patient_id={visit.patient_id}").text
     assert "Consent on file" in known and 'name="consent"' not in known
     assert 'name="full_name"' not in known

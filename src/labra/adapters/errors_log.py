@@ -8,8 +8,9 @@ log = structlog.stdlib.get_logger("labra.errors")
 
 
 class LogErrorReporter:
-    """Writes unexpected errors to the log under their reference number (EC-E03).
-    A GlitchTip or Sentry adapter would send them to that service instead (EC-E05)."""
+    """Writes unexpected errors to the log under their reference number (EC-E03): the error's
+    type and where it was raised, never its message, which can carry patient data. A GlitchTip
+    or Sentry adapter would send them to that service instead (EC-E05)."""
 
     @classmethod
     def from_settings(cls, settings: Settings) -> Self:

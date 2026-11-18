@@ -1,6 +1,6 @@
 ---
 title: Find or register a patient
-features: [M03, EC-F03, M19, M20]
+features: [M03, EC-F03, M19, M20, EC-C03]
 ---
 
 # Find or register a patient
@@ -68,6 +68,9 @@ To change a patient's details, select **Edit** on their row, change the fields, 
   and asks you to reload, so neither change is lost silently.
 - Registrations and changes are recorded in the audit log. The log names the fields that
   changed, never the patient's details.
+- What you type in the search never appears in the page's address, the browser's history or
+  the server's logs, so a name or phone can't be read back from them. For the same reason,
+  the browser's back button may ask to send the search again.
 - Long lists show 25 rows at a time. Use **Previous** and **Next** under the list to move
   through them; a search you typed stays in place.
 

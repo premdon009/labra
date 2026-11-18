@@ -200,15 +200,16 @@ def visit_new(
     return _visit_page(request, db, principal, form)
 
 
-@router.get("/visits/new/patient", response_class=HTMLResponse)
+@router.post("/visits/new/patient", response_class=HTMLResponse)
 @page("frontdesk/new-visit", "frontdesk/_patient_match.html")
 def visit_patient_match(
     request: Request,
     db: DB,
     principal: Annotated[Principal, Depends(require("visit.create"))],
-    phone: str = "",
+    phone: Annotated[str, Form()] = "",
 ) -> Response:
-    """People already registered with the phone number being typed."""
+    """People already registered with the phone number being typed. Posted, so the number
+    stays out of addresses and the logs that keep them."""
     digits = phone.strip()
     looked = digits.isdigit() and len(digits) >= MIN_PHONE_DIGITS
     found = patients.find_patients(db, principal, digits, 1).items[:5] if looked else []

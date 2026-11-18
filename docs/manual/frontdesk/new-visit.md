@@ -1,6 +1,6 @@
 ---
 title: New visit
-features: [M18, M18.2, M07, M07.2, M07.3, M04, EC-C01, EC-B07, EC-J01, EC-J02]
+features: [M18, M18.2, M07, M07.2, M07.3, M04, EC-C01, EC-B07, EC-J01, EC-J02, EC-C03]
 ---
 
 # New visit
@@ -51,6 +51,8 @@ The whole screen works from the keyboard. **Tab** moves forward, **Shift+Tab** m
 
 ## Good to know
 
+- The phone you type to look a patient up is sent to the server without appearing in any
+  address, so it stays out of the browser's history and the server's logs.
 - **Enter** never saves the visit by accident. It adds the test you typed. Only **Save and
   print** or **Alt+S** saves.
 - You can add tests and change the discount quickly, one after the other. Labra applies

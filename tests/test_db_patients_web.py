@@ -140,7 +140,17 @@ def test_frontdesk_lists_paginate(
             seeded, priya, service.ReferrerInput("doctor", f"Dr Number {i:02d}")
         )
     sign_in(db_client, "priya")
-    for url in ("/frontdesk/patients", "/frontdesk/referrers"):
+    # The patient search is posted, so its pager posts the search again with the page.
+    search = "/frontdesk/patients/search"
+    first = post(db_client, search, {"q": "e"}).text
+    assert first.count(">Edit</a>") == 25
+    assert 'form="patient-search" class="btn-outline" name="page" value="2">Next' in first
+    second = post(db_client, search, {"q": "e", "page": "2"}).text
+    assert second.count(">Edit</a>") == 1
+    assert ">Previous</button>" in second and ">Next</button>" not in second
+    junk = post(db_client, search, {"q": "e", "page": "two"}).text
+    assert ">Next</button>" in junk and ">Previous</button>" not in junk
+    for url in ("/frontdesk/referrers",):
         first = db_client.get(f"{url}?q=e")
         assert first.text.count(">Edit</a>") == 25
         assert f'href="{url}?q=e&amp;page=2"' in first.text

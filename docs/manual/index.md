@@ -18,6 +18,8 @@ Every feature Labra has, and the manual page that explains it.
 | EC-B07 | Idempotent form submits | [New visit](frontdesk/new-visit.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [Settings](admin/settings.md) |
 | EC-C01 | Consent recorded before testing and before referral-lab sharing | [New visit](frontdesk/new-visit.md) |
+| EC-C03 | No patient data in logs, error messages, URLs or analytics * | [Find or register a patient](frontdesk/find-patient.md) |
+| EC-C03 | No patient data in logs, error messages, URLs or analytics * | [New visit](frontdesk/new-visit.md) |
 | EC-D01 | Backups every 15 min in lab hours + nightly | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D02 | Monthly restore drill, automated, result logged | [Backups and restore](admin/backups-and-restore.md) |
 | EC-D03 | Written targets: RPO ≤ 15 min | [Backups and restore](admin/backups-and-restore.md) |

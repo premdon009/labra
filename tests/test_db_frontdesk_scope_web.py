@@ -61,7 +61,6 @@ def test_frontdesk_screens_need_a_frontdesk_role(
     assert post(db_client, "/frontdesk/referrers", {"name": "X"}).status_code == 403
     for url in (
         "/frontdesk/visits/new",
-        "/frontdesk/visits/new/patient?phone=9000000001",
         "/frontdesk/visits/new/tests?q=fbs",
         "/frontdesk/referrers/pick",
         "/frontdesk/bills",
@@ -73,6 +72,10 @@ def test_frontdesk_screens_need_a_frontdesk_role(
     assert post(db_client, "/frontdesk/collect", {"sample_no": "X"}).status_code == 403
     assert post(db_client, "/frontdesk/visits", {"full_name": "X"}).status_code == 403
     assert post(db_client, "/frontdesk/visits/new/preview", {"op": "code"}).status_code == 403
+    assert (
+        post(db_client, "/frontdesk/visits/new/patient", {"phone": "9000000001"}).status_code == 403
+    )
+    assert post(db_client, "/frontdesk/patients/search", {"q": "X"}).status_code == 403
     assert post(db_client, "/frontdesk/referrers/quick", {"name": "X"}).status_code == 403
     sign_in(db_client, "priya")
     home = db_client.get("/").text

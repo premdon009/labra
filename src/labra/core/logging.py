@@ -1,4 +1,5 @@
-"""Structured logs to stdout (EC-E01), with personal data scrubbed (EC-C03).
+"""Structured logs to stdout (EC-E01), with personal data scrubbed and errors logged without
+their messages (EC-C03).
 
 Logs are the stdout "port": any collector that reads container output can ship them.
 Domain code calls `get_logger()` and never imports structlog itself.
@@ -7,6 +8,7 @@ Domain code calls `get_logger()` and never imports structlog itself.
 import logging
 import re
 import sys
+import traceback
 from collections.abc import MutableMapping
 from contextvars import ContextVar
 from typing import Any
@@ -35,8 +37,9 @@ SECRET_OR_PERSONAL_KEYS = frozenset(
     }
 )
 REDACTED = "[redacted]"
-# Indian mobile numbers (optionally +91), and email addresses, inside free text.
-_PHONE_RE = re.compile(r"(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{9}(?!\d)")
+# Indian mobile numbers (optionally +91), and email addresses, inside free text. A number
+# run into letters is part of an ID (a request ID's hex), not a phone.
+_PHONE_RE = re.compile(r"(?<![\dA-Za-z])(?:\+?91[\s-]?)?[6-9]\d{9}(?![\dA-Za-z])")
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
 
@@ -68,6 +71,42 @@ def scrub_processor(
     return event_dict
 
 
+def _exception(exc_info: Any) -> BaseException | None:
+    if isinstance(exc_info, BaseException):
+        return exc_info
+    if isinstance(exc_info, tuple) and len(exc_info) == 3:  # pyright: ignore[reportUnknownArgumentType]
+        found: Any = exc_info[1]  # pyright: ignore[reportUnknownVariableType]
+        return found if isinstance(found, BaseException) else None
+    return sys.exc_info()[1] if exc_info else None
+
+
+def _frame(frame: traceback.FrameSummary) -> str:
+    path = frame.filename.replace("\\", "/")
+    for marker in ("/site-packages/", "/src/"):
+        if marker in path:
+            path = path.rsplit(marker, 1)[1]
+            break
+    return f"{path}:{frame.lineno} in {frame.name}"
+
+
+def exception_processor(
+    _logger: Any, _method: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
+    """An error's type and where it was raised, never its message: a message (a database
+    error's parameters above all) can carry a patient's name, phone or result."""
+    exc = _exception(event_dict.pop("exc_info", None))
+    if exc is None:
+        return event_dict
+    chain: list[str] = []
+    seen: BaseException | None = exc
+    while seen is not None and len(chain) < 5:
+        chain.append(f"{type(seen).__module__}.{type(seen).__qualname__}")
+        seen = seen.__cause__ or seen.__context__
+    event_dict["exception"] = " <- ".join(chain)
+    event_dict["stack"] = [_frame(f) for f in traceback.extract_tb(exc.__traceback__)][-15:]
+    return event_dict
+
+
 def _add_request_id(
     _logger: Any, _method: str, event_dict: MutableMapping[str, Any]
 ) -> MutableMapping[str, Any]:
@@ -84,7 +123,7 @@ def configure_logging(fmt: str = "json", level: str = "INFO") -> None:
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
-        structlog.processors.format_exc_info,
+        exception_processor,
         scrub_processor,
     ]
     renderer = (

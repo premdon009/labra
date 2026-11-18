@@ -242,3 +242,11 @@ def test_logs_scrub_personal_data() -> None:
     assert event["extra"]["items"] == [REDACTED]
     # Not a mobile number: IDs and amounts stay readable.
     assert scrub_text("invoice 1234567890") == "invoice 1234567890"
+
+
+@pytest.mark.item("W50")
+def test_logs_keep_request_ids_whole() -> None:
+    rid = "a5aa3bf630ae49948dc9876543210b55"
+    event = scrub_processor(None, "info", {"event": "request", "request_id": rid})
+    assert event["request_id"] == rid
+    assert scrub_text("phone_9876543210, ph:9876543210") == f"phone_{REDACTED}, ph:{REDACTED}"

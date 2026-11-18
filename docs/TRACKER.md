@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this. A pilot candidate (`v0.1.0rcN`) skips W09, W11, W12 and EC-G02, which can only close on or after it (W47).
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 37/48 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 46/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 37/49 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 48/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -91,6 +91,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W47 | A pilot release candidate (`v0.1.0rcN`) may be tagged with W09, W11, W12 and EC-G02 still open, since each needs the tag first; the final pilot tag checks them | P | doing | |
 | W48 | The gate's "tool missing" test hides only that tool from PATH, so it also runs where one directory holds the tool and the shell (a merged `/usr`, as on Arch) instead of failing with `env: bash` not found | P | doing | |
 | W49 | The three-page report render test holds the documented 3 s report PDF budget instead of 2 s, which a 2015 dual-core laptop of the kind the pilot runs on missed by half a second | P | doing | |
+| W50 | The log scrubber no longer cuts a 10-digit run out of a request ID's hex as if it were a phone, which left some request IDs in the logs unmatchable to the error page | P | doing | |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |
@@ -233,9 +234,9 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 |---|---|---|---|---|
 | A Security | EC-A01–A16 | 11/12 | 0/3 | 0/1 |
 | B Data integrity and money | EC-B01–B08 | 7/7 | 0/1 | — |
-| C Privacy and compliance | EC-C01–C09 | 3/5 | 0/3 | 0/1 |
+| C Privacy and compliance | EC-C01–C09 | 4/5 | 0/3 | 0/1 |
 | D Reliability, backup, DR | EC-D01–D09 | 4/7 | 0/1 | 0/1 |
-| E Observability and support | EC-E01–E06 | 3/4 | 0/2 | — |
+| E Observability and support | EC-E01–E06 | 4/4 | 0/2 | — |
 | F Performance | EC-F01–F04 | 1/3 | 0/1 | — |
 | G Upgrades and migrations | EC-G01–G06 | 3/4 | 0/2 | — |
 | H Code quality and testing | EC-H01–H07 | 4/5 | 0/2 | — |

@@ -37,7 +37,7 @@ def test_front_desk_day_on_the_demo_data(
     sign_in(db_client, "priya")
 
     # The phone finds the patient; each code or alias finds its test and its price.
-    match = db_client.get("/frontdesk/visits/new/patient", params={"phone": patient.phone}).text
+    match = post(db_client, "/frontdesk/visits/new/patient", {"phone": patient.phone}).text
     assert f'href="/frontdesk/visits/new?patient_id={patient.id}"' in match
     for typed, code, price in (
         ("sf", "fbs", "₹80.00"),
