@@ -16,7 +16,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [x] **P** `EC-A05` Role check on **every** route by default (deny unless allowed) + branch scoping in the service layer; tests prove a front-desk user of branch B2 can't open branch B3's patient *(CI)*
 - [x] **P** `EC-A06` Security headers via Caddy: CSP (no inline scripts except nonce, no `unsafe-eval`: so Alpine's **CSP build** and htmx with `allowEval` off, §19.3), HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`. The app sets the CSP and the other headers itself (`web/middleware.py`), so they hold behind Caddy, nginx or none; the proxy adds HSTS, and `scripts/stack_smoke.sh` checks the policy through it. htmx 4 has no `allowEval` switch: it evaluates only `hx-on`, `js:` values and trigger filters, which no template uses (a test scans them), and the CSP refuses eval anyway
 - [x] **P** `EC-A07` Upload safety: type sniffed (not trusted from the filename), size cap, SVG sanitised, PDFs never executed, files served with `Content-Disposition` and a safe content type
-- [ ] **P** `EC-A08` Jinja autoescape on; report/bill templates rendered in the **sandboxed** Jinja environment
+- [x] **P** `EC-A08` Jinja autoescape on; report/bill templates rendered in the **sandboxed** Jinja environment
 - [x] **P** `EC-A09` All SQL through SQLAlchemy parameters; no string-built SQL *(CI: ruff `S608`)*
 - [x] **P** `EC-A10` Secrets only from env / `.env` (mode 600) / Docker secrets; never in the database, logs, CLI args or Git *(CI: gitleaks)*
 - [x] **P** `EC-A11` Remote access only through Cloudflare Tunnel + Cloudflare Access (email OTP); no open router ports; Postgres not exposed outside Docker

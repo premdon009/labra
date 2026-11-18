@@ -13,6 +13,8 @@ from urllib.parse import urlencode
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import FileSystemLoader, select_autoescape
+from jinja2.sandbox import SandboxedEnvironment
 
 from labra import __version__
 from labra.auth.deps import csrf_cookie, csrf_token
@@ -24,7 +26,14 @@ from labra.web.shortcuts import SHORTCUTS
 PACKAGE = Path(str(files("labra")))
 TEMPLATES = PACKAGE / "templates"
 
-templates = Jinja2Templates(directory=TEMPLATES)
+# Sandboxed (EC-A08): bills, receipts and the manual PDF are rendered from these templates
+# too, and a template can never reach Python internals through a value it is given.
+templates = Jinja2Templates(
+    env=SandboxedEnvironment(
+        loader=FileSystemLoader(TEMPLATES),
+        autoescape=select_autoescape(default=True, default_for_string=True),
+    )
+)
 
 
 @lru_cache
