@@ -1,5 +1,5 @@
 ---
-items: [W08, W40]
+items: [W08, W40, W48]
 ---
 
 # Known tooling issues
@@ -55,3 +55,13 @@ Problems seen on development machines, and their fixes. Add an entry when someth
 **Symptom:** in WSL, `docker pull` (and the first `scripts/ci_portability.sh` run, which pulls the pinned images) fails with "error getting credentials … docker-credential-desktop.exe: exec format error".
 **Cause:** `~/.docker/config.json` names Docker Desktop's Windows credential helper (`"credsStore": "desktop.exe"`), and this WSL session can't run Windows programs.
 **Fix:** the images are public, so pull without the helper: `mkdir -p /tmp/dockercfg && echo '{}' >/tmp/dockercfg/config.json`, then `DOCKER_CONFIG=/tmp/dockercfg docker pull …` or `DOCKER_CONFIG=/tmp/dockercfg scripts/ci_portability.sh`. Turning WSL interop back on, or dropping `credsStore` from the config, fixes it for good.
+
+## Pyright fails to install its Node.js
+**Symptom:** the types stage fails before checking anything; pyright's nodeenv reports it can't fetch Node.js version `0-alpha` (or another odd version).
+**Cause:** the pyright wrapper picked a bad Node.js version for its private copy, and left a broken one in `~/.cache/pyright-python/nodeenv`.
+**Fix:** delete `~/.cache/pyright-python/nodeenv` and run with `PYRIGHT_PYTHON_NODE_VERSION=lts`, e.g. `PYRIGHT_PYTHON_NODE_VERSION=lts scripts/ci_local.sh`.
+
+## The "tool missing" gate test can't find bash
+**Symptom:** `test_strict_counts_a_stage_that_could_not_be_checked_as_failed` fails with "env: 'bash': No such file or directory".
+**Cause:** on a merged `/usr` (Arch, Fedora), gitleaks and bash sit in the same directory, and an older version of the test dropped the whole directory from PATH.
+**Fix:** fixed in the test: it now hides only the one tool.

@@ -43,8 +43,9 @@ SPEC = PageSpec(
     signature_area_mm=Decimal(30),
     font_size_pt=Decimal(10),
 )
-# A report on the counter PC must be ready well before the patient has paid.
-RENDER_BUDGET_S = 2.0
+# The report PDF budget in docs/dev/performance.md: ready well before the patient has paid,
+# on the old laptop the lab runs on.
+RENDER_BUDGET_S = 3.0
 
 Words = list[list[list[Any]]]
 
@@ -113,6 +114,7 @@ def test_the_bill_matches_its_snapshot(
 
 @pytest.mark.item("EC-H03")
 @pytest.mark.item("M12")
+@pytest.mark.item("W49")
 @pytest.mark.serial
 def test_a_three_page_report_renders_within_its_budget() -> None:
     samples.render("short", SPEC, "digital")  # fonts loaded once per process

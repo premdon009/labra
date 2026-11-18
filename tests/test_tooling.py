@@ -1461,18 +1461,26 @@ def test_flaky_report_orders_same_second_runs_by_suffix(
 
 
 def _path_without(tool: str, tmp_path: Path) -> str:
-    """PATH without the directories that hold `tool`, with uv and git still on it."""
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    for name in ("uv", "git"):
-        found = shutil.which(name)
-        assert found is not None, f"{name} is not installed"
-        (bin_dir / name).symlink_to(found)
-    dirs = [d for d in os.environ["PATH"].split(os.pathsep) if d and not (Path(d) / tool).exists()]
-    return os.pathsep.join([str(bin_dir), *dirs])
+    """PATH without `tool`. A directory that holds it is replaced by links to everything else in
+    it, in its place, since on a merged /usr the same directory holds bash, env and the rest."""
+    dirs: list[str] = []
+    for n, d in enumerate(os.environ["PATH"].split(os.pathsep)):
+        if not d or not (Path(d) / tool).exists():
+            dirs.extend([d] if d else [])
+            continue
+        links = tmp_path / f"bin{n}"
+        links.mkdir()
+        for entry in Path(d).iterdir():
+            if entry.name != tool:
+                (links / entry.name).symlink_to(entry)
+        dirs.append(str(links))
+    path = os.pathsep.join(dirs)
+    assert shutil.which(tool, path=path) is None
+    return path
 
 
 @pytest.mark.item("W37")
+@pytest.mark.item("W48")
 def test_strict_counts_a_stage_that_could_not_be_checked_as_failed(tmp_path: Path) -> None:
     path = _path_without("gitleaks", tmp_path)
     loose = _gate(tmp_path / "loose", "--only", "preflight", "--quiet", PATH=path)

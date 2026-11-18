@@ -1,5 +1,5 @@
 ---
-items: [EC-F01, W32, W42]
+items: [EC-F01, W32, W42, W49]
 ---
 
 # Performance budgets
@@ -74,6 +74,7 @@ database that has patients of its own.
 |---|---|---|---|---|---|---|
 | 2026-10-21 | Development PC (WSL 2, Docker Desktop), containers capped as above, 3 users, 20 s | 32–250 ms | 27–224 ms | not measured | 432–459 MiB | three runs; the spread is the shared PC, not Labra |
 | 2026-10-21 | Development PC, in process (pytest), 50,000 patients | — | 35–50 ms (median per search) | — | — | owner and branch front desk |
+| 2026-11-19 | 2015 laptop (Core i3-5015U, 2 cores at 2.0 GHz), in process (pytest) | — | — | 2.44–2.47 s (three-page report, render only) | — | the old 2.0 s test budget failed here; the test now holds the 3 s budget above |
 | — | The laptop, before the pilot | to be filled in | | | | closes the laptop budgets item |
 
 ## How long the tests take
