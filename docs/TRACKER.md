@@ -30,10 +30,10 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
    - a status row or progress line in any other doc (statuses live only in `docs/TRACKER.md`)
 
    It also rewrites the progress line and the checklist counts, so nobody counts by hand.
-3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this.
+3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this. A pilot candidate (`v0.1.0rcN`) skips W09, W11, W12 and EC-G02, which can only close on or after it (W47).
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 37/45 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 45/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 37/46 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 45/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -88,6 +88,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W44 | nerdctl: make the `db` and `edge` networks internal there too. nerdctl compose ignores `internal: true`; networks made with `nerdctl network create --internal` and named as external ones in an override file do hold | P2 | todo | |
 | ~~W45~~ | ~~The audit stage checks the locked Python packages by their hashes in `uv.lock` (`pip-audit --require-hashes`) instead of `--no-deps`, which made pip-audit print two warnings on every run~~ | P | done | 2026-10-27 · a116256 |
 | ~~W46~~ | ~~GitHub CI runs the banned-terms check with the list from the `BANNED_TERMS` secret; without it (a fork's pull request) the check skips instead of failing the `--strict` gate, and a release fails~~ | P | done | 2026-10-27 · 8bf5472 |
+| W47 | A pilot release candidate (`v0.1.0rcN`) may be tagged with W09, W11, W12 and EC-G02 still open, since each needs the tag first; the final pilot tag checks them | P | doing | |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

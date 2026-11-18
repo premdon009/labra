@@ -256,18 +256,28 @@ def parse_version(tag: str) -> tuple[tuple[int, int, int], bool]:
 
 PILOT = (0, 1, 0)
 
+# Items that can only close on or after the pilot's release candidate: the pilot week runs on
+# it (W09), its release builds the arm64 image (W11) and runs the pipeline for the first time
+# (W12), and the upgrade test needs a tag to upgrade from (EC-G02). A pilot pre-release skips
+# them; the final pilot tag does not (W47).
+AFTER_PILOT_RC = frozenset({"W09", "W11", "W12", "EC-G02"})
+
 
 def check_tag(tag: str, rows: list[Row], checks: list[Check]) -> list[str]:
-    version, _pre = parse_version(tag)
+    version, pre = parse_version(tag)
     if version < PILOT:
         return []
     gates = {"P"} if version == PILOT else {"P", "P2"}
+    skip = AFTER_PILOT_RC if version == PILOT and pre else frozenset[str]()
     open_items = [
         r.id
         for r in rows
-        if r.gate in gates and r.id[0] in "WM" and r.status not in {"done", "dropped"}
+        if r.gate in gates
+        and r.id[0] in "WM"
+        and r.status not in {"done", "dropped"}
+        and r.id not in skip
     ]
-    open_items += [c.id for c in checks if c.gate in gates and not c.done]
+    open_items += [c.id for c in checks if c.gate in gates and not c.done and c.id not in skip]
     if not open_items:
         return []
     label = "pilot" if version == PILOT else "post-pilot"

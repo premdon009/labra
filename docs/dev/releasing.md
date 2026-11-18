@@ -1,5 +1,5 @@
 ---
-items: [W12, W11, EC-G03, W38, W46]
+items: [W12, W11, EC-G03, W38, W46, W47]
 ---
 
 # Releasing
@@ -12,7 +12,10 @@ person's machine.
 - Every minor release starts as a candidate, `vX.Y.0rc1`, which runs at a pilot lab for about a
   week before the final tag. The first pilot is `v0.1.0rc1`.
 - `scripts/check_tracker.py --tag <tag>` decides whether a tag may be created. The pilot tag
-  is refused while any `W`, `M` or gate-P checklist item is still open.
+  is refused while any `W`, `M` or gate-P checklist item is still open. A pilot candidate
+  (`v0.1.0rcN`) skips the four items that can only close on or after it: the pilot week (W09),
+  the arm64 image (W11), the release pipeline's first run (W12) and the upgrade test from the
+  last tag (EC-G02). The final `v0.1.0` checks them too (W47).
 
 ## Steps
 1. On `master`, with `scripts/ci_local.sh` green and no WARN on the tests stage (Docker must

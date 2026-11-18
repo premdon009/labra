@@ -144,6 +144,47 @@ def test_repo_docs_keep_no_status_copy() -> None:
     assert _script("check_tracker").check_copies() == []
 
 
+GATED_TRACKER = """\
+| ID | Item | Gate | Status | Done (date · PR) |
+|---|---|---|---|---|
+| W06 | Laptop install | P | doing | |
+| W09 | Pilot week | P | todo | |
+| W12 | Release pipeline | P | doing | |
+| M22 | Status board | P2 | todo | |
+"""
+
+GATED_CHECKLIST = """\
+- [ ] **P** `EC-G02` Upgrade from the last tag
+- [ ] **P** `EC-A12` Disk encryption
+"""
+
+
+@pytest.mark.item("W47")
+@pytest.mark.parametrize(
+    ("tag", "still_open"),
+    [
+        ("v0.0.9", ""),
+        ("v0.1.0rc1", "W06, EC-A12"),
+        ("v0.1.0", "W06, W09, W12, EC-G02, EC-A12"),
+        ("v0.1.1rc1", "W06, W09, W12, M22, EC-G02, EC-A12"),
+    ],
+)
+def test_pilot_release_candidate_skips_items_that_need_the_tag(tag: str, still_open: str) -> None:
+    tracker = _script("check_tracker")
+    problems = tracker.check_tag(
+        tag, tracker.parse_tracker(GATED_TRACKER), tracker.parse_checklist(GATED_CHECKLIST)
+    )
+    assert problems == (
+        [
+            f"{tag} is a {'pilot' if tag.startswith('v0.1.0') else 'post-pilot'} "
+            f"tag; open gate {'P' if tag.startswith('v0.1.0') else 'P/P2'} items: "
+            f"{still_open}"
+        ]
+        if still_open
+        else []
+    )
+
+
 @pytest.mark.item("W08.1")
 @pytest.mark.parametrize(
     ("subject", "ok"),
