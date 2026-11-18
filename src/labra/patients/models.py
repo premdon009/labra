@@ -32,6 +32,14 @@ class Patient(TrackedMixin, Base):
             postgresql_ops={"full_name": "gin_trgm_ops"},
         ),
         Index("ix_patient_branch_created", "registered_branch_id", "created_at"),
+        # Pattern operators, so a search by the first digits reads the index whatever the
+        # database's collation; they serve an exact number as well.
+        Index("ix_patient_phone_prefix", "phone", postgresql_ops={"phone": "varchar_pattern_ops"}),
+        Index(
+            "ix_patient_alt_phone_prefix",
+            "alt_phone",
+            postgresql_ops={"alt_phone": "varchar_pattern_ops"},
+        ),
     )
 
     patient_no: Mapped[str] = mapped_column(String(30), unique=True)
@@ -41,7 +49,7 @@ class Patient(TrackedMixin, Base):
     sex: Mapped[str] = mapped_column(String(1))
     dob: Mapped[date]
     dob_is_estimated: Mapped[bool] = mapped_column(default=False)
-    phone: Mapped[str] = mapped_column(String(10), default="", index=True)
+    phone: Mapped[str] = mapped_column(String(10), default="")
     alt_phone: Mapped[str] = mapped_column(String(10), default="")
     email: Mapped[str] = mapped_column(String(120), default="")
     address: Mapped[str] = mapped_column(Text, default="")

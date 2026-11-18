@@ -68,7 +68,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 
 ## F. Performance and capacity
 - [ ] **P** `EC-F01` Budgets on the 4 GB laptop: page load < 1 s on LAN, search < 300 ms, report PDF < 3 s, memory < 2 GB with 3 users
-- [ ] **P** `EC-F02` Indexes for every list/search screen (patient phone/name trigram, visit date, order status); `EXPLAIN` checked in a test for the 5 main queries
+- [x] **P** `EC-F02` Indexes for every list/search screen (patient phone/name trigram, visit date, order status); `EXPLAIN` checked in a test for the 5 main queries
 - [x] **P** `EC-F03` Pagination everywhere; no unbounded lists
 - [ ] **1** `EC-F04` Load test (Locust) with 10 concurrent users and 5 years of synthetic data (about 160k visits)
 
