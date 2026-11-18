@@ -12,7 +12,13 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from labra.core.config import Settings
-from labra.core.dbroles import Login, ensure_roles, ensure_roles_from_settings, login_from_url
+from labra.core.dbroles import (
+    KEPT_RECORDS,
+    Login,
+    ensure_roles,
+    ensure_roles_from_settings,
+    login_from_url,
+)
 from labra.core.errors import ConfigError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +74,27 @@ def test_the_app_reads_and_writes_rows_but_cannot_change_the_schema(conn: Connec
     _denied(conn, "drop table ops_run")
     _denied(conn, "truncate ops_run")
     _denied(conn, "copy (select 1) to program 'true'")
+
+
+@pytest.mark.item("EC-C05")
+def test_the_app_cannot_delete_the_labs_records(conn: Connection) -> None:
+    app = _login("app")
+    ensure_roles(conn, app)
+    _as(conn, app)
+    for table in KEPT_RECORDS:  # names from the code, not from input
+        _allowed(conn, f"select count(*) from {table}")  # noqa: S608
+        _denied(conn, f"delete from {table} where false")  # noqa: S608
+        _denied(conn, f"truncate {table}")
+    _allowed(conn, "update patient set full_name = full_name where false")
+    # Set-up it may still remove: a draft letterhead, a role's switches, a range's bands.
+    for table in ("letterhead_layout", "role_permission", "reference_band", "package_item"):
+        _allowed(conn, f"delete from {table} where false")  # noqa: S608
+
+
+@pytest.mark.item("EC-C05")
+def test_every_record_table_is_kept(conn: Connection) -> None:
+    tables = set(conn.scalars(text("select tablename from pg_tables where schemaname = 'public'")))
+    assert set(KEPT_RECORDS) <= tables
 
 
 @pytest.mark.item("W41")

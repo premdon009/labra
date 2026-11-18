@@ -41,7 +41,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [x] **P** `EC-C02` Data sent to external labs is the minimum needed (no phone/address unless the lab requires it, setting per lab)
 - [x] **P** `EC-C03` No patient data in logs, error messages, URLs or analytics *(CI: log-scrubbing test)*
 - [x] **P** `EC-C04` PC-PNDT: no fetal-sex fields or output anywhere
-- [ ] **P** `EC-C05` Retention: reports and audit kept ≥ 2 years (NABL); nothing hard-deleted
+- [x] **P** `EC-C05` Retention: reports and audit kept ≥ 2 years (NABL); nothing hard-deleted
 - [ ] **1** `EC-C06` DPDP: privacy notice, patient data-access export, correction workflow, erasure request handling (anonymise beyond the retention period), breach register and 72-hour notification runbook
 - [ ] **1** `EC-C07` Data-processing agreement template for external labs and any cloud provider; list of sub-processors (Google Drive, Cloudflare, WhatsApp provider)
 - [ ] **1** `EC-C08` `docs/compliance/COMPLIANCE_CHECKLIST.md` reviewed by a CA (GST) and a lawyer (DPDP, IT Act signatures)

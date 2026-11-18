@@ -1,6 +1,6 @@
 ---
 title: Backups and restore
-features: [M16, EC-D01, W16, W07, EC-D02, EC-D03]
+features: [M16, EC-D01, W16, W07, EC-D02, EC-D03, EC-C05]
 ---
 
 # Backups and restore
@@ -22,6 +22,11 @@ mistaken delete costs at most the last few minutes of work.
 - **When:** every 15 minutes during lab hours (07:00 to 21:00), and once more at 23:30.
 - **How long:** every copy from the last 2 days, then one an hour for 7 days, one a day for
   30 days, and one a month for 2 years. The 23:30 run clears out the rest.
+- **The records themselves are never deleted:** patients, visits, bills, payments, samples,
+  results, reports and the audit log stay in the database for as long as the lab runs
+  Labra, well past the 2 years NABL asks for. A mistake is corrected, cancelled or amended,
+  and the change is recorded; the database refuses the web app any delete of these
+  records, so even a flaw in it can't remove them.
 - **Checked every month:** on the first Sunday at 03:00, Labra restores the newest copy from
   each place into a scratch database and checks it is complete, so a broken backup is found
   long before it's needed.

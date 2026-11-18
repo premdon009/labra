@@ -1,9 +1,9 @@
 """The database logins Labra runs as. `labra migrate` connects as the owner, which made the
 tables, and on every run puts the web app's and the backup job's logins right: the app may read
 and write rows but never change the schema, so a flaw in it can't alter tables, switch off the
-audit log's triggers or run programs on the server; the backup job may read everything and add
-rows to the run log, nothing else. A restore loads tables without their grants, and the
-`migrate` that starts with the stack afterwards gives them back."""
+audit log's triggers, run programs on the server or delete the lab's records; the backup job
+may read everything and add rows to the run log, nothing else. A restore loads tables without
+their grants, and the `migrate` that starts with the stack afterwards gives them back."""
 
 from dataclasses import dataclass
 from typing import Any
@@ -18,6 +18,34 @@ ROLE_OPTIONS = "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASS
 # The schema version is the owner's to change.
 READ_ONLY_FOR_APP = "alembic_version"
 RUN_LOG = "ops_run"
+# The lab's records, kept at least two years (NABL) and never hard-deleted: the app may add
+# and correct rows here but not remove them. Anything it does delete (a draft letterhead, a
+# role's switches, a package's tests, a range's bands) is set-up, not a record.
+KEPT_RECORDS = (
+    "audit_log",
+    "bill",
+    "bill_line",
+    "consent",
+    "critical_notification",
+    "external_document",
+    "external_document_test",
+    "order_item",
+    "order_test",
+    "order_test_event",
+    "patient",
+    "payment",
+    "refund",
+    "report",
+    "report_delivery",
+    "report_print",
+    "report_test",
+    "result",
+    "result_revision",
+    "sample",
+    "stored_file",
+    "verification",
+    "visit",
+)
 READ_ALL = "pg_read_all_data"
 
 
@@ -94,6 +122,12 @@ def ensure_roles(conn: Connection, app: Login, backup: Login | None = None) -> N
         conn,
         sql.SQL("REVOKE INSERT, UPDATE, DELETE ON {} FROM {}").format(
             sql.Identifier(READ_ONLY_FOR_APP), role
+        ),
+    )
+    _run(
+        conn,
+        sql.SQL("REVOKE DELETE, TRUNCATE ON {} FROM {}").format(
+            sql.SQL(", ").join(sql.Identifier(t) for t in KEPT_RECORDS), role
         ),
     )
     _run(
