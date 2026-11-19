@@ -337,7 +337,9 @@ class UserInput:
     can_login: bool = True
     is_active: bool = True
     # (branch_id, role_id) pairs.
-    roles: set[tuple[uuid.UUID, uuid.UUID]] = field(default_factory=set)
+    roles: set[tuple[uuid.UUID, uuid.UUID]] = field(
+        default_factory=set[tuple[uuid.UUID, uuid.UUID]]
+    )
     # Printed under a signatory's name on reports.
     qualification: str = ""
     council_reg_no: str = ""

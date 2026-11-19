@@ -108,7 +108,7 @@ class DuplicateHint:
     """Patients like the one being registered: those the user may see, and whether there
     are others at branches they can't see."""
 
-    matches: list[Patient] = field(default_factory=list)
+    matches: list[Patient] = field(default_factory=list[Patient])
     elsewhere: bool = False
 
     def __bool__(self) -> bool:

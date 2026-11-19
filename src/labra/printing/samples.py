@@ -166,7 +166,7 @@ def _bill() -> dict[str, Any]:
     }
 
 
-SAMPLES = {
+SAMPLES: dict[str, Sample] = {
     s.code: s
     for s in (
         Sample("short", "Short report (1 page)", REPORT, _short()),
@@ -176,7 +176,7 @@ SAMPLES = {
     )
 }
 # Which samples the editor offers for each document kind, the first being the default.
-FOR_KIND = {
+FOR_KIND: dict[str, tuple[str, ...]] = {
     "report_a4": ("short", "three_pages", "long_names"),
     "bill_a4": ("bill",),
 }

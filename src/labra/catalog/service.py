@@ -91,7 +91,9 @@ def _apply(
     return list(changes)
 
 
-def _create(db: Session, principal: Principal, record: Any, action: str, detail: dict) -> Any:
+def _create(
+    db: Session, principal: Principal, record: Any, action: str, detail: dict[str, Any]
+) -> Any:
     record.created_by = principal.user_id
     db.add(record)
     db.flush()
@@ -213,7 +215,7 @@ class TestInput:
     code: str
     name: str
     department_id: uuid.UUID
-    aliases: list[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list[str])
     short_name: str = ""
     specimen_type_id: uuid.UUID | None = None
     default_tat_hours: int = 24
@@ -367,7 +369,7 @@ class ParameterInput:
     decimals: int = 0
     formula: str = ""
     formula_valid_if: str = ""
-    options: list[dict[str, Any]] = field(default_factory=list)
+    options: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
     text_pattern: str = ""
     display_order: int = 0
     is_reportable: bool = True
@@ -673,7 +675,7 @@ def set_bands(
     _check(principal, "catalog.edit")
     rng = _get(db, ReferenceRange, range_id)
     problems: dict[str, str] = {}
-    rows = []
+    rows: list[tuple[Decimal | None, Decimal | None, str, str]] = []
     for i, b in enumerate(bands):
         low = _decimal(b.low, problems, f"band_{i}")
         high = _decimal(b.high, problems, f"band_{i}")
@@ -691,7 +693,7 @@ def set_bands(
     for old in list_bands(db, principal, range_id):
         db.delete(old)
     db.flush()
-    new = []
+    new: list[ReferenceBand] = []
     for order, (low, high, label, severity) in enumerate(rows):
         band = ReferenceBand(
             range_id=range_id,
@@ -853,7 +855,7 @@ def save_preset(
     row_version: int = 0,
 ) -> CommentPreset:
     _check(principal, "catalog.edit")
-    problems = {}
+    problems: dict[str, str] = {}
     if not label.strip():
         problems["label"] = "Enter a short label."
     if not text.strip():

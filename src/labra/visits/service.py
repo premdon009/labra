@@ -109,7 +109,7 @@ class Draft:
     totals: BillTotals
     visited_at: datetime
     promised_default: datetime
-    problems: dict[str, str] = field(default_factory=dict)
+    problems: dict[str, str] = field(default_factory=dict[str, str])
 
 
 def _catalog_line(

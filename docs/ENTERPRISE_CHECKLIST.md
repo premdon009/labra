@@ -82,7 +82,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 
 ## H. Code quality and testing
 - [x] **P** `EC-H01` Every change ships a test; coverage report in CI (target ≥ 80% on `service.py` modules) *(CI)*
-- [ ] **P** `EC-H02` ruff (lint + format), pyright strict on `service` and `billing`, pytest against real Postgres (testcontainers) *(CI)*
+- [x] **P** `EC-H02` ruff (lint + format), pyright strict on `service` and `billing`, pytest against real Postgres (testcontainers) *(CI)*
 - [x] **P** `EC-H03` One Playwright end-to-end test of the full day; PDF snapshot tests for report and bill *(CI)*
 - [x] **P** `EC-H04` Single local gate script = same as CI (`scripts/ci_local.sh`)
 - [x] **P** `EC-H05` Branch protection on `master`: CI must pass, PR required

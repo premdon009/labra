@@ -12,6 +12,7 @@ import tomllib
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import cast
 
 import markdown
 
@@ -54,11 +55,16 @@ def site_config() -> Path:
 def _nav() -> list[tuple[str, list[str]]]:
     """(section, [paths under docs/]) for the manual's sections and the runbooks, in the
     site's order."""
-    sections = []
+    sections: list[tuple[str, list[str]]] = []
     for entry in tomllib.loads(site_config().read_text())["project"]["nav"]:
         for section, paths in entry.items():
             if section == "User manual":
-                sections += [item for s in paths if isinstance(s, dict) for item in s.items()]
+                sections += [
+                    item
+                    for s in paths
+                    if isinstance(s, dict)
+                    for item in cast(dict[str, list[str]], s).items()
+                ]
             elif section == "Runbooks":
                 sections.append((section, paths))
     return sections
@@ -102,7 +108,7 @@ def _read(path: str) -> str:
 @lru_cache
 def pages() -> dict[str, Page]:
     """Every page in the site's order, by name."""
-    found = {}
+    found: dict[str, Page] = {}
     for section, paths in _nav():
         for path in paths:
             name = _served(path)

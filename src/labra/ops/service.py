@@ -64,7 +64,7 @@ def last_runs(session: Session) -> dict[str, LastRuns]:
             query = query.where(OpsRun.ok)
         return session.scalar(query.order_by(OpsRun.started_at.desc(), OpsRun.id.desc()).limit(1))
 
-    found = {}
+    found: dict[str, LastRuns] = {}
     for kind in KINDS:
         last = newest(kind, ok_only=False)
         found[kind] = LastRuns(last, last if last and last.ok else newest(kind, ok_only=True))
@@ -115,7 +115,7 @@ class JobStatus:
 
 
 def job_statuses(session: Session, now: datetime) -> list[JobStatus]:
-    statuses = []
+    statuses: list[JobStatus] = []
     for kind, runs in last_runs(session).items():
         limit = OVERDUE.get(kind)
         if runs.last is None:

@@ -116,6 +116,7 @@ max-complexity = 15
 include = ["src", "tests", "scripts"]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
+strict = ["src/labra/*/service.py", "src/labra/billing"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

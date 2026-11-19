@@ -181,7 +181,7 @@ def _forwards(db: Session, principal: Principal, outside: list[OrderTest]) -> li
         if document is not None:
             grouped.setdefault(document.id, []).append(ordered)
             documents[document.id] = document
-    forwards = []
+    forwards: list[Forward] = []
     for document in sorted(documents.values(), key=lambda d: (d.received_at, d.id)):
         tests = grouped[document.id]
         if not all(principal.can("report.release", t.perform_branch_id) for t in tests):
@@ -230,7 +230,7 @@ def _unapproved(db: Session, ordered: OrderTest) -> list[str]:
     """Values read against no range because the range for this patient was not approved
     when the value was saved (design §1d)."""
     sheet = load_sheet(db, ordered.id)
-    problems = []
+    problems: list[str] = []
     for parameter in sheet.parameters:
         result = sheet.results.get(parameter.id)
         if result is None or result.value_num is None or result.not_calculable:
@@ -277,7 +277,7 @@ def plan(db: Session, principal: Principal, visit_id: uuid.UUID) -> Plan:
     on_report = (
         set(db.scalars(select(ReportTest.order_test_id).where(ReportTest.report_id == now.id)))
         if now is not None
-        else set()
+        else set[uuid.UUID]()
     )
     # The last version's tests stay on the report, whoever released them, unless reopened.
     carried = [t for t, _ in rows if t.id in on_report and t.status == "released"]
