@@ -61,7 +61,7 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 .visit-fields > * { grid-column: span 2; min-width: 0; }
 .visit-fields > .wide { grid-column: span 4; }
 .visit-fields > .full { grid-column: 1 / -1; }
-.visit-fields .input, .visit-fields .select { width: 100%; }
+.visit-fields .input:not([type=checkbox]), .visit-fields .select { width: 100%; }
 .visit-lines { max-height: 13.5rem; overflow-y: auto; }
 .visit-lines td, .visit-lines th { padding: 0.2rem 0.4rem; }
 .visit-foot { position: sticky; bottom: 0; z-index: 1; margin-top: 0.75rem; padding: 0.6rem 0 0.2rem;
@@ -70,7 +70,7 @@ kbd { font-size: 0.75rem; opacity: 0.7; margin-left: 0.35rem; }
 .visit-foot > * { grid-column: span 2; min-width: 0; }
 .visit-foot > .wide { grid-column: span 4; }
 .visit-foot > .full { grid-column: 1 / -1; }
-.visit-foot .input, .visit-foot .select { width: 100%; }
+.visit-foot .input:not([type=checkbox]), .visit-foot .select { width: 100%; }
 .picker { width: min(32rem, 92vw); padding: 1rem; border-radius: 0.5rem; }
 @media (max-width: 64rem) { .visit-grid { grid-template-columns: 1fr; } }
 @media print { .app-nav, .app-top, .app-foot, .no-print { display: none !important; } .app { display: block; } }

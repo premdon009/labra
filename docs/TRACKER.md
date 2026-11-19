@@ -33,7 +33,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 3. **Release gate:** the pilot tag can't be created while any `W`, `M` or gate-P `EC` item is still open. The script checks this. A pilot candidate (`v0.1.0rcN`) skips W09, W11, W12 and EC-G02, which can only close on or after it (W47).
 4. **Later, mirror to GitHub Issues + Projects (X34).** While it's a one-person project, the markdown table is faster, works offline and gets reviewed in PRs. When outside contributors arrive, open one issue per open ID (e.g. `[X15] Culture & sensitivity`) on a Projects board, and decide in an ADR whether the issues or this file is the source of truth. Not now.
 
-**Progress** (maintained by the script): Work 37/49 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 51/61 · gate 1 0/31
+**Progress** (maintained by the script): Work 37/50 · Minimal 43/44 · After pilot (P2) 3/12 · Checklist gate P 51/61 · gate 1 0/31
 
 **Gate `P2`** (owner, 2026-10-08, pilot-first cut, §18.2): the item is part of the minimal version but is built in the first release *after* the pilot. The pilot tag is checked against gate `P` only. `P2` items must be done before the first tagged release after the pilot.
 
@@ -92,6 +92,7 @@ Every feature, work item and checklist item has a **permanent ID**. This table i
 | W48 | The gate's "tool missing" test hides only that tool from PATH, so it also runs where one directory holds the tool and the shell (a merged `/usr`, as on Arch) instead of failing with `env: bash` not found | P | doing | |
 | W49 | The three-page report render test holds the documented 3 s report PDF budget instead of 2 s, which a 2015 dual-core laptop of the kind the pilot runs on missed by half a second | P | doing | |
 | W50 | The log scrubber no longer cuts a 10-digit run out of a request ID's hex as if it were a phone, which left some request IDs in the logs unmatchable to the error page | P | doing | |
+| W51 | On the new-visit screen the consent tick box stays a tick box: it was stretched to the full width of its column, which squeezed the consent text to a word a line and grew the foot until it covered the patient's sex and date of birth at 1366 x 768 | P | doing | |
 | ~~M01~~ | ~~Login and roles~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.1~~ | ~~Permission switches per role (`role_permission`)~~ | P | done | 2026-10-09 · 635a0db |
 | ~~M01.2~~ | ~~Staff without login (collected/delivered by)~~ | P | done | 2026-10-09 · 635a0db |

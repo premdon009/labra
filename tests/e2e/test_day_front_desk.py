@@ -18,7 +18,7 @@ from labra.visits.models import Sample
 from tests.e2e.conftest import VIEWPORT, sign_in
 
 if TYPE_CHECKING:
-    from playwright.sync_api import Page, Route
+    from playwright.sync_api import FloatRect, Page, Route
 
 UTR = "426112345678"
 
@@ -62,6 +62,25 @@ def test_codes_typed_while_the_server_is_busy_are_kept(page: "Page") -> None:
     page.wait_for_timeout(600)
     expect(page.locator("#code-match")).to_be_empty()
     expect(page.locator("#code-busy")).to_be_hidden()
+
+
+@pytest.mark.e2e
+@pytest.mark.item("W51")
+def test_the_foot_leaves_the_patient_fields_in_view(page: "Page") -> None:
+    sign_in(page)
+    page.goto("/frontdesk/visits/new")
+
+    def box(selector: str) -> "FloatRect":
+        found = page.locator(selector).bounding_box()
+        assert found is not None, selector
+        return found
+
+    tick, foot = box("[name=consent]"), box(".visit-foot")
+    assert tick["width"] < 40  # a tick box, not a bar across the column
+    # The foot stays in view for Save, but over the form's end, not over the patient.
+    for field in ("#f-full_name", "#f-sex", "#f-dob"):
+        assert box(field)["y"] + box(field)["height"] <= foot["y"], field
+    assert foot["height"] < VIEWPORT["height"] / 3
 
 
 @pytest.mark.e2e
