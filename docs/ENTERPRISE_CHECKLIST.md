@@ -96,7 +96,7 @@ CI enforces the items marked *(CI)*. The release checklist (section M) links bac
 - [ ] **1** `EC-I04` SBOM (CycloneDX) attached to every release; images built in GitHub Actions and signed (cosign); provenance attestation
 - [ ] **1** `EC-I05` Container image vulnerability scan with osv-scanner (or grype), pinned by SHA *(CI)*. Not Trivy: its Actions and v0.69.4 binary were compromised in March 2026 (§19.2)
 - [ ] **P** `EC-I06` Every GitHub Action pinned to a full commit SHA, every image to a digest, every vendored asset to a recorded SHA-256; Renovate updates the pins *(CI: check refuses a tag-only `uses:`)*
-- [ ] **P** `EC-I07` Every dependency (Python, image, vendored asset, CLI tool) has a row in `docs/DEPENDENCIES.md`; the register is reviewed each quarter and before each release *(CI: `audit_deps.py --check`)*
+- [x] **P** `EC-I07` Every dependency (Python, image, vendored asset, CLI tool) has a row in `docs/DEPENDENCIES.md`; the register is reviewed each quarter and before each release *(CI: `audit_deps.py --check`)*
 
 ## J. Usability and accessibility
 - [x] **P** `EC-J01` Keyboard-first front desk (barcode scanner + Enter flows, shortcuts for new patient / bill / print)

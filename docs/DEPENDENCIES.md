@@ -12,6 +12,10 @@ without one (AGENTS.md rule 6). The process and the status rules are in
 - `scripts/audit_deps.py --refresh` rewrites the **Pinned**, **Latest · date** and
   **Rel. 12m** columns from `uv.lock` and PyPI, and prints status changes for a person to
   confirm. A weekly workflow runs it. Without network it reports WARN, never a pass.
+- **A person reviews the register each quarter (January, April, July and October) and before
+  each release** ([releasing](dev/releasing.md#steps), step 1): run `--refresh`, confirm its
+  status changes, look again at every Watch and Replace row, and set **Reviewed** to the day on
+  each row looked at.
 
 **Licence allowlist:** MIT, MIT-CMU, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, 0BSD,
 PostgreSQL, PSF-2.0. Exceptions: LGPL-3.0 for psycopg only (imported unmodified, ADR-0002);

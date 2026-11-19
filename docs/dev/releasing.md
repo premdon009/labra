@@ -23,6 +23,9 @@ person's machine.
    ```sh
    uv run python scripts/check_tracker.py --tag v0.1.0rc1
    ```
+   Then review the [dependency register](../DEPENDENCIES.md): run
+   `uv run python scripts/audit_deps.py --refresh`, confirm the status changes it prints, look
+   again at every Watch and Replace row, and set **Reviewed** on the rows looked at.
 2. Draft the changelog section, then rewrite it for lab owners: what changed for them, not
    which files changed.
    ```sh
